@@ -11,6 +11,9 @@ server:
 spring:
   application:
     name: bbcinema
+  config:
+    # Reads secrets (mail password, VNPay keys...) from a .env file next to pom.xml, if it exists.
+    import: optional:file:.env[.properties]
   profiles:
     active: ${SPRING_PROFILES_ACTIVE:mysql}
   jpa:

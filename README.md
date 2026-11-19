@@ -91,9 +91,12 @@ Tắt dữ liệu mẫu: đặt biến môi trường `SEED_DATA=false`. Muốn 
 
 ## Cấu hình tuỳ chọn
 
-Tất cả nằm trong `src/main/resources/application.yml`.
+Tất cả nằm trong `src/main/resources/application.yml`. Các giá trị bí mật (mật khẩu email, khoá VNPay...)
+nên đặt trong file **`.env`** ở thư mục gốc project (cùng chỗ với `pom.xml`): chép `.env.example` thành `.env`
+rồi điền giá trị. Ứng dụng tự đọc file này khi chạy, và Git bỏ qua nó nên mật khẩu không bị đẩy lên GitHub.
+Cũng có thể đặt các giá trị này bằng biến môi trường.
 
-**Gửi email vé** (Gmail): bật xác minh 2 bước, tạo *Mật khẩu ứng dụng*, rồi đặt biến môi trường
+**Gửi email vé** (Gmail): bật xác minh 2 bước, tạo *Mật khẩu ứng dụng*, rồi ghi vào `.env`
 
 ```
 MAIL_ENABLED=true
