@@ -32,6 +32,15 @@ public class GlobalModelAdvice {
         return cinemaService.resolveSelected(cinemaId).orElse(null);
     }
 
+    /**
+     * False until the visitor has picked a cinema (the cookie is missing or points to a closed
+     * cinema); the customer layout then asks where they want to watch.
+     */
+    @ModelAttribute("cinemaChosen")
+    public boolean cinemaChosen(@CookieValue(name = CINEMA_COOKIE, required = false) Long cinemaId) {
+        return cinemaId != null && cinemaService.findActive().stream().anyMatch(c -> c.getId().equals(cinemaId));
+    }
+
     @ModelAttribute("currentUser")
     public AppUserPrincipal currentUser(@AuthenticationPrincipal AppUserPrincipal principal) {
         return principal;

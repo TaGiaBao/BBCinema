@@ -270,8 +270,9 @@ public class DataSeeder implements ApplicationRunner {
     // ------------------------------------------------------------------ cinemas and rooms
 
     private void seedCinemas() {
-        Cinema cauGiay = cinema("BBCinema Cầu Giấy", "Tầng 5, 241 Xuân Thủy, Cầu Giấy, Hà Nội", "0243 888 1111");
-        Cinema haDong = cinema("BBCinema Hà Đông", "Tầng 4, 10 Quang Trung, Hà Đông, Hà Nội", "0243 888 2222");
+        // Approximate map positions of the two addresses, for the "nearest cinema" suggestion.
+        Cinema cauGiay = cinema("BBCinema Cầu Giấy", "Tầng 5, 241 Xuân Thủy, Cầu Giấy, Hà Nội", "0243 888 1111", 21.0368, 105.7820);
+        Cinema haDong = cinema("BBCinema Hà Đông", "Tầng 4, 10 Quang Trung, Hà Đông, Hà Nội", "0243 888 2222", 20.9714, 105.7788);
         // Standard layout: A-E standard, F-I VIP, couple seats only in the last row (J).
         room(cauGiay, "Phòng 1", 10, 12, "F,G,H,I", "J");
         room(cauGiay, "Phòng 2", 10, 12, "F,G,H,I", "J");
@@ -281,11 +282,13 @@ public class DataSeeder implements ApplicationRunner {
         room(haDong, "Phòng 3 (3D)", 10, 14, "F,G,H,I", "J");
     }
 
-    private Cinema cinema(String name, String address, String phone) {
+    private Cinema cinema(String name, String address, String phone, double latitude, double longitude) {
         Cinema c = new Cinema();
         c.setName(name);
         c.setAddress(address);
         c.setPhone(phone);
+        c.setLatitude(latitude);
+        c.setLongitude(longitude);
         return cinemaRepository.save(c);
     }
 

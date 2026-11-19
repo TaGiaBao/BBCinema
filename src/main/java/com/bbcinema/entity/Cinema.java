@@ -27,4 +27,13 @@ public class Cinema {
 
     @Column(nullable = false)
     private boolean active = true;
+
+    /** Map position, used to suggest the nearest cinema. Optional. */
+    private Double latitude;
+
+    private Double longitude;
+
+    public boolean hasLocation() {
+        return latitude != null && longitude != null;
+    }
 }

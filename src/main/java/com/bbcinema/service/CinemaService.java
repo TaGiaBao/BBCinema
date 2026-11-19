@@ -2,6 +2,7 @@ package com.bbcinema.service;
 
 import com.bbcinema.dto.request.CinemaForm;
 import com.bbcinema.entity.Cinema;
+import com.bbcinema.exception.BusinessException;
 import com.bbcinema.exception.NotFoundException;
 import com.bbcinema.repository.CinemaRepository;
 import lombok.RequiredArgsConstructor;
@@ -52,6 +53,11 @@ public class CinemaService {
         cinema.setAddress(form.getAddress().trim());
         cinema.setPhone(form.getPhone());
         cinema.setActive(form.isActive());
+        if ((form.getLatitude() == null) != (form.getLongitude() == null)) {
+            throw new BusinessException("Vui lòng nhập cả vĩ độ và kinh độ, hoặc để trống cả hai");
+        }
+        cinema.setLatitude(form.getLatitude());
+        cinema.setLongitude(form.getLongitude());
         return cinemaRepository.save(cinema);
     }
 
@@ -62,6 +68,8 @@ public class CinemaService {
         form.setAddress(cinema.getAddress());
         form.setPhone(cinema.getPhone());
         form.setActive(cinema.isActive());
+        form.setLatitude(cinema.getLatitude());
+        form.setLongitude(cinema.getLongitude());
         return form;
     }
 }

@@ -42,6 +42,11 @@
                 <div class="col-12"><label class="form-label small" for="caddress">Địa chỉ</label>
                     <input class="form-control" id="caddress" th:field="*{address}" th:errorclass="is-invalid"><div class="invalid-feedback" th:errors="*{address}"></div></div>
                 <div class="col-6"><label class="form-label small" for="cphone">Điện thoại</label><input class="form-control" id="cphone" th:field="*{phone}"></div>
+                <div class="col-6"><label class="form-label small" for="clat">Vĩ độ</label>
+                    <input class="form-control" id="clat" type="number" step="any" th:field="*{latitude}" th:errorclass="is-invalid" placeholder="21.0365"><div class="invalid-feedback" th:errors="*{latitude}"></div></div>
+                <div class="col-6"><label class="form-label small" for="clng">Kinh độ</label>
+                    <input class="form-control" id="clng" type="number" step="any" th:field="*{longitude}" th:errorclass="is-invalid" placeholder="105.7826"><div class="invalid-feedback" th:errors="*{longitude}"></div></div>
+                <div class="col-12 small text-muted">Toạ độ dùng để gợi ý rạp gần khách nhất. Lấy trên Google Maps: chuột phải vào vị trí rạp, bấm vào dòng số đầu tiên để sao chép.</div>
                 <div class="col-6 d-flex align-items-end"><div class="form-check"><input class="form-check-input" type="checkbox" th:field="*{active}"><label class="form-check-label" th:for="${#ids.prev('active')}">Đang hoạt động</label></div></div>
                 <div class="col-12"><button class="btn btn-navy" type="submit">Lưu rạp</button>
                     <a class="btn btn-link" href="/admin/cinemas" th:if="*{id != null}">Thêm rạp mới</a></div>

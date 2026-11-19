@@ -139,8 +139,41 @@
     </div>
 </div>
 
+<!-- First visit (no BB_CINEMA cookie yet): ask where the visitor wants to watch. Customer site only. -->
+<div class="modal fade" id="cinemaChooser" tabindex="-1" aria-labelledby="cinemaChooserTitle" aria-hidden="true"
+     th:if="${!cinemaChosen and !#lists.isEmpty(cinemas)}">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div>
+                    <h5 class="modal-title" id="cinemaChooserTitle"><i class="bi bi-geo-alt-fill text-warning"></i> Bạn muốn xem phim ở rạp nào?</h5>
+                    <div class="small text-muted">Chọn rạp gần bạn để xem đúng lịch chiếu. Bạn có thể đổi rạp bất cứ lúc nào ở đầu trang.</div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
+            </div>
+            <div class="modal-body">
+                <button type="button" class="btn btn-navy w-100 mb-2" data-role="locate">
+                    <i class="bi bi-crosshair"></i> Dùng vị trí của tôi</button>
+                <div class="small mb-3" data-role="locate-status" role="status" aria-live="polite"></div>
+                <div class="list-group cinema-choices">
+                    <a class="list-group-item list-group-item-action" th:each="c : ${cinemas}"
+                       th:href="@{/select-cinema(id=${c.id},redirect=${currentPath})}"
+                       th:attr="data-lat=${c.latitude},data-lng=${c.longitude}">
+                        <div class="d-flex justify-content-between gap-2">
+                            <strong th:text="${c.name}">Rạp</strong>
+                            <span class="badge text-bg-light d-none" data-role="distance"></span>
+                        </div>
+                        <div class="small text-muted" th:text="${c.address}">Địa chỉ</div>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script src="/webjars/bootstrap/5.3.3/js/bootstrap.bundle.min.js"></script>
 <script src="/js/app.js"></script>
+<script src="/js/cinema-chooser.js" th:if="${!cinemaChosen and !#lists.isEmpty(cinemas)}"></script>
 <th:block th:replace="${scripts}"></th:block>
 </body>
 </html>

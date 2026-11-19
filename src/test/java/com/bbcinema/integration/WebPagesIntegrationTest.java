@@ -2,6 +2,7 @@ package com.bbcinema.integration;
 
 import com.bbcinema.dto.request.CounterSaleForm;
 import com.bbcinema.entity.Booking;
+import com.bbcinema.entity.Cinema;
 import com.bbcinema.entity.Movie;
 import com.bbcinema.entity.Showtime;
 import com.bbcinema.entity.User;
@@ -241,7 +242,8 @@ class WebPagesIntegrationTest extends IntegrationTestBase {
         // On its own detail page the movie is not suggested to itself.
         String detail = mvc.perform(get("/movies/" + upcoming.getSlug())).andExpect(status().isOk())
                 .andReturn().getResponse().getContentAsString();
-        String picks = detail.substring(Math.max(0, detail.indexOf("comingSoonPicksTitle")));
+        int start = detail.indexOf("comingSoonPicksTitle");
+        String picks = start < 0 ? "" : detail.substring(start, detail.indexOf("</section>", start));
         assertThat(picks).doesNotContain("/movies/" + upcoming.getSlug() + "\"");
 
         Showtime st = showtimeTomorrow();
@@ -253,5 +255,54 @@ class WebPagesIntegrationTest extends IntegrationTestBase {
         mvc.perform(get("/booking/" + booking.getCode()).cookie(authCookie(member)))
                 .andExpect(content().string(containsString("Phim sắp chiếu bạn có thể thích")))
                 .andExpect(content().string(containsString("Phim sắp chiếu " + n)));
+    }
+
+    @Test
+    void firstVisitAsksWhichCinemaUntilOneIsChosen() throws Exception {
+        Showtime st = showtimeTomorrow();
+        Cinema cinema = st.getRoom().getCinema();
+        cinema.setLatitude(21.0368);
+        cinema.setLongitude(105.7820);
+        cinemaRepository.save(cinema);
+
+        mvc.perform(get("/"))
+                .andExpect(content().string(containsString("id=\"cinemaChooser\"")))
+                .andExpect(content().string(containsString("Dùng vị trí của tôi")))
+                .andExpect(content().string(containsString("data-lat=\"21.0368\"")))
+                .andExpect(content().string(containsString("/js/cinema-chooser.js")));
+        mvc.perform(get("/").cookie(new Cookie("BB_CINEMA", cinema.getId().toString())))
+                .andExpect(content().string(not(containsString("id=\"cinemaChooser\""))));
+        // A cookie for a cinema that no longer exists counts as not chosen.
+        mvc.perform(get("/").cookie(new Cookie("BB_CINEMA", "999999")))
+                .andExpect(content().string(containsString("id=\"cinemaChooser\"")));
+        // Never on the internal pages.
+        mvc.perform(get("/staff").cookie(authCookie(account(Role.STAFF))))
+                .andExpect(content().string(not(containsString("cinemaChooser"))));
+        mvc.perform(get("/internal/login"))
+                .andExpect(content().string(not(containsString("cinemaChooser"))));
+    }
+
+    @Test
+    void adminSavesCinemaCoordinates() throws Exception {
+        Cookie admin = authCookie(account(Role.ADMIN));
+        int n = unique();
+        mvc.perform(post("/admin/cinemas/save").with(csrf()).cookie(admin)
+                        .param("name", "Rạp toạ độ " + n).param("address", "Hà Nội").param("active", "true")
+                        .param("latitude", "21.03"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("cả vĩ độ và kinh độ")));
+        mvc.perform(post("/admin/cinemas/save").with(csrf()).cookie(admin)
+                        .param("name", "Rạp toạ độ " + n).param("address", "Hà Nội").param("active", "true")
+                        .param("latitude", "95").param("longitude", "105.78"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Vĩ độ từ -90 đến 90")));
+        mvc.perform(post("/admin/cinemas/save").with(csrf()).cookie(admin)
+                        .param("name", "Rạp toạ độ " + n).param("address", "Hà Nội").param("active", "true")
+                        .param("latitude", "21.03").param("longitude", "105.78"))
+                .andExpect(status().is3xxRedirection());
+        Cinema saved = cinemaRepository.findAll().stream()
+                .filter(c -> c.getName().equals("Rạp toạ độ " + n)).findFirst().orElseThrow();
+        assertThat(saved.getLatitude()).isEqualTo(21.03);
+        assertThat(saved.getLongitude()).isEqualTo(105.78);
     }
 }

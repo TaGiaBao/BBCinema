@@ -61,7 +61,13 @@ public class AdminCinemaController {
         if (binding.hasErrors()) {
             return list(model);
         }
-        cinemaService.save(form);
+        try {
+            cinemaService.save(form);
+        } catch (BusinessException e) {
+            binding.reject("location", e.getMessage());
+            model.addAttribute("error", e.getMessage());
+            return list(model);
+        }
         redirect.addFlashAttribute("success", "Đã lưu rạp " + form.getName());
         return "redirect:/admin/cinemas";
     }

@@ -220,3 +220,7 @@ h1, h2, h3, h4, h5 { font-weight: 800; letter-spacing: -0.01em; }
 /* Camera ticket scanner on the check-in page */
 .scanner-view { max-width: 420px; margin: 0 auto; border-radius: 12px; overflow: hidden; background: #000; }
 .scanner-view video { width: 100% !important; display: block; }
+
+/* First-visit cinema chooser */
+.cinema-choices .nearest { border-color: var(--bb-amber); background: #fff8e6; }
+.cinema-choices .nearest [data-role="distance"] { background: var(--bb-amber) !important; color: var(--bb-navy) !important; }

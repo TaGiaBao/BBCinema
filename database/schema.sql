@@ -56,6 +56,8 @@ SET NAMES utf8mb4;
 
     create table cinemas (
         active bit not null,
+        latitude float(53),
+        longitude float(53),
         id bigint not null auto_increment,
         phone varchar(20),
         name varchar(100) not null,
