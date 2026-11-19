@@ -130,6 +130,16 @@ public class VnPayService {
         if (paidAmount.compareTo(payment.getAmount()) != 0) {
             return new VnPayResult(true, false, booking.getCode(), "Số tiền thanh toán không khớp");
         }
+        if (bookingService.isHoldExpired(booking)) {
+            // VNPay took the money but the seat hold is over: do not issue a ticket. The payment is
+            // recorded as failed with the gateway number so the cinema can refund it.
+            payment.setStatus(PaymentStatus.FAILED);
+            payment.setGatewayTransactionNo(params.get("vnp_TransactionNo"));
+            log.warn("Late VNPay payment for booking {} (txn {}, VNPay no {}): hold expired, refund needed",
+                    booking.getCode(), txnRef, params.get("vnp_TransactionNo"));
+            return new VnPayResult(true, false, booking.getCode(),
+                    "Đơn đã hết thời gian giữ ghế nên không thể xuất vé. Rạp sẽ hoàn tiền giao dịch này.");
+        }
         bookingService.confirmPayment(booking, PaymentMethod.VNPAY, txnRef, params.get("vnp_TransactionNo"));
         return new VnPayResult(true, true, booking.getCode(), "Thanh toán thành công");
     }

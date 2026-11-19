@@ -312,4 +312,30 @@ class BookingServiceTest {
         assertThat(service.cancelDeadline(b)).isEqualTo(showtime.getStartTime().minusHours(2));
         assertThat(LocalDateTime.of(2026, 11, 20, 17, 0)).isEqualTo(service.cancelDeadline(b));
     }
+
+    @Test
+    void paymentArrivingAfterHoldTimeIsRefusedEvenBeforeCleanupJob() {
+        Booking b = pendingBooking();
+        // Hold ended a second ago; the cleanup job has not run, so the seats are still HELD.
+        b.setExpiresAt(TestFixtures.NOW.minusSeconds(1));
+        assertThat(a1.getStatus()).isEqualTo(SeatStatus.HELD);
+
+        assertThatThrownBy(() -> service.confirmPayment(b, PaymentMethod.VNPAY, "LATE-TXN", "777"))
+                .isInstanceOf(BusinessException.class)
+                .hasMessageContaining("hết thời gian giữ ghế");
+        assertThat(b.getStatus()).isEqualTo(BookingStatus.PENDING);
+        assertThat(a1.getStatus()).isEqualTo(SeatStatus.HELD);
+        verifyNoInteractions(eventPublisher);
+        verify(paymentRepository, never()).save(any());
+    }
+
+    @Test
+    void holdExpiryUsesTheClock() {
+        Booking b = pendingBooking();
+        assertThat(service.isHoldExpired(b)).isFalse();
+        b.setExpiresAt(TestFixtures.NOW.minusSeconds(1));
+        assertThat(service.isHoldExpired(b)).isTrue();
+        b.setStatus(BookingStatus.PAID);
+        assertThat(service.isHoldExpired(b)).isFalse();
+    }
 }

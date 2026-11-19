@@ -272,9 +272,18 @@ public class BookingService {
             throw new BusinessException("Đơn " + booking.getCode() + " " + booking.getStatus().getLabel().toLowerCase()
                     + ", không thể thay đổi");
         }
-        if (booking.getExpiresAt() != null && booking.getExpiresAt().isBefore(LocalDateTime.now(clock))) {
+        if (isHoldExpired(booking)) {
             throw new BusinessException("Đã hết thời gian giữ ghế. Vui lòng đặt lại.");
         }
+    }
+
+    /**
+     * True when an unpaid booking is past its hold time. The cleanup job only runs every 30 seconds,
+     * so the seats may still look held for a moment after this becomes true.
+     */
+    public boolean isHoldExpired(Booking booking) {
+        return booking.isPending() && booking.getExpiresAt() != null
+                && booking.getExpiresAt().isBefore(LocalDateTime.now(clock));
     }
 
     private static BigDecimal subtotal(Booking booking) {
@@ -320,6 +329,8 @@ public class BookingService {
     /**
      * Marks a booking as paid: seats become BOOKED, the promotion use and the points are recorded,
      * and a ticket e-mail is sent after the transaction commits. Calling it twice is harmless.
+     * A payment that arrives after the hold time is refused even if the cleanup job has not released
+     * the seats yet.
      */
     @Transactional
     public Booking confirmPayment(Booking booking, PaymentMethod method, String transactionRef, String gatewayTransactionNo) {
@@ -329,6 +340,9 @@ public class BookingService {
         if (!booking.isPending()) {
             throw new BusinessException("Đơn " + booking.getCode() + " " + booking.getStatus().getLabel().toLowerCase()
                     + ", không thể thanh toán");
+        }
+        if (isHoldExpired(booking)) {
+            throw new BusinessException("Đơn " + booking.getCode() + " đã hết thời gian giữ ghế, không thể xác nhận thanh toán");
         }
         LocalDateTime now = LocalDateTime.now(clock);
         List<Long> seatIds = booking.getSeats().stream().map(ShowtimeSeat::getId).toList();

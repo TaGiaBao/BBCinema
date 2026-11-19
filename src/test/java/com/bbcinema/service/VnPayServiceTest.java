@@ -140,4 +140,28 @@ class VnPayServiceTest {
         }
         return map;
     }
+
+    @Test
+    void callbackArrivingAfterHoldTimeIsNotConfirmed() {
+        Booking booking = pending();
+        booking.setExpiresAt(TestFixtures.NOW.minusSeconds(10));
+        Payment payment = new Payment();
+        payment.setBooking(booking);
+        payment.setAmount(BigDecimal.valueOf(150_000));
+        payment.setStatus(PaymentStatus.PENDING);
+        when(paymentRepository.findByTransactionRef("LATE1")).thenReturn(Optional.of(payment));
+        when(bookingService.isHoldExpired(booking)).thenReturn(true);
+        Map<String, String> params = signed(Map.of("vnp_TxnRef", "LATE1", "vnp_Amount", "15000000",
+                "vnp_ResponseCode", "00", "vnp_TransactionStatus", "00", "vnp_TransactionNo", "888"));
+
+        VnPayService.VnPayResult result = service().handleCallback(params);
+
+        assertThat(result.validSignature()).isTrue();
+        assertThat(result.success()).isFalse();
+        assertThat(result.message()).contains("hoàn tiền");
+        // Recorded so the cinema can find and refund it.
+        assertThat(payment.getStatus()).isEqualTo(PaymentStatus.FAILED);
+        assertThat(payment.getGatewayTransactionNo()).isEqualTo("888");
+        verify(bookingService, never()).confirmPayment(any(), any(), any(), any());
+    }
 }
