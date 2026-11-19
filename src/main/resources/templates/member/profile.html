@@ -9,6 +9,22 @@
         <div class="row g-4">
             <div class="col-lg-3"><div th:replace="~{member/_nav :: nav}"></div></div>
             <div class="col-lg-9 d-grid gap-4">
+                <div class="panel member-tier" th:classappend="'tier-' + ${membership.tier.name()}">
+                    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
+                        <div>
+                            <div class="small text-muted">Hạng thành viên</div>
+                            <div class="h4 mb-0"><i class="bi bi-gem"></i> <span th:text="${membership.tier.label}">Vàng</span>
+                                <span class="badge text-bg-warning fs-6 align-middle" th:if="${membership.discountPercent > 0}"
+                                      th:text="'Giảm ' + ${membership.discountPercent} + '% mỗi đơn'">Giảm 10%</span></div>
+                        </div>
+                        <div class="text-end small">
+                            <div>Chi tiêu 12 tháng qua: <strong th:text="${@fmt.money(membership.spent)}">0đ</strong></div>
+                            <div th:if="${membership.next != null}">Chi tiêu thêm <strong th:text="${@fmt.money(membership.toNext)}">0đ</strong>
+                                để lên hạng <strong th:text="${membership.next.label}">Kim cương</strong></div>
+                            <div th:if="${membership.next == null}">Bạn đang ở hạng cao nhất.</div>
+                        </div>
+                    </div>
+                </div>
                 <div class="panel">
                     <h2 class="h5 mb-3">Thông tin tài khoản</h2>
                     <form th:action="@{/member/profile}" th:object="${profileForm}" method="post" class="row g-3">

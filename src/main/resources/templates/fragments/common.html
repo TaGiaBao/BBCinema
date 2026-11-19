@@ -92,6 +92,9 @@
     <div class="summary-row" th:each="line : ${booking.combos}">
         <span th:text="${line.quantity} + ' × ' + ${line.combo.name}">Combo</span>
         <span class="tabular" th:text="${@fmt.money(line.lineTotal)}">0đ</span></div>
+    <div class="summary-row text-success" th:if="${booking.tierDiscount.signum() > 0}">
+        <span><i class="bi bi-gem"></i> Ưu đãi hạng <span th:text="${booking.memberTier.label}">Vàng</span></span>
+        <span class="tabular" th:text="'-' + ${@fmt.money(booking.tierDiscount)}">0đ</span></div>
     <div class="summary-row text-success" th:if="${booking.promotionDiscount.signum() > 0}">
         <span th:text="'Mã ' + ${booking.promotion != null ? booking.promotion.code : ''}">Mã</span>
         <span class="tabular" th:text="'-' + ${@fmt.money(booking.promotionDiscount)}">0đ</span></div>

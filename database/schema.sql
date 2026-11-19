@@ -28,6 +28,8 @@ SET NAMES utf8mb4;
     ) engine=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
     create table bookings (
+        tier_discount decimal(12,0) not null default 0,
+        member_tier varchar(10),
         combo_amount decimal(12,0) not null,
         points_earned integer not null,
         points_used integer not null,

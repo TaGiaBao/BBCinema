@@ -167,4 +167,23 @@ class BookingFlowIntegrationTest extends IntegrationTestBase {
         Showtime next = showtimeService.create(first.getMovie(), first.getRoom(), first.getEndTime(), ScreenFormat.TWO_D, false);
         assertThat(next.getId()).isNotNull();
     }
+
+    @Test
+    void goldMemberGetsTierDiscountBeforePromotionAndPoints() {
+        User user = member(28);
+        // 3,000,000đ spent this year makes the member Gold (10% off).
+        Showtime first = showtimeTomorrow();
+        Booking past = bookingService.holdSeats(user.getId(), first.getId(), freeSeats(first.getId(), 1));
+        bookingService.payWithMock(past.getCode(), user.getId());
+        Booking saved = bookingRepository.findDetailedByCode(past.getCode()).orElseThrow();
+        saved.setTotalAmount(java.math.BigDecimal.valueOf(3_000_000));
+        bookingRepository.save(saved);
+
+        Showtime st = showtimeTomorrow();
+        Booking booking = bookingService.holdSeats(user.getId(), st.getId(), freeSeats(st.getId(), 2));
+
+        assertThat(booking.getMemberTier()).isEqualTo(com.bbcinema.entity.enums.MemberTier.GOLD);
+        assertThat(booking.getTierDiscount()).isEqualByComparingTo(booking.getTicketAmount().multiply(java.math.BigDecimal.valueOf(0.1)));
+        assertThat(booking.getTotalAmount()).isEqualByComparingTo(booking.getTicketAmount().subtract(booking.getTierDiscount()));
+    }
 }

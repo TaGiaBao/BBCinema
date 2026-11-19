@@ -48,6 +48,7 @@ public class BookingService {
     private final ComboService comboService;
     private final PromotionService promotionService;
     private final PointService pointService;
+    private final MembershipService membershipService;
     private final ApplicationEventPublisher eventPublisher;
     private final AppProperties properties;
     private final Clock clock;
@@ -292,7 +293,13 @@ public class BookingService {
 
     /** Recomputes discounts and the total. Called after every change to the order. */
     void recalculate(Booking booking) {
-        BigDecimal subtotal = subtotal(booking);
+        // 1. Membership tier discount (members only), 2. promotion code, 3. points.
+        BigDecimal fullPrice = subtotal(booking);
+        MemberTier tier = booking.getUser() == null ? null : membershipService.tierOf(booking.getUser());
+        BigDecimal tierDiscount = tier == null ? BigDecimal.ZERO : membershipService.discountOn(tier, fullPrice);
+        booking.setMemberTier(tier);
+        booking.setTierDiscount(tierDiscount);
+        BigDecimal subtotal = fullPrice.subtract(tierDiscount);
         BigDecimal promotionDiscount = BigDecimal.ZERO;
         if (booking.getPromotion() != null) {
             try {

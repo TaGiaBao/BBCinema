@@ -84,4 +84,11 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
               and b.status = com.bbcinema.entity.enums.BookingStatus.PAID and b.showtime.startTime <= :now
             """)
     long countWatched(Long userId, Long movieId, java.time.LocalDateTime now);
+
+    /** Total paid by the member for bookings paid since the given time (used for membership tiers). */
+    @Query("""
+            select sum(b.totalAmount) from Booking b
+            where b.user.id = :userId and b.status = com.bbcinema.entity.enums.BookingStatus.PAID and b.paidAt >= :since
+            """)
+    java.math.BigDecimal sumPaidByUserSince(Long userId, java.time.LocalDateTime since);
 }

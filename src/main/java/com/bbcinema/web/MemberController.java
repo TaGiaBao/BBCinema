@@ -27,6 +27,7 @@ public class MemberController {
     private final UserService userService;
     private final BookingService bookingService;
     private final PointService pointService;
+    private final com.bbcinema.service.MembershipService membershipService;
 
     @GetMapping
     public String profile(@AuthenticationPrincipal AppUserPrincipal principal, Model model) {
@@ -90,8 +91,9 @@ public class MemberController {
         return "member/points";
     }
 
-    private static void addCommon(Model model, User user, String tab) {
+    private void addCommon(Model model, User user, String tab) {
         model.addAttribute("user", user);
         model.addAttribute("tab", tab);
+        model.addAttribute("membership", membershipService.status(user));
     }
 }

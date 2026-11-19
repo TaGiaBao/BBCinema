@@ -52,7 +52,8 @@ class BookingServiceTest {
         pointService = spy(new PointService(mock(com.bbcinema.repository.PointTransactionRepository.class),
                 TestFixtures.properties(), TestFixtures.clock()));
         service = new BookingService(bookingRepository, showtimeSeatRepository, paymentRepository, showtimeService,
-                userService, comboService, promotionService, pointService, eventPublisher,
+                userService, comboService, promotionService, pointService,
+                new MembershipService(bookingRepository, TestFixtures.properties(), TestFixtures.clock()), eventPublisher,
                 TestFixtures.properties(), TestFixtures.clock());
         user = TestFixtures.user(1, LocalDate.of(2000, 1, 1));
         showtime = TestFixtures.showtime(10, TestFixtures.movie(1, 120, AgeRating.T16), TestFixtures.room(1),

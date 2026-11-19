@@ -71,6 +71,15 @@ app:
     earn-percent: 5
     value-per-point: 1000
     max-redeem-percent: 50
+  # Membership tiers by spending over the last period-days; each tier gets a discount on its orders.
+  membership:
+    period-days: 365
+    silver-from: 1000000
+    gold-from: 3000000
+    diamond-from: 6000000
+    silver-percent: 5
+    gold-percent: 10
+    diamond-percent: 15
   jwt:
     # Base64 of a random 32+ byte key. Change it in production: openssl rand -base64 32
     secret: ${JWT_SECRET:Ymljb2luZW1hLWRldmVsb3BtZW50LXNlY3JldC1rZXktY2hhbmdlLW1lLTIwMjY=}

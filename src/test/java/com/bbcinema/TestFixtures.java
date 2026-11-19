@@ -35,7 +35,8 @@ public final class TestFixtures {
                 new AppProperties.Upload("target/test-uploads"),
                 new AppProperties.Mail(false, "test@bbcinema.local"),
                 new AppProperties.VnPay("TESTCODE", "SECRETKEY123", "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html", "/payment/vnpay-return"),
-                false);
+                false,
+                AppProperties.Membership.DEFAULT);
     }
 
     public static User user(long id, LocalDate birthDate) {

@@ -72,6 +72,14 @@ public class Booking {
     @Column(name = "combo_amount", nullable = false, precision = 12, scale = 0)
     private BigDecimal comboAmount = BigDecimal.ZERO;
 
+    /** Membership tier of the member when the order was made, and the discount it gave. */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "member_tier", length = 10)
+    private com.bbcinema.entity.enums.MemberTier memberTier;
+
+    @Column(name = "tier_discount", nullable = false, precision = 12, scale = 0)
+    private BigDecimal tierDiscount = BigDecimal.ZERO;
+
     @Column(name = "promotion_discount", nullable = false, precision = 12, scale = 0)
     private BigDecimal promotionDiscount = BigDecimal.ZERO;
 
@@ -114,7 +122,7 @@ public class Booking {
     }
 
     public BigDecimal getDiscountAmount() {
-        return promotionDiscount.add(getPointsDiscount());
+        return tierDiscount.add(promotionDiscount).add(getPointsDiscount());
     }
 
     public String getSeatLabels() {

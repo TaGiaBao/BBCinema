@@ -21,7 +21,7 @@ class FileStorageServiceTest {
     private FileStorageService service() {
         AppProperties p = TestFixtures.properties();
         AppProperties props = new AppProperties(p.baseUrl(), p.timezone(), p.booking(), p.points(), p.jwt(),
-                new AppProperties.Upload(dir.toString()), p.mail(), p.vnpay(), false);
+                new AppProperties.Upload(dir.toString()), p.mail(), p.vnpay(), false, p.membership());
         return new FileStorageService(props);
     }
 

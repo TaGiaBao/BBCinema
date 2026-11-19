@@ -13,7 +13,13 @@ public record AppProperties(
         Upload upload,
         Mail mail,
         VnPay vnpay,
-        boolean seedData) {
+        boolean seedData,
+        Membership membership) {
+
+    /** Membership settings, or the defaults when the section is missing. */
+    public Membership membershipOrDefault() {
+        return membership != null ? membership : Membership.DEFAULT;
+    }
 
     public record Booking(
             int holdMinutes,
@@ -32,6 +38,22 @@ public record AppProperties(
             String secret,
             long expirationHours,
             String cookieName) {
+    }
+
+    /**
+     * Spending (in đồng, over the last {@code periodDays}) needed for each tier, and the discount
+     * each tier gets on its orders.
+     */
+    public record Membership(
+            int periodDays,
+            long silverFrom,
+            long goldFrom,
+            long diamondFrom,
+            int silverPercent,
+            int goldPercent,
+            int diamondPercent) {
+
+        public static final Membership DEFAULT = new Membership(365, 1_000_000, 3_000_000, 6_000_000, 5, 10, 15);
     }
 
     public record Upload(String dir) {
