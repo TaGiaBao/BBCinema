@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="vi" xmlns:th="http://www.thymeleaf.org"
       th:replace="~{layout/main :: layout(~{::title}, ~{::main}, ~{::scripts})}">
-<head><title>Chọn ghế · BBCinema</title></head>
+<head><title>[[#{ui.chon_ghe_bbcinema}]]</title></head>
 <body>
 <main>
     <div class="container mt-4">
@@ -11,7 +11,7 @@
                 <div class="col-lg-8">
                     <div class="panel">
                         <div class="d-flex flex-wrap gap-2 mb-3 align-items-center">
-                            <span class="small text-muted me-1">Đổi suất:</span>
+                            <span class="small text-muted me-1">[[#{ui.doi_suat}]]</span>
                             <a th:each="s : ${otherShowtimes}" class="time-btn" th:classappend="${s.id == showtime.id} ? 'border-warning bg-warning-subtle'"
                                th:href="@{/booking/showtime/{id}(id=${s.id})}">
                                 <span th:text="${#temporals.format(s.startTime, 'HH:mm')}">19:00</span>
@@ -19,8 +19,7 @@
                         </div>
                         <div th:replace="~{fragments/seatmap :: seatMap(${seatMap}, 'seatIds')}"></div>
                         <p class="small text-muted text-center mt-3 mb-0">
-                            Còn <strong data-role="available-count" th:text="${seatMap.availableCount}">0</strong> / <span th:text="${seatMap.totalCount}">0</span> ghế trống.
-                            Ghế được giữ trong 5 phút sau khi bạn bấm Tiếp tục.</p>
+                            [[#{ui.con}]] <strong data-role="available-count" th:text="${seatMap.availableCount}">0</strong> / <span th:text="${seatMap.totalCount}">0</span> [[#{ui.ghe_trong_ghe_duoc_giu}]]</p>
                     </div>
                 </div>
                 <div class="col-lg-4">
@@ -33,17 +32,17 @@
                                         th:text="${showtime.movie.ageRating.name()}">P</span> <span th:text="${showtime.versionLabel}">2D</span></div>
                             </div>
                         </div>
-                        <div class="summary-row"><span class="text-muted">Rạp</span><strong th:text="${showtime.room.cinema.name}">Rạp</strong></div>
-                        <div class="summary-row"><span class="text-muted">Phòng</span><strong th:text="${showtime.room.name}">P1</strong></div>
-                        <div class="summary-row"><span class="text-muted">Suất</span>
+                        <div class="summary-row"><span class="text-muted">[[#{ui.rap}]]</span><strong th:text="${showtime.room.cinema.name}">Rạp</strong></div>
+                        <div class="summary-row"><span class="text-muted">[[#{ui.phong}]]</span><strong th:text="${showtime.room.name}">P1</strong></div>
+                        <div class="summary-row"><span class="text-muted">[[#{ui.suat}]]</span>
                             <strong th:text="${#temporals.format(showtime.startTime, 'HH:mm')} + ' · ' + ${@fmt.dayName(showtime.startTime.toLocalDate())} + ' ' + ${#temporals.format(showtime.startTime, 'dd/MM/yyyy')}">19:00</strong></div>
-                        <div class="summary-row"><span class="text-muted">Ghế</span><strong id="selectedSeats">Chưa chọn ghế</strong></div>
+                        <div class="summary-row"><span class="text-muted">[[#{ui.ghe}]]</span><strong id="selectedSeats">[[#{ui.chua_chon_ghe}]]</strong></div>
                         <hr>
-                        <div class="summary-row align-items-center"><span class="fw-bold">Tạm tính</span><span class="summary-total tabular" id="seatTotal">0đ</span></div>
+                        <div class="summary-row align-items-center"><span class="fw-bold">[[#{ui.tam_tinh}]]</span><span class="summary-total tabular" id="seatTotal">[[#{ui.0d}]]</span></div>
                         <div class="alert alert-warning small mt-3 mb-0" th:if="${showtime.movie.ageRating.minAge > 0}">
-                            <i class="bi bi-person-badge"></i> Phim <strong th:text="${showtime.movie.ageRating.name()}">T16</strong>:
-                            <span th:text="${showtime.movie.ageRating.label}">Từ 16 tuổi</span>. Rạp kiểm tra ngày sinh trong tài khoản và có thể yêu cầu giấy tờ khi vào phòng.</div>
-                        <button id="seatSubmit" class="btn btn-amber btn-lg w-100 mt-3" type="submit" disabled>Tiếp tục <i class="bi bi-arrow-right"></i></button>
+                            <i class="bi bi-person-badge"></i> [[#{page.layout_main.phim}]] <strong th:text="${showtime.movie.ageRating.name()}">T16</strong>:
+                            <span th:text="${showtime.movie.ageRating.label}">Từ 16 tuổi</span>[[#{ui.rap_kiem_tra_ngay_sinh}]]</div>
+                        <button id="seatSubmit" class="btn btn-amber btn-lg w-100 mt-3" type="submit" disabled>[[#{ui.tiep_tuc}]] <i class="bi bi-arrow-right"></i></button>
                     </div>
                 </div>
             </div>

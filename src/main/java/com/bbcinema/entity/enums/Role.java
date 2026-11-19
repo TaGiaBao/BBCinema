@@ -12,7 +12,7 @@ public enum Role {
     }
 
     public String getLabel() {
-        return label;
+        return com.bbcinema.config.I18n.label(this, label);
     }
 
     /** Authority name used by Spring Security, e.g. ROLE_ADMIN. */

@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="vi" xmlns:th="http://www.thymeleaf.org"
       th:replace="~{layout/main :: layout(~{::title}, ~{::main}, ~{::scripts})}">
-<head><title>BBCinema · Đặt vé xem phim</title></head>
+<head><title>[[#{ui.bbcinema_dat_ve_xem_phim}]]</title></head>
 <body>
 <main>
     <div id="bannerCarousel" class="carousel slide banner-carousel" data-bs-ride="carousel" th:if="${!#lists.isEmpty(banners)}">
@@ -15,23 +15,23 @@
             </div>
         </div>
         <button class="carousel-control-prev" type="button" data-bs-target="#bannerCarousel" data-bs-slide="prev">
-            <span class="carousel-control-prev-icon" aria-hidden="true"></span><span class="visually-hidden">Trước</span>
+            <span class="carousel-control-prev-icon" aria-hidden="true"></span><span class="visually-hidden">[[#{ui.truoc}]]</span>
         </button>
         <button class="carousel-control-next" type="button" data-bs-target="#bannerCarousel" data-bs-slide="next">
-            <span class="carousel-control-next-icon" aria-hidden="true"></span><span class="visually-hidden">Sau</span>
+            <span class="carousel-control-next-icon" aria-hidden="true"></span><span class="visually-hidden">[[#{page.home.sau}]]</span>
         </button>
     </div>
 
     <section class="container mt-5">
         <ul class="nav section-tabs mb-4" role="tablist">
             <li class="nav-item" role="presentation">
-                <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-coming" type="button" role="tab">Phim sắp chiếu</button>
+                <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-coming" type="button" role="tab">[[#{ui.phim_sap_chieu}]]</button>
             </li>
             <li class="nav-item" role="presentation">
-                <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-now" type="button" role="tab">Phim đang chiếu</button>
+                <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-now" type="button" role="tab">[[#{ui.phim_dang_chieu}]]</button>
             </li>
             <li class="nav-item" role="presentation">
-                <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-special" type="button" role="tab">Suất chiếu đặc biệt</button>
+                <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-special" type="button" role="tab">[[#{ui.suat_chieu_dac_biet}]]</button>
             </li>
         </ul>
         <div class="tab-content">
@@ -39,19 +39,19 @@
                 <div class="row row-cols-2 row-cols-md-3 row-cols-lg-4 g-4">
                     <div class="col" th:each="m : ${comingSoon}"><div th:replace="~{fragments/common :: movieCard(${m})}"></div></div>
                 </div>
-                <p class="text-muted" th:if="${#lists.isEmpty(comingSoon)}">Chưa có phim sắp chiếu.</p>
+                <p class="text-muted" th:if="${#lists.isEmpty(comingSoon)}">[[#{ui.chua_co_phim_sap_chieu}]]</p>
             </div>
             <div class="tab-pane fade show active" id="tab-now" role="tabpanel">
                 <div class="row row-cols-2 row-cols-md-3 row-cols-lg-4 g-4">
                     <div class="col" th:each="m : ${nowShowing}"><div th:replace="~{fragments/common :: movieCard(${m})}"></div></div>
                 </div>
-                <p class="text-muted" th:if="${#lists.isEmpty(nowShowing)}">Chưa có phim đang chiếu.</p>
+                <p class="text-muted" th:if="${#lists.isEmpty(nowShowing)}">[[#{ui.chua_co_phim_dang_chieu}]]</p>
             </div>
             <div class="tab-pane fade" id="tab-special" role="tabpanel">
                 <div class="row row-cols-2 row-cols-md-3 row-cols-lg-4 g-4">
                     <div class="col" th:each="m : ${special}"><div th:replace="~{fragments/common :: movieCard(${m})}"></div></div>
                 </div>
-                <p class="text-muted" th:if="${#lists.isEmpty(special)}">Rạp này chưa có suất chiếu đặc biệt.</p>
+                <p class="text-muted" th:if="${#lists.isEmpty(special)}">[[#{ui.rap_nay_chua_co_suat}]]</p>
             </div>
         </div>
     </section>
@@ -60,8 +60,8 @@
 
     <section class="container mt-5" th:if="${!#lists.isEmpty(posts)}">
         <div class="d-flex justify-content-between align-items-end mb-3">
-            <h2 class="h4 mb-0">Tin mới và ưu đãi</h2>
-            <a href="/news" class="fw-semibold">Xem tất cả <i class="bi bi-arrow-right"></i></a>
+            <h2 class="h4 mb-0">[[#{ui.tin_moi_va_uu_dai}]]</h2>
+            <a href="/news" class="fw-semibold">[[#{ui.xem_tat_ca}]] <i class="bi bi-arrow-right"></i></a>
         </div>
         <div class="row row-cols-1 row-cols-sm-2 row-cols-lg-4 g-4">
             <div class="col" th:each="p : ${posts}">

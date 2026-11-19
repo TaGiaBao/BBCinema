@@ -1,20 +1,20 @@
 <!DOCTYPE html>
 <html lang="vi" xmlns:th="http://www.thymeleaf.org"
       th:replace="~{layout/main :: layout(~{::title}, ~{::main}, ~{::scripts})}">
-<head><title>Vé của tôi · BBCinema</title></head>
+<head><title>[[#{ui.ve_cua_toi_bbcinema}]]</title></head>
 <body>
 <main>
-    <div class="page-head"><div class="container"><h1 class="h3 mb-0">Thành viên</h1></div></div>
+    <div class="page-head"><div class="container"><h1 class="h3 mb-0">[[#{ui.thanh_vien}]]</h1></div></div>
     <div class="container mt-4">
         <div class="row g-4">
             <div class="col-lg-3"><div th:replace="~{member/_nav :: nav}"></div></div>
             <div class="col-lg-9">
                 <div class="panel">
-                    <h2 class="h5 mb-3">Lịch sử giao dịch</h2>
-                    <p class="text-muted" th:if="${page.empty}">Bạn chưa đặt vé nào. <a href="/schedule">Xem lịch chiếu</a></p>
+                    <h2 class="h5 mb-3">[[#{ui.lich_su_giao_dich}]]</h2>
+                    <p class="text-muted" th:if="${page.empty}">[[#{ui.ban_chua_dat_ve_nao}]] <a href="/schedule">[[#{ui.xem_lich_chieu}]]</a></p>
                     <div class="table-responsive" th:unless="${page.empty}">
                         <table class="table align-middle">
-                            <thead><tr><th>Mã vé</th><th>Phim</th><th>Suất chiếu</th><th>Ghế</th><th class="text-end">Tổng tiền</th><th>Trạng thái</th><th></th></tr></thead>
+                            <thead><tr><th>[[#{ui.ma_ve}]]</th><th>[[#{page.layout_main.phim}]]</th><th>[[#{ui.suat_chieu}]]</th><th>[[#{ui.ghe}]]</th><th class="text-end">[[#{ui.tong_tien}]]</th><th>[[#{attr.trang_thai}]]</th><th></th></tr></thead>
                             <tbody>
                             <tr th:each="b : ${page.content}">
                                 <td class="fw-bold font-monospace" th:text="${b.code}">ABC</td>
@@ -24,7 +24,7 @@
                                 <td th:text="${b.seatLabels}">A1</td>
                                 <td class="text-end tabular" th:text="${@fmt.money(b.totalAmount)}">0đ</td>
                                 <td><span class="status-pill" th:classappend="'status-' + ${b.status.name()}" th:text="${b.status.label}">Đã thanh toán</span></td>
-                                <td><a class="btn btn-sm btn-outline-navy" th:href="@{/booking/{code}(code=${b.code})}">Xem</a></td>
+                                <td><a class="btn btn-sm btn-outline-navy" th:href="@{/booking/{code}(code=${b.code})}">[[#{page.member_bookings.xem}]]</a></td>
                             </tr>
                             </tbody>
                         </table>

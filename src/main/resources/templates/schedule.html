@@ -1,11 +1,11 @@
 <!DOCTYPE html>
 <html lang="vi" xmlns:th="http://www.thymeleaf.org"
       th:replace="~{layout/main :: layout(~{::title}, ~{::main}, ~{::scripts})}">
-<head><title>Lịch chiếu theo rạp · BBCinema</title></head>
+<head><title>[[#{ui.lich_chieu_theo_rap_bbcinema}]]</title></head>
 <body>
 <main>
     <div class="page-head"><div class="container">
-        <h1 class="h3 mb-1">Lịch chiếu theo rạp</h1>
+        <h1 class="h3 mb-1">[[#{ui.lich_chieu_theo_rap}]]</h1>
         <div class="opacity-75" th:if="${currentCinema != null}">
             <i class="bi bi-geo-alt"></i> <span th:text="${currentCinema.name} + ' · ' + ${currentCinema.address}">Rạp</span></div>
     </div></div>
@@ -16,7 +16,7 @@
                 <span class="dow" th:text="${@fmt.relativeDay(d, today)} + ' · ' + ${#temporals.format(d, 'MM')}">Hôm nay</span>
             </a>
         </div>
-        <p class="text-muted" th:if="${#lists.isEmpty(schedule)}">Rạp chưa có suất chiếu trong ngày này.</p>
+        <p class="text-muted" th:if="${#lists.isEmpty(schedule)}">[[#{ui.rap_chua_co_suat_chieu}]]</p>
         <div class="d-grid gap-3">
             <div class="panel d-flex gap-3" th:each="item : ${schedule}">
                 <a th:href="@{/movies/{slug}(slug=${item.movie.slug})}" class="flex-shrink-0">
@@ -26,7 +26,7 @@
                     <a class="h5 text-decoration-none text-dark d-block" th:href="@{/movies/{slug}(slug=${item.movie.slug})}" th:text="${item.movie.title}">Phim</a>
                     <div class="small text-muted mb-3">
                         <span class="age-badge" th:classappend="${item.movie.ageRating.name()}" th:text="${item.movie.ageRating.name()}">P</span>
-                        <span th:text="${item.movie.genreNames} + ' · ' + ${item.movie.durationMinutes} + ' phút'">Thể loại</span>
+                        <span th:text="${item.movie.genreNames} + ' · ' + #{unit.minutesN(${item.movie.durationMinutes})}">Thể loại</span>
                     </div>
                     <div class="d-flex flex-wrap gap-2">
                         <a th:each="s : ${item.showtimes}" class="time-btn" th:classappend="${s.special} ? 'special'" th:href="@{/booking/showtime/{id}(id=${s.id})}">

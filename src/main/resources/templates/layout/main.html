@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="vi" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+<html lang="vi" th:lang="${lang}" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
       th:fragment="layout(title, content, scripts)">
 <head>
     <meta charset="UTF-8">
@@ -18,17 +18,17 @@
 
 <div class="bb-topbar d-none d-md-block">
     <div class="container d-flex justify-content-between py-1">
-        <span><i class="bi bi-telephone"></i> Hotline: 1900 6868 · 8:00 - 23:00 mỗi ngày</span>
+        <span><i class="bi bi-telephone"></i> [[#{ui.hotline_1900_6868_8_00}]]</span>
         <span class="d-flex gap-3">
-            <a href="/news?type=PROMOTION"><i class="bi bi-gift"></i> Ưu đãi</a>
-            <a href="/prices"><i class="bi bi-tags"></i> Giá vé</a>
+            <a href="/news?type=PROMOTION"><i class="bi bi-gift"></i> [[#{ui.uu_dai}]]</a>
+            <a href="/prices"><i class="bi bi-tags"></i> [[#{ui.gia_ve}]]</a>
         </span>
     </div>
 </div>
 
 <header class="bb-header">
     <nav class="navbar navbar-expand-lg navbar-dark container py-0">
-        <a class="bb-logo me-3 py-2" href="/" aria-label="BBCinema trang chủ">
+        <a class="bb-logo me-3 py-2" href="/" th:aria-label="#{attr.bbcinema_trang_chu}">
             <span class="mark">BB</span><span class="word">BB<span>Cinema</span></span>
         </a>
         <div class="dropdown cinema-picker me-auto me-lg-3" th:if="${!#lists.isEmpty(cinemas)}">
@@ -44,33 +44,42 @@
             </ul>
         </div>
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNav"
-                aria-controls="mainNav" aria-expanded="false" aria-label="Mở menu">
+                aria-controls="mainNav" aria-expanded="false" th:aria-label="#{attr.mo_menu}">
             <span class="navbar-toggler-icon"></span>
         </button>
         <div class="collapse navbar-collapse" id="mainNav">
             <ul class="navbar-nav me-auto">
-                <li class="nav-item"><a class="nav-link" th:classappend="${#strings.startsWith(currentPath,'/schedule')} ? 'active'" href="/schedule">Lịch chiếu theo rạp</a></li>
-                <li class="nav-item"><a class="nav-link" th:classappend="${#strings.startsWith(currentPath,'/movies')} ? 'active'" href="/movies">Phim</a></li>
-                <li class="nav-item"><a class="nav-link" th:classappend="${#strings.startsWith(currentPath,'/cinemas')} ? 'active'" href="/cinemas">Rạp</a></li>
-                <li class="nav-item"><a class="nav-link" th:classappend="${#strings.startsWith(currentPath,'/prices')} ? 'active'" href="/prices">Giá vé</a></li>
-                <li class="nav-item"><a class="nav-link" th:classappend="${#strings.startsWith(currentPath,'/news')} ? 'active'" href="/news">Tin mới và ưu đãi</a></li>
+                <li class="nav-item"><a class="nav-link" th:classappend="${#strings.startsWith(currentPath,'/schedule')} ? 'active'" href="/schedule">[[#{ui.lich_chieu_theo_rap}]]</a></li>
+                <li class="nav-item"><a class="nav-link" th:classappend="${#strings.startsWith(currentPath,'/movies')} ? 'active'" href="/movies">[[#{page.layout_main.phim}]]</a></li>
+                <li class="nav-item"><a class="nav-link" th:classappend="${#strings.startsWith(currentPath,'/cinemas')} ? 'active'" href="/cinemas">[[#{ui.rap}]]</a></li>
+                <li class="nav-item"><a class="nav-link" th:classappend="${#strings.startsWith(currentPath,'/prices')} ? 'active'" href="/prices">[[#{ui.gia_ve}]]</a></li>
+                <li class="nav-item"><a class="nav-link" th:classappend="${#strings.startsWith(currentPath,'/news')} ? 'active'" href="/news">[[#{ui.tin_moi_va_uu_dai}]]</a></li>
             </ul>
+            <div class="dropdown py-2 me-2 lang-switch">
+                <button class="btn btn-sm btn-outline-light dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false"
+                        th:aria-label="#{lang.switch}">
+                    <i class="bi bi-translate"></i> <span th:text="${lang == 'en'} ? 'ENG' : 'VIE'">VIE</span></button>
+                <ul class="dropdown-menu dropdown-menu-end">
+                    <li><a class="dropdown-item" th:classappend="${lang == 'vi'} ? 'active'" th:href="@{${currentPath}(lang='vi')}" hreflang="vi" lang="vi">[[#{ui.tieng_viet}]]</a></li>
+                    <li><a class="dropdown-item" th:classappend="${lang == 'en'} ? 'active'" th:href="@{${currentPath}(lang='en')}" hreflang="en" lang="en">[[#{page.layout_main.english}]]</a></li>
+                </ul>
+            </div>
             <div class="d-flex align-items-center gap-2 py-2" sec:authorize="!isAuthenticated()">
-                <a class="btn btn-sm btn-outline-light" href="/login">Đăng nhập</a>
-                <a class="btn btn-sm btn-amber" href="/register">Đăng ký</a>
+                <a class="btn btn-sm btn-outline-light" href="/login">[[#{ui.dang_nhap}]]</a>
+                <a class="btn btn-sm btn-amber" href="/register">[[#{ui.dang_ky}]]</a>
             </div>
             <div class="dropdown py-2" sec:authorize="isAuthenticated()">
                 <button class="btn btn-sm btn-amber dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
                     <i class="bi bi-person-circle"></i> <span th:text="${currentUser.fullName}">Tên</span>
                 </button>
                 <ul class="dropdown-menu dropdown-menu-end">
-                    <li><a class="dropdown-item" href="/member"><i class="bi bi-person"></i> Thông tin tài khoản</a></li>
-                    <li><a class="dropdown-item" href="/member/bookings"><i class="bi bi-ticket-perforated"></i> Vé của tôi</a></li>
-                    <li><a class="dropdown-item" href="/member/points"><i class="bi bi-star"></i> Điểm thưởng</a></li>
+                    <li><a class="dropdown-item" href="/member"><i class="bi bi-person"></i> [[#{ui.thong_tin_tai_khoan}]]</a></li>
+                    <li><a class="dropdown-item" href="/member/bookings"><i class="bi bi-ticket-perforated"></i> [[#{ui.ve_cua_toi}]]</a></li>
+                    <li><a class="dropdown-item" href="/member/points"><i class="bi bi-star"></i> [[#{ui.diem_thuong}]]</a></li>
                     <li><hr class="dropdown-divider"></li>
                     <li>
                         <form th:action="@{/logout}" method="post">
-                            <button class="dropdown-item" type="submit"><i class="bi bi-box-arrow-right"></i> Đăng xuất</button>
+                            <button class="dropdown-item" type="submit"><i class="bi bi-box-arrow-right"></i> [[#{ui.dang_xuat}]]</button>
                         </form>
                     </li>
                 </ul>
@@ -88,28 +97,28 @@
         <div class="row g-4">
             <div class="col-md-4">
                 <a class="bb-logo mb-3" href="/"><span class="mark">BB</span><span class="word">BB<span>Cinema</span></span></a>
-                <p class="small mb-0">Hệ thống rạp chiếu phim BBCinema. Đồ án môn Kỹ năng lập trình nâng cao, xây dựng bằng Java Spring Boot.</p>
+                <p class="small mb-0">[[#{ui.he_thong_rap_chieu_phim}]]</p>
             </div>
             <div class="col-6 col-md-2">
-                <h6>Khám phá</h6>
+                <h6>[[#{ui.kham_pha}]]</h6>
                 <ul class="list-unstyled small d-grid gap-1">
-                    <li><a href="/movies?status=NOW_SHOWING">Phim đang chiếu</a></li>
-                    <li><a href="/movies?status=COMING_SOON">Phim sắp chiếu</a></li>
-                    <li><a href="/schedule">Lịch chiếu</a></li>
-                    <li><a href="/prices">Giá vé</a></li>
+                    <li><a href="/movies?status=NOW_SHOWING">[[#{ui.phim_dang_chieu}]]</a></li>
+                    <li><a href="/movies?status=COMING_SOON">[[#{ui.phim_sap_chieu}]]</a></li>
+                    <li><a href="/schedule">[[#{ui.lich_chieu}]]</a></li>
+                    <li><a href="/prices">[[#{ui.gia_ve}]]</a></li>
                 </ul>
             </div>
             <div class="col-6 col-md-2">
-                <h6>Thành viên</h6>
+                <h6>[[#{ui.thanh_vien}]]</h6>
                 <ul class="list-unstyled small d-grid gap-1">
-                    <li><a href="/member">Tài khoản</a></li>
-                    <li><a href="/member/bookings">Vé của tôi</a></li>
-                    <li><a href="/member/points">Điểm thưởng</a></li>
-                    <li><a href="/news?type=PROMOTION">Ưu đãi</a></li>
+                    <li><a href="/member">[[#{ui.tai_khoan}]]</a></li>
+                    <li><a href="/member/bookings">[[#{ui.ve_cua_toi}]]</a></li>
+                    <li><a href="/member/points">[[#{ui.diem_thuong}]]</a></li>
+                    <li><a href="/news?type=PROMOTION">[[#{ui.uu_dai}]]</a></li>
                 </ul>
             </div>
             <div class="col-md-4">
-                <h6>Hệ thống rạp</h6>
+                <h6>[[#{ui.he_thong_rap}]]</h6>
                 <ul class="list-unstyled small d-grid gap-2">
                     <li th:each="c : ${cinemas}"><strong class="text-white" th:text="${c.name}">Rạp</strong><br>
                         <span th:text="${c.address}">Địa chỉ</span> · <span th:text="${c.phone}">SĐT</span></li>
@@ -118,8 +127,8 @@
         </div>
         <hr class="border-secondary">
         <div class="small d-flex flex-wrap justify-content-between gap-2">
-            <span>© 2026 BBCinema</span>
-            <span><a href="/swagger-ui.html">Tài liệu API</a></span>
+            <span>[[#{page.layout_main.2026_bbcinema}]]</span>
+            <span><a href="/swagger-ui.html">[[#{ui.tai_lieu_api}]]</a></span>
         </div>
     </div>
 </footer>
@@ -128,8 +137,8 @@
     <div class="modal-dialog modal-lg modal-dialog-centered">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="showtimeModalTitle">Lịch chiếu · <span data-role="title"></span></h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
+                <h5 class="modal-title" id="showtimeModalTitle">[[#{ui.lich_chieu_2}]] <span data-role="title"></span></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" th:aria-label="#{attr.dong}"></button>
             </div>
             <div class="modal-body">
                 <div class="date-strip mb-3" data-role="dates"></div>
@@ -146,14 +155,14 @@
         <div class="modal-content">
             <div class="modal-header">
                 <div>
-                    <h5 class="modal-title" id="cinemaChooserTitle"><i class="bi bi-geo-alt-fill text-warning"></i> Bạn muốn xem phim ở rạp nào?</h5>
-                    <div class="small text-muted">Chọn rạp gần bạn để xem đúng lịch chiếu. Bạn có thể đổi rạp bất cứ lúc nào ở đầu trang.</div>
+                    <h5 class="modal-title" id="cinemaChooserTitle"><i class="bi bi-geo-alt-fill text-warning"></i> [[#{ui.ban_muon_xem_phim_o}]]</h5>
+                    <div class="small text-muted">[[#{ui.chon_rap_gan_ban_de}]]</div>
                 </div>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" th:aria-label="#{attr.dong}"></button>
             </div>
             <div class="modal-body">
                 <button type="button" class="btn btn-navy w-100 mb-2" data-role="locate">
-                    <i class="bi bi-crosshair"></i> Dùng vị trí của tôi</button>
+                    <i class="bi bi-crosshair"></i> [[#{ui.dung_vi_tri_cua_toi}]]</button>
                 <div class="small mb-3" data-role="locate-status" role="status" aria-live="polite"></div>
                 <div class="list-group cinema-choices">
                     <a class="list-group-item list-group-item-action" th:each="c : ${cinemas}"
@@ -172,6 +181,11 @@
 </div>
 
 <script src="/webjars/bootstrap/5.3.3/js/bootstrap.bundle.min.js"></script>
+<script th:inline="javascript">
+    /* Texts for the page scripts (js.* in messages*.properties). */
+    window.BB_T = /*[[${jsMessages}]]*/ {};
+    window.bbT = function (key, fallback) { return (window.BB_T && window.BB_T[key]) || fallback; };
+</script>
 <script src="/js/app.js"></script>
 <script src="/js/cinema-chooser.js" th:if="${!cinemaChosen and !#lists.isEmpty(cinemas)}"></script>
 <th:block th:replace="${scripts}"></th:block>

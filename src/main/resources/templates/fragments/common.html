@@ -6,11 +6,11 @@
 <div th:fragment="flash" class="container mt-3" th:if="${success != null or error != null}">
     <div th:if="${success != null}" class="alert alert-success alert-dismissible fade show mb-0" role="alert">
         <i class="bi bi-check-circle-fill"></i> <span th:text="${success}">OK</span>
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Đóng"></button>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" th:aria-label="#{attr.dong}"></button>
     </div>
     <div th:if="${error != null}" class="alert alert-danger alert-dismissible fade show mb-0" role="alert">
         <i class="bi bi-exclamation-triangle-fill"></i> <span th:text="${error}">Lỗi</span>
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Đóng"></button>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" th:aria-label="#{attr.dong}"></button>
     </div>
 </div>
 
@@ -18,19 +18,19 @@
 <div th:fragment="movieCard(movie)" class="movie-card">
     <div class="poster">
         <img th:src="${movie.posterPath != null ? movie.posterPath : '/images/no-image.svg'}" th:alt="${movie.title}" loading="lazy">
-        <span class="rating-badge" th:if="${movie.ratingCount > 0}" th:attr="aria-label=${'Điểm khán giả ' + movie.ratingAverage + ' trên 5'}">
+        <span class="rating-badge" th:if="${movie.ratingCount > 0}" th:aria-label="#{review.badgeAria(${movie.ratingAverage})}">
             <i class="bi bi-star-fill"></i> <span th:text="${#numbers.formatDecimal(movie.ratingAverage, 1, 1, 'COMMA')}">4,5</span></span>
         <div class="overlay">
             <a class="btn btn-amber btn-sm px-4" href="#" th:if="${movie.status.name() != 'ENDED'}"
-               th:attr="data-buy-movie=${movie.id},data-movie-title=${movie.title}"><i class="bi bi-ticket-perforated"></i> Mua vé</a>
-            <a class="btn btn-outline-light btn-sm px-4" th:href="@{/movies/{slug}(slug=${movie.slug})}"><i class="bi bi-info-circle"></i> Chi tiết</a>
+               th:attr="data-buy-movie=${movie.id},data-movie-title=${movie.title}"><i class="bi bi-ticket-perforated"></i> [[#{ui.mua_ve}]]</a>
+            <a class="btn btn-outline-light btn-sm px-4" th:href="@{/movies/{slug}(slug=${movie.slug})}"><i class="bi bi-info-circle"></i> [[#{ui.chi_tiet}]]</a>
         </div>
     </div>
     <div class="body">
         <a class="title" th:href="@{/movies/{slug}(slug=${movie.slug})}" th:text="${movie.title}">Tên phim</a>
         <div class="meta"><span class="age-badge" th:classappend="${movie.ageRating.name()}" th:text="${movie.ageRating.name()}">P</span>
             <span th:text="${movie.genreNames}">Thể loại</span></div>
-        <div class="meta"><i class="bi bi-clock"></i> <span th:text="${movie.durationMinutes} + ' phút'">120 phút</span>
+        <div class="meta"><i class="bi bi-clock"></i> <span th:text="#{unit.minutesN(${movie.durationMinutes})}">120 phút</span>
             <span th:if="${movie.releaseDate != null}"> · <i class="bi bi-calendar-event"></i>
                 <span th:text="${#temporals.format(movie.releaseDate, 'dd/MM/yyyy')}">01/01</span></span></div>
     </div>
@@ -40,8 +40,8 @@
 <section th:fragment="comingSoonPicks(movies)" class="coming-soon-picks mt-5" th:if="${!#lists.isEmpty(movies)}"
          aria-labelledby="comingSoonPicksTitle">
     <div class="d-flex justify-content-between align-items-end mb-3">
-        <h2 class="h4 mb-0" id="comingSoonPicksTitle">Phim sắp chiếu bạn có thể thích</h2>
-        <a href="/movies?status=COMING_SOON" class="fw-semibold">Xem tất cả <i class="bi bi-arrow-right"></i></a>
+        <h2 class="h4 mb-0" id="comingSoonPicksTitle">[[#{ui.phim_sap_chieu_ban_co}]]</h2>
+        <a href="/movies?status=COMING_SOON" class="fw-semibold">[[#{ui.xem_tat_ca}]] <i class="bi bi-arrow-right"></i></a>
     </div>
     <div class="row row-cols-2 row-cols-md-4 g-4">
         <div class="col" th:each="m : ${movies}"><div th:replace="~{fragments/common :: movieCard(${m})}"></div></div>
@@ -49,7 +49,7 @@
 </section>
 
 <!-- Pagination: needs ${page} (Spring Page) and a base URL with the current filters -->
-<nav th:fragment="pager(page, baseUrl)" th:if="${page.totalPages > 1}" aria-label="Phân trang" class="mt-4">
+<nav th:fragment="pager(page, baseUrl)" th:if="${page.totalPages > 1}" th:aria-label="#{attr.phan_trang}" class="mt-4">
     <ul class="pagination justify-content-center">
         <li class="page-item" th:classappend="${page.first} ? 'disabled'">
             <a class="page-link" th:href="${baseUrl + (baseUrl.contains('?') ? '&' : '?') + 'page=' + (page.number - 1)}">‹</a>
@@ -65,10 +65,10 @@
 
 <!-- Booking progress -->
 <div th:fragment="steps(current)" class="steps mb-3">
-    <span th:classappend="${current > 1} ? 'done' : (${current == 1} ? 'current')">1. Chọn ghế</span>
-    <span th:classappend="${current > 2} ? 'done' : (${current == 2} ? 'current')">2. Bắp nước</span>
-    <span th:classappend="${current > 3} ? 'done' : (${current == 3} ? 'current')">3. Thanh toán</span>
-    <span th:classappend="${current == 4} ? 'current'">4. Nhận vé</span>
+    <span th:classappend="${current > 1} ? 'done' : (${current == 1} ? 'current')">[[#{ui.1_chon_ghe}]]</span>
+    <span th:classappend="${current > 2} ? 'done' : (${current == 2} ? 'current')">[[#{ui.2_bap_nuoc}]]</span>
+    <span th:classappend="${current > 3} ? 'done' : (${current == 3} ? 'current')">[[#{ui.3_thanh_toan}]]</span>
+    <span th:classappend="${current == 4} ? 'current'">[[#{ui.4_nhan_ve}]]</span>
 </div>
 
 <!-- Booking summary sidebar -->
@@ -82,30 +82,30 @@
                 <span th:text="${booking.showtime.versionLabel}">2D</span></div>
         </div>
     </div>
-    <div class="summary-row"><span class="text-muted">Rạp</span><strong th:text="${booking.showtime.room.cinema.name}">Rạp</strong></div>
-    <div class="summary-row"><span class="text-muted">Phòng</span><strong th:text="${booking.showtime.room.name}">P1</strong></div>
-    <div class="summary-row"><span class="text-muted">Suất</span>
+    <div class="summary-row"><span class="text-muted">[[#{ui.rap}]]</span><strong th:text="${booking.showtime.room.cinema.name}">Rạp</strong></div>
+    <div class="summary-row"><span class="text-muted">[[#{ui.phong}]]</span><strong th:text="${booking.showtime.room.name}">P1</strong></div>
+    <div class="summary-row"><span class="text-muted">[[#{ui.suat}]]</span>
         <strong th:text="${#temporals.format(booking.showtime.startTime, 'HH:mm')} + ' · ' + ${@fmt.dayName(booking.showtime.startTime.toLocalDate())} + ' ' + ${#temporals.format(booking.showtime.startTime, 'dd/MM')}">19:00</strong></div>
-    <div class="summary-row"><span class="text-muted">Ghế</span><strong th:text="${booking.seatLabels}">A1</strong></div>
+    <div class="summary-row"><span class="text-muted">[[#{ui.ghe}]]</span><strong th:text="${booking.seatLabels}">A1</strong></div>
     <hr>
-    <div class="summary-row"><span>Tiền vé</span><span class="tabular" th:text="${@fmt.money(booking.ticketAmount)}">0đ</span></div>
+    <div class="summary-row"><span>[[#{ui.tien_ve}]]</span><span class="tabular" th:text="${@fmt.money(booking.ticketAmount)}">0đ</span></div>
     <div class="summary-row" th:each="line : ${booking.combos}">
         <span th:text="${line.quantity} + ' × ' + ${line.combo.name}">Combo</span>
         <span class="tabular" th:text="${@fmt.money(line.lineTotal)}">0đ</span></div>
     <div class="summary-row text-success" th:if="${booking.tierDiscount.signum() > 0}">
-        <span><i class="bi bi-gem"></i> Ưu đãi hạng <span th:text="${booking.memberTier.label}">Vàng</span></span>
+        <span><i class="bi bi-gem"></i> [[#{ui.uu_dai_hang}]] <span th:text="${booking.memberTier.label}">Vàng</span></span>
         <span class="tabular" th:text="'-' + ${@fmt.money(booking.tierDiscount)}">0đ</span></div>
     <div class="summary-row text-success" th:if="${booking.promotionDiscount.signum() > 0}">
-        <span th:text="'Mã ' + ${booking.promotion != null ? booking.promotion.code : ''}">Mã</span>
+        <span th:text="#{summary.code(${booking.promotion != null ? booking.promotion.code : ''})}">Mã</span>
         <span class="tabular" th:text="'-' + ${@fmt.money(booking.promotionDiscount)}">0đ</span></div>
     <div class="summary-row text-success" th:if="${booking.pointsUsed > 0}">
-        <span th:text="'Dùng ' + ${booking.pointsUsed} + ' điểm'">Điểm</span>
+        <span th:text="#{summary.pointsUsed(${booking.pointsUsed})}">Điểm</span>
         <span class="tabular" th:text="'-' + ${@fmt.money(booking.pointsDiscount)}">0đ</span></div>
     <hr>
-    <div class="summary-row align-items-center"><span class="fw-bold">Tổng cộng</span>
+    <div class="summary-row align-items-center"><span class="fw-bold">[[#{ui.tong_cong}]]</span>
         <span class="summary-total tabular" th:text="${@fmt.money(booking.totalAmount)}">0đ</span></div>
     <div class="summary-row small" th:if="${booking.pending and booking.expiresAt != null}">
-        <span class="text-muted">Thời gian giữ ghế</span>
+        <span class="text-muted">[[#{ui.thoi_gian_giu_ghe}]]</span>
         <span class="countdown" th:attr="data-expires-at=${booking.expiresAtEpochMillis}">05:00</span></div>
 </div>
 

@@ -28,16 +28,16 @@ public class Fmt {
 
     public String dayName(LocalDate date) {
         DayOfWeek day = date.getDayOfWeek();
-        return DAY_NAMES[day.getValue() - 1];
+        return com.bbcinema.config.I18n.t("day." + day.getValue(), DAY_NAMES[day.getValue() - 1]);
     }
 
     /** "Hôm nay", "Ngày mai" or the day name. */
     public String relativeDay(LocalDate date, LocalDate today) {
         if (date.equals(today)) {
-            return "Hôm nay";
+            return com.bbcinema.config.I18n.t("day.today", "Hôm nay");
         }
         if (date.equals(today.plusDays(1))) {
-            return "Ngày mai";
+            return com.bbcinema.config.I18n.t("day.tomorrow", "Ngày mai");
         }
         return dayName(date);
     }
@@ -46,10 +46,12 @@ public class Fmt {
     public String duration(int minutes) {
         int hours = minutes / 60;
         int rest = minutes % 60;
+        String h = com.bbcinema.config.I18n.t("unit.hour", "giờ");
+        String m = com.bbcinema.config.I18n.t("unit.minute", "phút");
         if (hours == 0) {
-            return rest + " phút";
+            return rest + " " + m;
         }
-        return rest == 0 ? hours + " giờ" : hours + " giờ " + rest + " phút";
+        return rest == 0 ? hours + " " + h : hours + " " + h + " " + rest + " " + m;
     }
 
     /** Turns a YouTube watch link into an embeddable link; returns null for other links. */

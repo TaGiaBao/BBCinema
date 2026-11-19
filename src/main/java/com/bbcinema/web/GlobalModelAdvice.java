@@ -52,6 +52,31 @@ public class GlobalModelAdvice {
         return ShowtimeService.BOOKING_WINDOW_DAYS;
     }
 
+    @ModelAttribute("lang")
+    public String lang() {
+        return com.bbcinema.config.I18n.isEnglish() ? "en" : "vi";
+    }
+
+    /** Texts used by the page scripts (keys starting with "js."), in the visitor's language. */
+    @ModelAttribute("jsMessages")
+    public java.util.Map<String, String> jsMessages() {
+        java.util.Locale locale = com.bbcinema.config.I18n.currentLocale();
+        return JS_MESSAGES.computeIfAbsent(locale.getLanguage(), lang -> {
+            java.util.Map<String, String> map = new java.util.TreeMap<>();
+            java.util.ResourceBundle bundle = java.util.ResourceBundle.getBundle("messages", locale,
+                    java.util.ResourceBundle.Control.getNoFallbackControl(java.util.ResourceBundle.Control.FORMAT_PROPERTIES));
+            for (String key : bundle.keySet()) {
+                if (key.startsWith("js.")) {
+                    map.put(key.substring(3), bundle.getString(key));
+                }
+            }
+            return map;
+        });
+    }
+
+    private static final java.util.Map<String, java.util.Map<String, String>> JS_MESSAGES =
+            new java.util.concurrent.ConcurrentHashMap<>();
+
     @ModelAttribute("currentPath")
     public String currentPath(HttpServletRequest request) {
         return request.getRequestURI();

@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 <html lang="vi" xmlns:th="http://www.thymeleaf.org"
       th:replace="~{layout/main :: layout(~{::title}, ~{::main}, ~{::scripts})}">
-<head><title>Hệ thống rạp · BBCinema</title></head>
+<head><title>[[#{ui.he_thong_rap_bbcinema}]]</title></head>
 <body>
 <main>
-    <div class="page-head"><div class="container"><h1 class="h3 mb-0">Hệ thống rạp BBCinema</h1></div></div>
+    <div class="page-head"><div class="container"><h1 class="h3 mb-0">[[#{ui.he_thong_rap_bbcinema_2}]]</h1></div></div>
     <div class="container mt-4">
         <div class="row g-4">
             <div class="col-lg-5 d-grid gap-3 align-content-start" id="cinemaList">
@@ -14,20 +14,20 @@
                     <p class="mb-1"><i class="bi bi-geo-alt"></i> <span th:text="${c.address}">Địa chỉ</span></p>
                     <p class="mb-3"><i class="bi bi-telephone"></i> <span th:text="${c.phone}">SĐT</span></p>
                     <div class="d-flex flex-wrap gap-2">
-                        <a class="btn btn-navy btn-sm" th:href="@{/select-cinema(id=${c.id},redirect='/schedule')}">Xem lịch chiếu</a>
+                        <a class="btn btn-navy btn-sm" th:href="@{/select-cinema(id=${c.id},redirect='/schedule')}">[[#{ui.xem_lich_chieu}]]</a>
                         <button type="button" class="btn btn-outline-navy btn-sm" data-role="show-on-map" th:if="${c.hasLocation()}">
-                            <i class="bi bi-map"></i> Xem trên bản đồ</button>
+                            <i class="bi bi-map"></i> [[#{ui.xem_tren_ban_do}]]</button>
                         <a class="btn btn-link btn-sm" target="_blank" rel="noopener" th:if="${c.hasLocation()}"
                            th:href="'https://www.google.com/maps/dir/?api=1&destination=' + ${c.latitude} + ',' + ${c.longitude}">
-                            <i class="bi bi-sign-turn-right"></i> Chỉ đường</a>
+                            <i class="bi bi-sign-turn-right"></i> [[#{ui.chi_duong}]]</a>
                     </div>
                 </div>
             </div>
             <div class="col-lg-7">
                 <div class="panel p-2">
-                    <h2 class="h6 px-2 pt-1">Bản đồ vị trí</h2>
-                    <div id="cinemaMap" class="cinema-map" role="region" aria-label="Bản đồ các rạp BBCinema"></div>
-                    <p class="small text-muted px-2 mb-1 mt-2">Bản đồ © OpenStreetMap. Cần kết nối mạng để hiện nền bản đồ.</p>
+                    <h2 class="h6 px-2 pt-1">[[#{ui.ban_do_vi_tri}]]</h2>
+                    <div id="cinemaMap" class="cinema-map" role="region" th:aria-label="#{attr.ban_do_cac_rap_bbcinema}"></div>
+                    <p class="small text-muted px-2 mb-1 mt-2">[[#{ui.ban_do_openstreetmap_can_ket}]]</p>
                 </div>
             </div>
         </div>

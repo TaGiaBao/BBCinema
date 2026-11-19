@@ -32,6 +32,11 @@ spring:
     multipart:
       max-file-size: 5MB
       max-request-size: 10MB
+  # Page texts: messages.properties (Vietnamese, default) and messages_en.properties.
+  messages:
+    basename: messages
+    encoding: UTF-8
+    fallback-to-system-locale: false
   thymeleaf:
     cache: false
   mail:

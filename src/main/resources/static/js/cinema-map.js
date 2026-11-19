@@ -2,13 +2,16 @@
 // on a cinema card (or a marker) highlights that cinema on both the map and the list.
 (function () {
   'use strict';
+  // Translated text for the page language (window.bbT from layout/main.html), Vietnamese otherwise.
+  const t = (key, fallback, ...args) => (window.bbT ? window.bbT(key, fallback) : fallback)
+    .replace(/\{(\d)\}/g, (m, i) => (args[i] !== undefined ? args[i] : m));
   const mapEl = document.getElementById('cinemaMap');
   if (!mapEl || !window.L) {
     return;
   }
   const cards = Array.from(document.querySelectorAll('.cinema-card[data-lat][data-lng]'));
   if (!cards.length) {
-    mapEl.innerHTML = '<p class="text-muted p-3 mb-0">Các rạp chưa có toạ độ trên bản đồ.</p>';
+    mapEl.innerHTML = '<p class="text-muted p-3 mb-0">' + t('mapNoCoords', 'Các rạp chưa có toạ độ trên bản đồ.') + '</p>';
     return;
   }
 

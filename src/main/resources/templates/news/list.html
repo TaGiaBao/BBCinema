@@ -1,15 +1,15 @@
 <!DOCTYPE html>
 <html lang="vi" xmlns:th="http://www.thymeleaf.org"
       th:replace="~{layout/main :: layout(~{::title}, ~{::main}, ~{::scripts})}">
-<head><title>Tin mới và ưu đãi · BBCinema</title></head>
+<head><title>[[#{ui.tin_moi_va_uu_dai_2}]]</title></head>
 <body>
 <main>
-    <div class="page-head"><div class="container"><h1 class="h3 mb-0">Tin mới và ưu đãi</h1></div></div>
+    <div class="page-head"><div class="container"><h1 class="h3 mb-0">[[#{ui.tin_moi_va_uu_dai}]]</h1></div></div>
     <div class="container mt-4">
         <ul class="nav section-tabs mb-4">
-            <li class="nav-item"><a class="nav-link" th:classappend="${type == null} ? 'active'" href="/news">Tất cả</a></li>
-            <li class="nav-item"><a class="nav-link" th:classappend="${type != null and type.name() == 'PROMOTION'} ? 'active'" href="/news?type=PROMOTION">Ưu đãi</a></li>
-            <li class="nav-item"><a class="nav-link" th:classappend="${type != null and type.name() == 'NEWS'} ? 'active'" href="/news?type=NEWS">Tin mới</a></li>
+            <li class="nav-item"><a class="nav-link" th:classappend="${type == null} ? 'active'" href="/news">[[#{ui.tat_ca}]]</a></li>
+            <li class="nav-item"><a class="nav-link" th:classappend="${type != null and type.name() == 'PROMOTION'} ? 'active'" href="/news?type=PROMOTION">[[#{ui.uu_dai}]]</a></li>
+            <li class="nav-item"><a class="nav-link" th:classappend="${type != null and type.name() == 'NEWS'} ? 'active'" href="/news?type=NEWS">[[#{ui.tin_moi}]]</a></li>
         </ul>
         <div class="row row-cols-1 row-cols-sm-2 row-cols-lg-3 g-4">
             <div class="col" th:each="p : ${page.content}">
@@ -23,7 +23,7 @@
                 </a>
             </div>
         </div>
-        <p class="text-muted" th:if="${page.empty}">Chưa có bài viết.</p>
+        <p class="text-muted" th:if="${page.empty}">[[#{ui.chua_co_bai_viet}]]</p>
         <div th:replace="~{fragments/common :: pager(${page}, ${'/news' + (type != null ? '?type=' + type : '')})}"></div>
     </div>
 </main>

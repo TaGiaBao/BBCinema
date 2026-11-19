@@ -1,31 +1,31 @@
 <!DOCTYPE html>
 <html lang="vi" xmlns:th="http://www.thymeleaf.org"
       th:replace="~{layout/main :: layout(~{::title}, ~{::main}, ~{::scripts})}">
-<head><title>Phim · BBCinema</title></head>
+<head><title>[[#{page.movies_list.phim_bbcinema}]]</title></head>
 <body>
 <main>
-    <div class="page-head"><div class="container"><h1 class="h3 mb-0">Phim</h1></div></div>
+    <div class="page-head"><div class="container"><h1 class="h3 mb-0">[[#{page.layout_main.phim}]]</h1></div></div>
     <div class="container mt-4">
         <form class="row g-2 mb-4" method="get" action="/movies">
-            <div class="col-md-5"><input class="form-control" name="q" th:value="${q}" placeholder="Tìm theo tên phim" aria-label="Tên phim"></div>
+            <div class="col-md-5"><input class="form-control" name="q" th:value="${q}" th:placeholder="#{attr.tim_theo_ten_phim}" th:aria-label="#{attr.ten_phim}"></div>
             <div class="col-6 col-md-3">
-                <select class="form-select" name="status" aria-label="Trạng thái">
-                    <option value="">Tất cả trạng thái</option>
+                <select class="form-select" name="status" th:aria-label="#{attr.trang_thai}">
+                    <option value="">[[#{ui.tat_ca_trang_thai}]]</option>
                     <option th:each="s : ${statuses}" th:value="${s}" th:text="${s.label}" th:selected="${s == status}">Trạng thái</option>
                 </select>
             </div>
             <div class="col-6 col-md-2">
-                <select class="form-select" name="genre" aria-label="Thể loại">
-                    <option value="">Mọi thể loại</option>
+                <select class="form-select" name="genre" th:aria-label="#{attr.the_loai}">
+                    <option value="">[[#{ui.moi_the_loai}]]</option>
                     <option th:each="g : ${genres}" th:value="${g.id}" th:text="${g.name}" th:selected="${g.id == genre}">Thể loại</option>
                 </select>
             </div>
-            <div class="col-md-2 d-grid"><button class="btn btn-navy" type="submit"><i class="bi bi-search"></i> Tìm</button></div>
+            <div class="col-md-2 d-grid"><button class="btn btn-navy" type="submit"><i class="bi bi-search"></i> [[#{ui.tim}]]</button></div>
         </form>
         <div class="row row-cols-2 row-cols-md-3 row-cols-lg-4 g-4">
             <div class="col" th:each="m : ${page.content}"><div th:replace="~{fragments/common :: movieCard(${m})}"></div></div>
         </div>
-        <p class="text-muted" th:if="${page.empty}">Không tìm thấy phim phù hợp.</p>
+        <p class="text-muted" th:if="${page.empty}">[[#{ui.khong_tim_thay_phim_phu}]]</p>
         <div th:replace="~{fragments/common :: pager(${page}, ${'/movies?q=' + (q != null ? q : '') + '&status=' + (status != null ? status : '') + '&genre=' + (genre != null ? genre : '')})}"></div>
     </div>
 </main>

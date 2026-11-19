@@ -1,6 +1,9 @@
 // Shared scripts for the public site: CSRF helper and the "Mua vé" showtime picker.
 (function () {
   'use strict';
+  // Translated text for the page language (window.bbT from layout/main.html), Vietnamese otherwise.
+  const t = (key, fallback, ...args) => (window.bbT ? window.bbT(key, fallback) : fallback)
+    .replace(/\{(\d)\}/g, (m, i) => (args[i] !== undefined ? args[i] : m));
 
   /** CSRF token for fetch() calls that use the login cookie. */
   window.bbCsrf = function () {
@@ -21,7 +24,7 @@
 
   const pad = (n) => String(n).padStart(2, '0');
   const isoDate = (d) => d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
-  const dayNames = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
+  const dayNames = t('dayNames', 'CN,T2,T3,T4,T5,T6,T7').split(',');
 
   const modalEl = document.getElementById('showtimeModal');
   if (!modalEl || !window.bootstrap) {
@@ -45,7 +48,7 @@
       btn.type = 'button';
       btn.className = isoDate(d) === selected ? 'active' : '';
       btn.innerHTML = '<span class="day">' + pad(d.getDate()) + '</span><span class="dow">' +
-        (i === 0 ? 'Hôm nay' : dayNames[d.getDay()]) + ' · ' + pad(d.getMonth() + 1) + '</span>';
+        (i === 0 ? t('today', 'Hôm nay') : dayNames[d.getDay()]) + ' · ' + pad(d.getMonth() + 1) + '</span>';
       btn.addEventListener('click', () => load(isoDate(d)));
       datesEl.appendChild(btn);
     }
@@ -56,17 +59,16 @@
 
   function load(date) {
     renderDates(date);
-    timesEl.innerHTML = '<div class="text-muted py-3">Đang tải suất chiếu...</div>';
+    timesEl.innerHTML = '<div class="text-muted py-3">' + t('loadingShowtimes', 'Đang tải suất chiếu...') + '</div>';
     fetch('/api/movies/' + movieId + '/showtimes?cinemaId=' + encodeURIComponent(cinemaId) + '&date=' + date)
       .then((r) => (r.ok ? r.json() : Promise.reject(r.status)))
       .then((list) => {
         if (list.length === 0) {
-          timesEl.innerHTML = '<div class="text-muted py-3">Không có suất chiếu tại ' + cinemaName +
-            ' trong ngày này. Hãy chọn ngày khác hoặc đổi rạp ở đầu trang.</div>';
+          timesEl.innerHTML = '<div class="text-muted py-3">' + t('noShowtimes', 'Không có suất chiếu tại {0} trong ngày này. Hãy chọn ngày khác hoặc đổi rạp ở đầu trang.', cinemaName) + '</div>';
           return;
         }
         const groups = {};
-        list.forEach((s) => { const key = s.format + ' ' + (s.language || 'Phụ đề'); (groups[key] = groups[key] || []).push(s); });
+        list.forEach((s) => { const key = s.format + ' ' + (s.language || t('subtitled', 'Phụ đề')); (groups[key] = groups[key] || []).push(s); });
         timesEl.innerHTML = '';
         Object.keys(groups).forEach((format) => {
           const block = document.createElement('div');
@@ -77,14 +79,14 @@
             const a = document.createElement('a');
             a.className = 'time-btn' + (s.special ? ' special' : '');
             a.href = '/booking/showtime/' + s.id;
-            a.innerHTML = s.startTime.substring(11, 16) + '<small>' + s.roomName + (s.special ? ' · Đặc biệt' : '') + '</small>';
+            a.innerHTML = s.startTime.substring(11, 16) + '<small>' + s.roomName + (s.special ? ' · ' + t('special', 'Đặc biệt') : '') + '</small>';
             row.appendChild(a);
           });
           timesEl.appendChild(block);
         });
       })
       .catch(() => {
-        timesEl.innerHTML = '<div class="text-danger py-3">Không tải được suất chiếu. Vui lòng thử lại.</div>';
+        timesEl.innerHTML = '<div class="text-danger py-3">' + t('loadError', 'Không tải được suất chiếu. Vui lòng thử lại.') + '</div>';
       });
   }
 
@@ -95,7 +97,7 @@
     }
     e.preventDefault();
     if (!cinemaId) {
-      alert('Chưa có rạp nào đang hoạt động.');
+      alert(t('noCinema', 'Chưa có rạp nào đang hoạt động.'));
       return;
     }
     movieId = trigger.dataset.buyMovie;

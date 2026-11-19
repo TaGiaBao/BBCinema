@@ -15,7 +15,7 @@
                 <div style="white-space: pre-line; max-width: 70ch" th:text="${post.content}">Nội dung</div>
             </article>
             <aside class="col-lg-4">
-                <h2 class="h5 mb-3">Bài viết khác</h2>
+                <h2 class="h5 mb-3">[[#{ui.bai_viet_khac}]]</h2>
                 <div class="d-grid gap-3">
                     <a th:each="p : ${latest}" th:if="${p.id != post.id}" class="d-flex gap-3 text-decoration-none text-dark" th:href="@{/news/{slug}(slug=${p.slug})}">
                         <img th:src="${p.thumbnailPath != null ? p.thumbnailPath : '/images/no-image.svg'}" alt="" style="width: 120px; border-radius: 8px">

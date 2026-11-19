@@ -13,7 +13,7 @@ public enum ShowLanguage {
     }
 
     public String getLabel() {
-        return label;
+        return com.bbcinema.config.I18n.label(this, label);
     }
 
     /** Default for a movie: Vietnamese films are shown as they are, others with subtitles. */

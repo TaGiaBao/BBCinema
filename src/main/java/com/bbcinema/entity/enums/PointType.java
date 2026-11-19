@@ -12,6 +12,6 @@ public enum PointType {
     }
 
     public String getLabel() {
-        return label;
+        return com.bbcinema.config.I18n.label(this, label);
     }
 }

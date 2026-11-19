@@ -3,6 +3,9 @@
 // asks the browser for the position and picks the nearest cinema that has coordinates.
 (function () {
   'use strict';
+  // Translated text for the page language (window.bbT from layout/main.html), Vietnamese otherwise.
+  const t = (key, fallback, ...args) => (window.bbT ? window.bbT(key, fallback) : fallback)
+    .replace(/\{(\d)\}/g, (m, i) => (args[i] !== undefined ? args[i] : m));
   const modalEl = document.getElementById('cinemaChooser');
   if (!modalEl || !window.bootstrap) {
     return;
@@ -58,8 +61,7 @@
     });
     const nearest = ranked[0];
     nearest.el.classList.add('nearest');
-    setStatus('Rạp gần bạn nhất: ' + nearest.el.querySelector('strong').textContent
-      + ' (' + formatKm(nearest.km) + '). Đang chọn rạp này...');
+    setStatus(t('nearest', 'Rạp gần bạn nhất: {0} ({1}). Đang chọn rạp này...', nearest.el.querySelector('strong').textContent, formatKm(nearest.km)));
     window.location.href = nearest.el.href;
   }
 
@@ -67,21 +69,21 @@
     locateBtn.disabled = false;
     const denied = err && err.code === 1;
     setStatus(denied
-      ? 'Bạn chưa cho phép truy cập vị trí. Vui lòng chọn rạp trong danh sách bên dưới.'
-      : 'Không lấy được vị trí của bạn. Vui lòng chọn rạp trong danh sách bên dưới.', true);
+      ? t('geoDenied', 'Bạn chưa cho phép truy cập vị trí. Vui lòng chọn rạp trong danh sách bên dưới.')
+      : t('geoFailed', 'Không lấy được vị trí của bạn. Vui lòng chọn rạp trong danh sách bên dưới.'), true);
   }
 
   locateBtn.addEventListener('click', () => {
     if (!navigator.geolocation || !window.isSecureContext) {
-      setStatus('Trình duyệt không hỗ trợ lấy vị trí ở trang này. Vui lòng chọn rạp bên dưới.', true);
+      setStatus(t('geoUnsupported', 'Trình duyệt không hỗ trợ lấy vị trí ở trang này. Vui lòng chọn rạp bên dưới.'), true);
       return;
     }
     if (choices.length === 0) {
-      setStatus('Các rạp chưa có toạ độ trên bản đồ. Vui lòng chọn rạp bên dưới.', true);
+      setStatus(t('noCoords', 'Các rạp chưa có toạ độ trên bản đồ. Vui lòng chọn rạp bên dưới.'), true);
       return;
     }
     locateBtn.disabled = true;
-    setStatus('Đang xác định vị trí của bạn...');
+    setStatus(t('locating', 'Đang xác định vị trí của bạn...'));
     navigator.geolocation.getCurrentPosition(onPosition, onError, { enableHighAccuracy: false, timeout: 10000, maximumAge: 600000 });
   });
 

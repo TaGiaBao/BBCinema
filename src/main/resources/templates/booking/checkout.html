@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="vi" xmlns:th="http://www.thymeleaf.org"
       th:replace="~{layout/main :: layout(~{::title}, ~{::main}, ~{::scripts})}">
-<head><title>Thanh toán · BBCinema</title></head>
+<head><title>[[#{ui.thanh_toan_bbcinema}]]</title></head>
 <body>
 <main>
     <div class="container mt-4">
@@ -9,54 +9,54 @@
         <div class="row g-4">
             <div class="col-lg-8 d-grid gap-4 align-content-start">
                 <div class="panel">
-                    <h2 class="h5 mb-3">Mã giảm giá</h2>
+                    <h2 class="h5 mb-3">[[#{ui.ma_giam_gia}]]</h2>
                     <div th:if="${booking.promotion != null}" class="d-flex align-items-center justify-content-between border rounded-3 p-2">
                         <div><span class="badge text-bg-success" th:text="${booking.promotion.code}">CODE</span>
                             <span class="small ms-2" th:text="${booking.promotion.description}">Mô tả</span></div>
                         <form method="post" th:action="@{/booking/{code}/promotion/remove(code=${booking.code})}">
-                            <button class="btn btn-sm btn-outline-danger" type="submit">Bỏ mã</button></form>
+                            <button class="btn btn-sm btn-outline-danger" type="submit">[[#{ui.bo_ma}]]</button></form>
                     </div>
                     <form th:if="${booking.promotion == null}" class="d-flex gap-2" method="post" th:action="@{/booking/{code}/promotion(code=${booking.code})}">
-                        <input class="form-control text-uppercase" name="promotionCode" placeholder="Nhập mã, ví dụ BBCINEMA10" aria-label="Mã giảm giá" required>
-                        <button class="btn btn-navy" type="submit">Áp dụng</button>
+                        <input class="form-control text-uppercase" name="promotionCode" th:placeholder="#{attr.nhap_ma_vi_du_bbcinema10}" th:aria-label="#{ui.ma_giam_gia}" required>
+                        <button class="btn btn-navy" type="submit">[[#{ui.ap_dung}]]</button>
                     </form>
                 </div>
                 <div class="panel">
-                    <h2 class="h5 mb-1">Điểm thưởng</h2>
-                    <p class="small text-muted">Bạn có <strong th:text="${booking.user.points}">0</strong> điểm. Đơn này dùng được tối đa
-                        <strong th:text="${maxPoints}">0</strong> điểm (1 điểm = 1.000đ).</p>
+                    <h2 class="h5 mb-1">[[#{ui.diem_thuong}]]</h2>
+                    <p class="small text-muted">[[#{ui.ban_co}]] <strong th:text="${booking.user.points}">0</strong> [[#{ui.diem_don_nay_dung_duoc}]]
+                        <strong th:text="${maxPoints}">0</strong> [[#{ui.diem_1_diem_1_000d}]]</p>
                     <form class="d-flex gap-2" method="post" th:action="@{/booking/{code}/points(code=${booking.code})}">
-                        <input class="form-control" type="number" name="points" min="0" th:max="${maxPoints}" th:value="${booking.pointsUsed}" aria-label="Số điểm muốn dùng" style="max-width: 200px">
-                        <button class="btn btn-outline-navy" type="submit" th:disabled="${maxPoints == 0}">Dùng điểm</button>
+                        <input class="form-control" type="number" name="points" min="0" th:max="${maxPoints}" th:value="${booking.pointsUsed}" th:aria-label="#{attr.so_diem_muon_dung}" style="max-width: 200px">
+                        <button class="btn btn-outline-navy" type="submit" th:disabled="${maxPoints == 0}">[[#{ui.dung_diem}]]</button>
                     </form>
                 </div>
                 <div class="panel">
-                    <h2 class="h5 mb-3">Phương thức thanh toán</h2>
+                    <h2 class="h5 mb-3">[[#{ui.phuong_thuc_thanh_toan}]]</h2>
                     <form method="post" th:action="@{/booking/{code}/pay(code=${booking.code})}" class="d-grid gap-2">
                         <label class="border rounded-3 p-3 d-flex gap-3 align-items-center">
                             <input class="form-check-input mt-0" type="radio" name="method" value="MOCK" checked>
-                            <span><strong>Thanh toán thử</strong><br><span class="small text-muted">Dùng cho bản demo, đơn được xác nhận ngay.</span></span>
+                            <span><strong>[[#{ui.thanh_toan_thu}]]</strong><br><span class="small text-muted">[[#{ui.dung_cho_ban_demo_don}]]</span></span>
                         </label>
                         <label class="border rounded-3 p-3 d-flex gap-3 align-items-center" th:classappend="${!vnpayEnabled} ? 'opacity-50'">
                             <input class="form-check-input mt-0" type="radio" name="method" value="VNPAY" th:disabled="${!vnpayEnabled}">
-                            <span><strong>VNPay</strong> (ATM, Visa, QR ngân hàng)<br>
-                                <span class="small text-muted" th:text="${vnpayEnabled ? 'Chuyển sang cổng VNPay sandbox để thanh toán.' : 'Chưa cấu hình mã VNPay sandbox trong application.yml.'}">VNPay</span></span>
+                            <span><strong>[[#{page.booking_checkout.vnpay}]]</strong> [[#{ui.atm_visa_qr_ngan_hang}]]<br>
+                                <span class="small text-muted" th:text="${vnpayEnabled} ? #{checkout.vnpayOn} : #{checkout.vnpayOff}">VNPay</span></span>
                         </label>
                         <div class="form-check mt-2">
                             <input class="form-check-input" type="checkbox" id="agree" required>
-                            <label class="form-check-label small" for="agree">Tôi đồng ý: vé đã thanh toán chỉ được huỷ trước giờ chiếu 2 tiếng.</label>
+                            <label class="form-check-label small" for="agree">[[#{ui.toi_dong_y_ve_da}]]</label>
                         </div>
                         <button class="btn btn-amber btn-lg mt-2" type="submit" data-disable-on-expire>
-                            Thanh toán <span th:text="${@fmt.money(booking.totalAmount)}">0đ</span></button>
+                            [[#{ui.thanh_toan}]] <span th:text="${@fmt.money(booking.totalAmount)}">0đ</span></button>
                     </form>
                 </div>
             </div>
             <div class="col-lg-4">
                 <div th:replace="~{fragments/common :: summary(${booking})}"></div>
                 <div class="d-flex justify-content-between mt-2">
-                    <a class="btn btn-link px-0" th:href="@{/booking/{code}/combos(code=${booking.code})}"><i class="bi bi-arrow-left"></i> Sửa bắp nước</a>
+                    <a class="btn btn-link px-0" th:href="@{/booking/{code}/combos(code=${booking.code})}"><i class="bi bi-arrow-left"></i> [[#{ui.sua_bap_nuoc}]]</a>
                     <form method="post" th:action="@{/booking/{code}/cancel(code=${booking.code})}">
-                        <button class="btn btn-link text-danger px-0" type="submit">Huỷ đơn</button></form>
+                        <button class="btn btn-link text-danger px-0" type="submit">[[#{ui.huy_don}]]</button></form>
                 </div>
             </div>
         </div>

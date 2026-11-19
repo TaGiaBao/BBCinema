@@ -4,6 +4,9 @@
 // failed "Tiếp tục".
 (function () {
   'use strict';
+  // Translated text for the page language (window.bbT from layout/main.html), Vietnamese otherwise.
+  const t = (key, fallback, ...args) => (window.bbT ? window.bbT(key, fallback) : fallback)
+    .replace(/\{(\d)\}/g, (m, i) => (args[i] !== undefined ? args[i] : m));
   const form = document.getElementById('seatForm');
   if (!form) {
     return;
@@ -21,7 +24,7 @@
     const chosen = Array.from(form.querySelectorAll('.seat.selected[data-id]'));
     const total = chosen.reduce((sum, s) => sum + Number(s.dataset.price), 0);
     if (selectedEl) {
-      selectedEl.textContent = chosen.length ? chosen.map((s) => s.dataset.label).join(', ') : 'Chưa chọn ghế';
+      selectedEl.textContent = chosen.length ? chosen.map((s) => s.dataset.label).join(', ') : t('noSeat', 'Chưa chọn ghế');
     }
     if (totalEl) {
       totalEl.textContent = money(total);
@@ -63,8 +66,7 @@
     if (!notice) {
       return;
     }
-    notice.textContent = 'Ghế ' + labels.join(', ') + ' vừa được người khác chọn nên đã bị bỏ khỏi lựa chọn của bạn. '
-      + 'Vui lòng chọn ghế khác.';
+    notice.textContent = t('seatLost', 'Ghế {0} vừa được người khác chọn nên đã bị bỏ khỏi lựa chọn của bạn. Vui lòng chọn ghế khác.', labels.join(', '));
     notice.classList.remove('d-none');
   }
 
@@ -89,8 +91,8 @@
       box.disabled = !free;
     }
     const type = seat.title.split(' · ')[1] || '';
-    seat.setAttribute('aria-label', 'Ghế ' + seat.dataset.label + ', ' + type + ', '
-      + (free ? money(Number(seat.dataset.price)) : held ? 'đang có người giữ' : 'đã bán'));
+    seat.setAttribute('aria-label', t('seatAria', 'Ghế {0}, {1}, {2}', seat.dataset.label, type,
+      free ? money(Number(seat.dataset.price)) : held ? t('seatHeld', 'đang có người giữ') : t('seatSold', 'đã bán')));
     seat.classList.remove('just-changed');
     void seat.offsetWidth; // restart the flash animation
     seat.classList.add('just-changed');

@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="vi" xmlns:th="http://www.thymeleaf.org"
       th:replace="~{layout/main :: layout(~{::title}, ~{::main}, ~{::scripts})}">
-<head><title th:text="'Vé ' + ${booking.code} + ' · BBCinema'">Vé</title></head>
+<head><title th:text="#{ticket.title(${booking.code})}">Vé</title></head>
 <body>
 <main>
     <div class="container mt-4" style="max-width: 920px">
@@ -9,7 +9,7 @@
         <div class="ticket">
             <div class="ticket-head d-flex justify-content-between align-items-center flex-wrap gap-2">
                 <div>
-                    <div class="small opacity-75">BBCinema · Vé xem phim</div>
+                    <div class="small opacity-75">[[#{ui.bbcinema_ve_xem_phim}]]</div>
                     <div class="h4 mb-0" th:text="${booking.showtime.movie.title}">Phim</div>
                 </div>
                 <span class="status-pill" th:classappend="'status-' + ${booking.status.name()}" th:text="${booking.status.label}">Đã thanh toán</span>
@@ -18,51 +18,50 @@
                 <img class="ticket-watermark" src="/images/logo-watermark.svg" alt="" aria-hidden="true">
                 <div class="col-md-8 ticket-body">
                     <div class="row g-3">
-                        <div class="col-6"><div class="small text-muted">Rạp</div><div class="fw-bold" th:text="${booking.showtime.room.cinema.name}">Rạp</div></div>
-                        <div class="col-6"><div class="small text-muted">Phòng chiếu</div><div class="fw-bold" th:text="${booking.showtime.room.name}">P1</div></div>
-                        <div class="col-6"><div class="small text-muted">Suất chiếu</div>
+                        <div class="col-6"><div class="small text-muted">[[#{ui.rap}]]</div><div class="fw-bold" th:text="${booking.showtime.room.cinema.name}">Rạp</div></div>
+                        <div class="col-6"><div class="small text-muted">[[#{ui.phong_chieu}]]</div><div class="fw-bold" th:text="${booking.showtime.room.name}">P1</div></div>
+                        <div class="col-6"><div class="small text-muted">[[#{ui.suat_chieu}]]</div>
                             <div class="fw-bold" th:text="${#temporals.format(booking.showtime.startTime, 'HH:mm')} + ' · ' + ${@fmt.dayName(booking.showtime.startTime.toLocalDate())} + ' ' + ${#temporals.format(booking.showtime.startTime, 'dd/MM/yyyy')}">19:00</div></div>
-                        <div class="col-6"><div class="small text-muted">Định dạng</div><div class="fw-bold" th:text="${booking.showtime.versionLabel}">2D</div></div>
-                        <div class="col-6"><div class="small text-muted">Ghế</div><div class="fw-bold fs-5" th:text="${booking.seatLabels}">A1</div></div>
-                        <div class="col-6"><div class="small text-muted">Khách hàng</div><div class="fw-bold" th:text="${booking.displayName}">Tên</div></div>
-                        <div class="col-12" th:if="${!#lists.isEmpty(booking.combos)}"><div class="small text-muted">Bắp nước</div>
+                        <div class="col-6"><div class="small text-muted">[[#{ui.dinh_dang}]]</div><div class="fw-bold" th:text="${booking.showtime.versionLabel}">2D</div></div>
+                        <div class="col-6"><div class="small text-muted">[[#{ui.ghe}]]</div><div class="fw-bold fs-5" th:text="${booking.seatLabels}">A1</div></div>
+                        <div class="col-6"><div class="small text-muted">[[#{ui.khach_hang}]]</div><div class="fw-bold" th:text="${booking.displayName}">Tên</div></div>
+                        <div class="col-12" th:if="${!#lists.isEmpty(booking.combos)}"><div class="small text-muted">[[#{ui.bap_nuoc}]]</div>
                             <div th:each="c : ${booking.combos}" th:text="${c.quantity} + ' × ' + ${c.combo.name}">Combo</div></div>
                     </div>
                     <hr>
-                    <div class="summary-row"><span>Tiền vé</span><span class="tabular" th:text="${@fmt.money(booking.ticketAmount)}">0đ</span></div>
-                    <div class="summary-row" th:if="${booking.comboAmount.signum() > 0}"><span>Bắp nước</span><span class="tabular" th:text="${@fmt.money(booking.comboAmount)}">0đ</span></div>
-                    <div class="summary-row text-success" th:if="${booking.discountAmount.signum() > 0}"><span>Giảm giá</span><span class="tabular" th:text="'-' + ${@fmt.money(booking.discountAmount)}">0đ</span></div>
-                    <div class="summary-row"><span class="fw-bold">Tổng thanh toán</span><span class="summary-total tabular" th:text="${@fmt.money(booking.totalAmount)}">0đ</span></div>
-                    <div class="small text-success" th:if="${booking.pointsEarned > 0}" th:text="'+' + ${booking.pointsEarned} + ' điểm thưởng đã được cộng vào tài khoản'">+10 điểm</div>
+                    <div class="summary-row"><span>[[#{ui.tien_ve}]]</span><span class="tabular" th:text="${@fmt.money(booking.ticketAmount)}">0đ</span></div>
+                    <div class="summary-row" th:if="${booking.comboAmount.signum() > 0}"><span>[[#{ui.bap_nuoc}]]</span><span class="tabular" th:text="${@fmt.money(booking.comboAmount)}">0đ</span></div>
+                    <div class="summary-row text-success" th:if="${booking.discountAmount.signum() > 0}"><span>[[#{ui.giam_gia}]]</span><span class="tabular" th:text="'-' + ${@fmt.money(booking.discountAmount)}">0đ</span></div>
+                    <div class="summary-row"><span class="fw-bold">[[#{ui.tong_thanh_toan}]]</span><span class="summary-total tabular" th:text="${@fmt.money(booking.totalAmount)}">0đ</span></div>
+                    <div class="small text-success" th:if="${booking.pointsEarned > 0}" th:text="#{ticket.pointsEarned(${booking.pointsEarned})}">+10 điểm</div>
                 </div>
                 <div class="col-md-4 stub">
-                    <div class="small text-muted mb-1">Mã đặt vé</div>
+                    <div class="small text-muted mb-1">[[#{ui.ma_dat_ve}]]</div>
                     <div class="code mb-3" th:text="${booking.code}">ABCD1234</div>
-                    <img th:if="${booking.paid}" th:src="@{/booking/{code}/qr.png(code=${booking.code})}" alt="Mã QR vé" class="img-fluid" style="max-width: 200px">
-                    <p class="small text-muted mt-2 mb-0" th:if="${booking.paid and booking.checkedInAt == null}">Đưa mã này cho nhân viên soát vé.</p>
+                    <img th:if="${booking.paid}" th:src="@{/booking/{code}/qr.png(code=${booking.code})}" th:alt="#{attr.ma_qr_ve}" class="img-fluid" style="max-width: 200px">
+                    <p class="small text-muted mt-2 mb-0" th:if="${booking.paid and booking.checkedInAt == null}">[[#{ui.dua_ma_nay_cho_nhan}]]</p>
                     <p class="small text-success mt-2 mb-0" th:if="${booking.checkedInAt != null}"
-                       th:text="'Đã soát vé lúc ' + ${#temporals.format(booking.checkedInAt, 'HH:mm dd/MM')}">Đã soát</p>
+                       th:text="#{ticket.checkedInAt(${#temporals.format(booking.checkedInAt, 'HH:mm dd/MM')})}">Đã soát</p>
                 </div>
             </div>
         </div>
 
         <div class="d-flex flex-wrap gap-2 mt-4 no-print">
-            <a class="btn btn-amber" th:if="${booking.pending}" th:href="@{/booking/{code}/checkout(code=${booking.code})}">Tiếp tục thanh toán</a>
-            <button class="btn btn-navy" type="button" onclick="window.print()" th:if="${booking.paid}"><i class="bi bi-printer"></i> In vé</button>
-            <a class="btn btn-outline-navy" href="/member/bookings">Vé của tôi</a>
+            <a class="btn btn-amber" th:if="${booking.pending}" th:href="@{/booking/{code}/checkout(code=${booking.code})}">[[#{ui.tiep_tuc_thanh_toan}]]</a>
+            <button class="btn btn-navy" type="button" onclick="window.print()" th:if="${booking.paid}"><i class="bi bi-printer"></i> [[#{ui.in_ve}]]</button>
+            <a class="btn btn-outline-navy" href="/member/bookings">[[#{ui.ve_cua_toi}]]</a>
             <form method="post" th:action="@{/booking/{code}/cancel(code=${booking.code})}" th:if="${canCancel}" class="ms-auto">
                 <button class="btn btn-outline-danger" type="submit" onclick="return confirm('Bạn chắc chắn muốn huỷ đơn này?')">
-                    <i class="bi bi-x-circle"></i> Huỷ vé</button>
+                    <i class="bi bi-x-circle"></i> [[#{ui.huy_ve}]]</button>
             </form>
         </div>
         <p class="small text-muted mt-2 no-print" th:if="${booking.paid}">
-            Vé có thể huỷ trước <strong th:text="${#temporals.format(cancelDeadline, 'HH:mm dd/MM/yyyy')}">-</strong>.
-            Khi huỷ, điểm đã dùng được hoàn lại và điểm đã tích bị thu hồi.</p>
+            [[#{ui.ve_co_the_huy_truoc}]] <strong th:text="${#temporals.format(cancelDeadline, 'HH:mm dd/MM/yyyy')}">-</strong>[[#{ui.khi_huy_diem_da_dung}]]</p>
 
         <div class="panel mt-4 no-print" th:if="${!#lists.isEmpty(payments)}">
-            <h2 class="h6">Giao dịch thanh toán</h2>
+            <h2 class="h6">[[#{ui.giao_dich_thanh_toan}]]</h2>
             <table class="table table-sm mb-0">
-                <thead><tr><th>Thời gian</th><th>Phương thức</th><th>Mã giao dịch</th><th class="text-end">Số tiền</th><th>Trạng thái</th></tr></thead>
+                <thead><tr><th>[[#{ui.thoi_gian}]]</th><th>[[#{ui.phuong_thuc}]]</th><th>[[#{ui.ma_giao_dich}]]</th><th class="text-end">[[#{ui.so_tien}]]</th><th>[[#{attr.trang_thai}]]</th></tr></thead>
                 <tbody><tr th:each="p : ${payments}">
                     <td class="small" th:text="${#temporals.format(p.createdAt, 'HH:mm dd/MM/yyyy')}">-</td>
                     <td th:text="${p.method.label}">-</td>

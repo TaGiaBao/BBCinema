@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 <html lang="vi" xmlns:th="http://www.thymeleaf.org"
       th:replace="~{layout/main :: layout(~{::title}, ~{::main}, ~{::scripts})}">
-<head><title>Tài khoản · BBCinema</title></head>
+<head><title>[[#{ui.tai_khoan_bbcinema}]]</title></head>
 <body>
 <main>
-    <div class="page-head"><div class="container"><h1 class="h3 mb-0">Thành viên</h1></div></div>
+    <div class="page-head"><div class="container"><h1 class="h3 mb-0">[[#{ui.thanh_vien}]]</h1></div></div>
     <div class="container mt-4">
         <div class="row g-4">
             <div class="col-lg-3"><div th:replace="~{member/_nav :: nav}"></div></div>
@@ -12,64 +12,64 @@
                 <div class="panel member-tier" th:classappend="'tier-' + ${membership.tier.name()}">
                     <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
                         <div>
-                            <div class="small text-muted">Hạng thành viên</div>
+                            <div class="small text-muted">[[#{ui.hang_thanh_vien}]]</div>
                             <div class="h4 mb-0"><i class="bi bi-gem"></i> <span th:text="${membership.tier.label}">Vàng</span>
                                 <span class="badge text-bg-warning fs-6 align-middle" th:if="${membership.discountPercent > 0}"
-                                      th:text="'Giảm ' + ${membership.discountPercent} + '% mỗi đơn'">Giảm 10%</span></div>
+                                      th:text="#{member.tierDiscount(${membership.discountPercent})}">Giảm 10%</span></div>
                         </div>
                         <div class="text-end small">
-                            <div>Chi tiêu 12 tháng qua: <strong th:text="${@fmt.money(membership.spent)}">0đ</strong></div>
-                            <div th:if="${membership.next != null}">Chi tiêu thêm <strong th:text="${@fmt.money(membership.toNext)}">0đ</strong>
-                                để lên hạng <strong th:text="${membership.next.label}">Kim cương</strong></div>
-                            <div th:if="${membership.next == null}">Bạn đang ở hạng cao nhất.</div>
+                            <div>[[#{ui.chi_tieu_12_thang_qua}]] <strong th:text="${@fmt.money(membership.spent)}">0đ</strong></div>
+                            <div th:if="${membership.next != null}">[[#{ui.chi_tieu_them}]] <strong th:text="${@fmt.money(membership.toNext)}">0đ</strong>
+                                [[#{ui.de_len_hang}]] <strong th:text="${membership.next.label}">Kim cương</strong></div>
+                            <div th:if="${membership.next == null}">[[#{ui.ban_dang_o_hang_cao}]]</div>
                         </div>
                     </div>
                 </div>
                 <div class="panel">
-                    <h2 class="h5 mb-3">Thông tin tài khoản</h2>
+                    <h2 class="h5 mb-3">[[#{ui.thong_tin_tai_khoan}]]</h2>
                     <form th:action="@{/member/profile}" th:object="${profileForm}" method="post" class="row g-3">
                         <div class="col-md-6">
-                            <label class="form-label">Email</label>
+                            <label class="form-label">[[#{page.member_profile.email}]]</label>
                             <input class="form-control" th:value="${user.email}" disabled>
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label" for="fullName">Họ và tên</label>
+                            <label class="form-label" for="fullName">[[#{ui.ho_va_ten}]]</label>
                             <input class="form-control" id="fullName" th:field="*{fullName}" th:errorclass="is-invalid">
                             <div class="invalid-feedback" th:errors="*{fullName}"></div>
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label" for="phone">Số điện thoại</label>
+                            <label class="form-label" for="phone">[[#{ui.so_dien_thoai}]]</label>
                             <input class="form-control" id="phone" th:field="*{phone}" th:errorclass="is-invalid">
                             <div class="invalid-feedback" th:errors="*{phone}"></div>
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label" for="birthDate">Ngày sinh</label>
+                            <label class="form-label" for="birthDate">[[#{ui.ngay_sinh}]]</label>
                             <input class="form-control" id="birthDate" type="date" th:field="*{birthDate}" th:errorclass="is-invalid">
                             <div class="invalid-feedback" th:errors="*{birthDate}"></div>
                         </div>
-                        <div class="col-12"><button class="btn btn-navy" type="submit">Lưu thông tin</button></div>
+                        <div class="col-12"><button class="btn btn-navy" type="submit">[[#{ui.luu_thong_tin}]]</button></div>
                     </form>
                 </div>
                 <div class="panel">
-                    <h2 class="h5 mb-3">Đổi mật khẩu</h2>
+                    <h2 class="h5 mb-3">[[#{ui.doi_mat_khau}]]</h2>
                     <form th:action="@{/member/password}" th:object="${passwordForm}" method="post" class="row g-3">
                         <div class="col-12 alert alert-danger mb-0" th:if="${#fields.hasGlobalErrors()}" th:text="${#fields.globalErrors()[0]}">Lỗi</div>
                         <div class="col-md-4">
-                            <label class="form-label" for="currentPassword">Mật khẩu hiện tại</label>
+                            <label class="form-label" for="currentPassword">[[#{ui.mat_khau_hien_tai}]]</label>
                             <input class="form-control" id="currentPassword" type="password" th:field="*{currentPassword}" th:errorclass="is-invalid">
                             <div class="invalid-feedback" th:errors="*{currentPassword}"></div>
                         </div>
                         <div class="col-md-4">
-                            <label class="form-label" for="newPassword">Mật khẩu mới</label>
+                            <label class="form-label" for="newPassword">[[#{ui.mat_khau_moi}]]</label>
                             <input class="form-control" id="newPassword" type="password" th:field="*{newPassword}" th:errorclass="is-invalid">
                             <div class="invalid-feedback" th:errors="*{newPassword}"></div>
                         </div>
                         <div class="col-md-4">
-                            <label class="form-label" for="confirmPassword">Nhập lại mật khẩu mới</label>
+                            <label class="form-label" for="confirmPassword">[[#{ui.nhap_lai_mat_khau_moi}]]</label>
                             <input class="form-control" id="confirmPassword" type="password" th:field="*{confirmPassword}" th:errorclass="is-invalid">
                             <div class="invalid-feedback" th:errors="*{confirmPassword}"></div>
                         </div>
-                        <div class="col-12"><button class="btn btn-outline-navy" type="submit">Đổi mật khẩu</button></div>
+                        <div class="col-12"><button class="btn btn-outline-navy" type="submit">[[#{ui.doi_mat_khau}]]</button></div>
                     </form>
                 </div>
             </div>
