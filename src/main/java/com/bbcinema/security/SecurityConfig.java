@@ -69,6 +69,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/css/**", "/js/**", "/images/**", "/uploads/**", "/webjars/**",
                                 "/favicon.ico", "/error", "/error/**").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/movies/*/reviews").authenticated()
                         .requestMatchers("/", "/movies/**", "/schedule", "/cinemas", "/prices", "/news/**",
                                 "/select-cinema", "/login", "/register", "/internal/login",
                                 "/forgot-password", "/reset-password").permitAll()

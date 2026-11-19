@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/admin :: layout(~{::title}, ~{::section}, ~{::scripts})}">
+<head><title>Đánh giá phim · Quản trị BBCinema</title></head>
+<body>
+<section class="p-4">
+    <h1 class="h4">Đánh giá phim</h1>
+    <p class="text-muted small">Đánh giá bị ẩn không hiện cho khách và không tính vào điểm trung bình của phim.</p>
+    <div class="panel">
+        <div class="table-responsive">
+            <table class="table align-middle">
+                <thead><tr><th>Phim</th><th>Thành viên</th><th>Sao</th><th>Nhận xét</th><th>Ngày</th><th></th></tr></thead>
+                <tbody>
+                <tr th:each="r : ${page.content}" th:classappend="${r.hidden} ? 'table-secondary'">
+                    <td><a th:href="@{/movies/{slug}(slug=${r.movie.slug})}" th:text="${r.movie.title}">Phim</a></td>
+                    <td th:text="${r.user.fullName}">Tên</td>
+                    <td class="text-nowrap"><i class="bi bi-star-fill text-warning"></i> <span th:text="${r.rating}">5</span></td>
+                    <td class="small" style="max-width: 420px" th:text="${r.comment ?: '—'}">-</td>
+                    <td class="small text-nowrap" th:text="${#temporals.format(r.updatedAt, 'dd/MM/yyyy')}">-</td>
+                    <td class="text-end">
+                        <form method="post" th:action="@{/admin/reviews/{id}/hidden(id=${r.id})}">
+                            <input type="hidden" name="hidden" th:value="${!r.hidden}">
+                            <input type="hidden" name="page" th:value="${page.number}">
+                            <button class="btn btn-sm" th:classappend="${r.hidden} ? 'btn-outline-success' : 'btn-outline-danger'" type="submit"
+                                    th:text="${r.hidden} ? 'Hiện lại' : 'Ẩn'">Ẩn</button>
+                        </form>
+                    </td>
+                </tr>
+                <tr th:if="${page.empty}"><td colspan="6" class="text-muted">Chưa có đánh giá nào.</td></tr>
+                </tbody>
+            </table>
+        </div>
+        <div th:replace="~{fragments/common :: pager(${page}, '/admin/reviews')}"></div>
+    </div>
+</section>
+<th:block th:fragment="scripts"></th:block>
+</body>
+</html>

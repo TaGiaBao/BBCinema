@@ -88,6 +88,8 @@ SET NAMES utf8mb4;
     ) engine=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
     create table movies (
+        rating_average float(53),
+        rating_count integer not null default 0,
         duration_minutes integer not null,
         release_date date,
         id bigint not null auto_increment,
@@ -164,6 +166,21 @@ SET NAMES utf8mb4;
         id bigint not null auto_increment,
         name varchar(50) not null,
         primary key (id)
+    ) engine=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+    create table reviews (
+        hidden bit not null,
+        rating integer not null,
+        created_at datetime(6) not null,
+        id bigint not null auto_increment,
+        movie_id bigint not null,
+        updated_at datetime(6) not null,
+        user_id bigint not null,
+        comment varchar(1000),
+        primary key (id),
+        constraint UK_reviews_movie_user unique (movie_id, user_id),
+        constraint FK_reviews_movie foreign key (movie_id) references movies (id),
+        constraint FK_reviews_user foreign key (user_id) references users (id)
     ) engine=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
     create table seats (

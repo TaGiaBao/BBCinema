@@ -57,6 +57,13 @@ public class Movie {
     @Column(name = "trailer_url")
     private String trailerUrl;
 
+    /** Average of the visible member ratings (1-5, one decimal) and how many there are. Kept by ReviewService. */
+    @Column(name = "rating_average")
+    private Double ratingAverage;
+
+    @Column(name = "rating_count", nullable = false)
+    private int ratingCount = 0;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private MovieStatus status = MovieStatus.COMING_SOON;

@@ -18,7 +18,10 @@
                 <div class="col-md-8 col-lg-9">
                     <h1 class="display-6" th:text="${movie.title}">Tên phim</h1>
                     <p class="mb-3"><span class="age-badge" th:classappend="${movie.ageRating.name()}" th:text="${movie.ageRating.name()}">P</span>
-                        <span class="ms-2 text-light opacity-75" th:text="${movie.ageRating.label}">Mọi lứa tuổi</span></p>
+                        <span class="ms-2 text-light opacity-75" th:text="${movie.ageRating.label}">Mọi lứa tuổi</span>
+                        <a class="ms-3 rating-chip" href="#reviews" th:if="${movie.ratingCount > 0}">
+                            <i class="bi bi-star-fill"></i> <strong th:text="${#numbers.formatDecimal(movie.ratingAverage, 1, 1, 'COMMA')}">4,5</strong>/5
+                            <span class="opacity-75" th:text="'(' + ${movie.ratingCount} + ' đánh giá)'">(3)</span></a></p>
                     <p class="lead opacity-75" style="max-width: 70ch" th:text="${movie.description}">Mô tả</p>
                     <dl class="row small mb-4" style="max-width: 640px">
                         <dt class="col-4 col-sm-3">Đạo diễn</dt><dd class="col-8 col-sm-9" th:text="${movie.director ?: 'Đang cập nhật'}">-</dd>
@@ -56,6 +59,58 @@
                 <span th:text="${#temporals.format(s.startTime, 'HH:mm')}">19:00</span>
                 <small th:text="${s.versionLabel} + ' · ' + ${s.room.name}">2D · P1</small>
             </a>
+        </div>
+    </section>
+    <section class="container mt-5" id="reviews" aria-labelledby="reviewsTitle">
+        <div class="d-flex flex-wrap align-items-end justify-content-between gap-2 mb-3">
+            <h2 class="h4 mb-0" id="reviewsTitle">Đánh giá của khán giả</h2>
+            <div th:if="${movie.ratingCount > 0}" class="rating-summary">
+                <span class="stars" th:attr="aria-label=${'Điểm trung bình ' + movie.ratingAverage + ' trên 5'}">
+                    <i class="bi" th:each="i : ${#numbers.sequence(1, 5)}"
+                       th:classappend="${movie.ratingAverage >= i} ? 'bi-star-fill' : (${movie.ratingAverage >= i - 0.5} ? 'bi-star-half' : 'bi-star')"></i></span>
+                <strong th:text="${#numbers.formatDecimal(movie.ratingAverage, 1, 1, 'COMMA')}">4,5</strong>/5 ·
+                <span th:text="${movie.ratingCount} + ' đánh giá'">3 đánh giá</span>
+            </div>
+        </div>
+        <div class="row g-4">
+            <div class="col-lg-5">
+                <div class="panel">
+                    <th:block th:if="${currentUser == null}">
+                        <p class="mb-2">Đã xem phim này tại BBCinema? Hãy cho mọi người biết cảm nhận của bạn.</p>
+                        <a class="btn btn-amber btn-sm" th:href="@{/login(redirect=${'/movies/' + movie.slug + '#reviews'})}">Đăng nhập để đánh giá</a>
+                    </th:block>
+                    <p class="text-muted mb-0" th:if="${currentUser != null and !canReview}">
+                        Bạn có thể đánh giá sau khi đã xem phim này tại BBCinema (vé đã thanh toán và suất chiếu đã bắt đầu).</p>
+                    <form th:if="${currentUser != null and canReview}" method="post" th:action="@{/movies/{slug}/reviews(slug=${movie.slug})}" class="d-grid gap-2">
+                        <h3 class="h6 mb-0" th:text="${ownReview != null} ? 'Sửa đánh giá của bạn' : 'Đánh giá phim'">Đánh giá phim</h3>
+                        <fieldset class="star-input" aria-label="Số sao">
+                            <th:block th:each="i : ${#numbers.sequence(5, 1, -1)}">
+                                <input type="radio" name="rating" th:id="'star' + ${i}" th:value="${i}" required
+                                       th:checked="${ownReview != null and ownReview.rating == i}">
+                                <label th:for="'star' + ${i}" th:title="${i} + ' sao'"><i class="bi bi-star-fill"></i><span class="visually-hidden" th:text="${i} + ' sao'">5 sao</span></label>
+                            </th:block>
+                        </fieldset>
+                        <label class="form-label small mb-0" for="reviewComment">Nhận xét (không bắt buộc)</label>
+                        <textarea class="form-control" id="reviewComment" name="comment" rows="3" maxlength="1000"
+                                  th:text="${ownReview != null ? ownReview.comment : ''}" placeholder="Phim hay ở điểm nào?"></textarea>
+                        <button class="btn btn-amber justify-self-start" type="submit" th:text="${ownReview != null} ? 'Cập nhật đánh giá' : 'Gửi đánh giá'">Gửi đánh giá</button>
+                    </form>
+                </div>
+            </div>
+            <div class="col-lg-7">
+                <p class="text-muted" th:if="${#lists.isEmpty(reviews)}">Chưa có đánh giá nào cho phim này.</p>
+                <div class="d-grid gap-3">
+                    <article class="panel review" th:each="r : ${reviews}">
+                        <div class="d-flex justify-content-between gap-2">
+                            <strong th:text="${r.user.fullName}">Tên</strong>
+                            <span class="small text-muted" th:text="${#temporals.format(r.updatedAt, 'dd/MM/yyyy')}">01/01</span>
+                        </div>
+                        <div class="stars small" th:attr="aria-label=${r.rating + ' trên 5 sao'}">
+                            <i class="bi" th:each="i : ${#numbers.sequence(1, 5)}" th:classappend="${r.rating >= i} ? 'bi-star-fill' : 'bi-star'"></i></div>
+                        <p class="mb-0 mt-1" th:if="${r.comment != null}" th:text="${r.comment}">Nhận xét</p>
+                    </article>
+                </div>
+            </div>
         </div>
     </section>
     <div class="container" th:insert="~{fragments/common :: comingSoonPicks(${comingSoonPicks})}"></div>

@@ -18,6 +18,8 @@
 <div th:fragment="movieCard(movie)" class="movie-card">
     <div class="poster">
         <img th:src="${movie.posterPath != null ? movie.posterPath : '/images/no-image.svg'}" th:alt="${movie.title}" loading="lazy">
+        <span class="rating-badge" th:if="${movie.ratingCount > 0}" th:attr="aria-label=${'Điểm khán giả ' + movie.ratingAverage + ' trên 5'}">
+            <i class="bi bi-star-fill"></i> <span th:text="${#numbers.formatDecimal(movie.ratingAverage, 1, 1, 'COMMA')}">4,5</span></span>
         <div class="overlay">
             <a class="btn btn-amber btn-sm px-4" href="#" th:if="${movie.status.name() != 'ENDED'}"
                th:attr="data-buy-movie=${movie.id},data-movie-title=${movie.title}"><i class="bi bi-ticket-perforated"></i> Mua vé</a>

@@ -76,4 +76,12 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
               and b.paidAt >= :from and b.paidAt < :to
             """)
     List<Booking> findPaidBetween(LocalDateTime from, LocalDateTime to);
+
+    /** Paid bookings of this member for showtimes of the movie that have already started. */
+    @Query("""
+            select count(b) from Booking b
+            where b.user.id = :userId and b.showtime.movie.id = :movieId
+              and b.status = com.bbcinema.entity.enums.BookingStatus.PAID and b.showtime.startTime <= :now
+            """)
+    long countWatched(Long userId, Long movieId, java.time.LocalDateTime now);
 }

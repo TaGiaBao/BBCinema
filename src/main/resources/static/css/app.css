@@ -250,3 +250,18 @@ h1, h2, h3, h4, h5 { font-weight: 800; letter-spacing: -0.01em; }
 .cinema-map { height: 460px; border-radius: 10px; z-index: 0; }
 .cinema-card.active { box-shadow: 0 0 0 2px var(--bb-amber); }
 @media (max-width: 991.98px) { .cinema-map { height: 320px; } }
+
+/* Movie ratings */
+.movie-card .poster { position: relative; }
+.rating-badge { position: absolute; top: .5rem; right: .5rem; background: rgba(17, 20, 42, .85); color: #fff; font-weight: 700;
+  font-size: .8rem; border-radius: 999px; padding: .15rem .55rem; z-index: 1; }
+.rating-badge .bi, .rating-chip .bi, .stars .bi { color: var(--bb-amber); }
+.rating-chip { color: #fff; text-decoration: none; }
+.rating-chip:hover { color: var(--bb-amber); }
+.rating-summary .stars { font-size: 1.05rem; margin-right: .35rem; }
+.star-input { display: inline-flex; flex-direction: row-reverse; justify-content: flex-end; gap: .15rem; border: 0; padding: 0; margin: 0; }
+.star-input input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.star-input label { font-size: 1.6rem; color: var(--bb-line); cursor: pointer; line-height: 1; }
+.star-input input:checked ~ label, .star-input label:hover, .star-input label:hover ~ label { color: var(--bb-amber); }
+.star-input input:focus-visible + label { outline: 3px solid var(--bb-navy); outline-offset: 2px; border-radius: 4px; }
+.justify-self-start { justify-self: start; }

@@ -46,6 +46,7 @@ public class DataSeeder implements ApplicationRunner {
     private final CinemaRepository cinemaRepository;
     private final RoomRepository roomRepository;
     private final RoomService roomService;
+    private final com.bbcinema.service.ReviewService reviewService;
     private final PricingService pricingService;
     private final TicketPriceRepository ticketPriceRepository;
     private final ComboRepository comboRepository;
@@ -78,6 +79,7 @@ public class DataSeeder implements ApplicationRunner {
             seedSpecialShowtimes();
             ensureUpcomingShowtimes();
             seedSampleBookings();
+            seedReviews();
             log.info("Demo data ready. Admin: admin@bbcinema.vn / Admin@123");
         } else {
             ensureUpcomingShowtimes();
@@ -440,5 +442,25 @@ public class DataSeeder implements ApplicationRunner {
             }
         }
         log.info("Created {} sample paid bookings", made);
+    }
+
+    /** A few member reviews so the movie cards show ratings. */
+    private void seedReviews() {
+        String[][] samples = {
+                {"user@bbcinema.vn", "vet-sang", "5", "Kỹ xảo đẹp, nhạc phim rất cuốn. Đáng xem ở phòng 3D."},
+                {"lan.pham@example.com", "vet-sang", "4", "Nửa đầu hơi chậm nhưng cái kết rất đã."},
+                {"duc.le@example.com", "mua-he", "5", "Nhẹ nhàng, dễ thương, xem xong muốn về Hội An ngay."},
+                {"user@bbcinema.vn", "meo-hoang", "4", "Bé nhà mình cười suốt cả phim."},
+                {"hoa.vu@example.com", "can-nha", "3", "Hù doạ ổn nhưng kịch bản đoán được."},
+                {"nam.do@example.com", "dinh-gio", "5", "Cảnh quay núi tuyết quá đỉnh."},
+                {"lan.pham@example.com", "gac-dem", "4", "Căng thẳng tới phút cuối."}};
+        for (String[] r : samples) {
+            User user = userRepository.findByEmailIgnoreCase(r[0]).orElse(null);
+            Movie movie = movieRepository.findAll().stream()
+                    .filter(m -> m.getPosterPath() != null && m.getPosterPath().contains("/" + r[1] + ".")).findFirst().orElse(null);
+            if (user != null && movie != null) {
+                reviewService.seed(user, movie, Integer.parseInt(r[2]), r[3]);
+            }
+        }
     }
 }
