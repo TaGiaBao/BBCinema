@@ -305,4 +305,21 @@ class WebPagesIntegrationTest extends IntegrationTestBase {
         assertThat(saved.getLatitude()).isEqualTo(21.03);
         assertThat(saved.getLongitude()).isEqualTo(105.78);
     }
+
+    @Test
+    void cinemasPageShowsMapWithCinemaPositions() throws Exception {
+        Showtime st = showtimeTomorrow();
+        Cinema cinema = st.getRoom().getCinema();
+        cinema.setLatitude(21.0368);
+        cinema.setLongitude(105.782);
+        cinemaRepository.save(cinema);
+        mvc.perform(get("/cinemas"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("id=\"cinemaMap\"")))
+                .andExpect(content().string(containsString("/webjars/leaflet/1.9.4/dist/leaflet.js")))
+                .andExpect(content().string(containsString("data-lat=\"21.0368\"")))
+                .andExpect(content().string(containsString("Xem trên bản đồ")));
+        mvc.perform(get("/webjars/leaflet/1.9.4/dist/leaflet.js")).andExpect(status().isOk());
+        mvc.perform(get("/js/cinema-map.js")).andExpect(status().isOk());
+    }
 }

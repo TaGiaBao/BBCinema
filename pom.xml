@@ -135,6 +135,11 @@
             <artifactId>html5-qrcode</artifactId>
             <version>2.3.8</version>
         </dependency>
+        <dependency>
+            <groupId>org.webjars.npm</groupId>
+            <artifactId>leaflet</artifactId>
+            <version>1.9.4</version>
+        </dependency>
 
         <dependency>
             <groupId>org.projectlombok</groupId>

@@ -245,3 +245,8 @@ h1, h2, h3, h4, h5 { font-weight: 800; letter-spacing: -0.01em; }
 .layout-grid .seat .bi-lock-fill { position: absolute; top: -6px; right: -4px; font-size: .6rem; color: var(--bb-navy); }
 .layout-grid .seat.selected-edit { box-shadow: 0 0 0 2px #fff, 0 0 0 4px var(--bb-navy); z-index: 2; }
 .layout-grid .seat.drop-blocked { box-shadow: 0 0 0 2px #fff, 0 0 0 4px #dc3545; opacity: .7; }
+
+/* Cinema map on /cinemas */
+.cinema-map { height: 460px; border-radius: 10px; z-index: 0; }
+.cinema-card.active { box-shadow: 0 0 0 2px var(--bb-amber); }
+@media (max-width: 991.98px) { .cinema-map { height: 320px; } }

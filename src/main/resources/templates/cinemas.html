@@ -7,17 +7,36 @@
     <div class="page-head"><div class="container"><h1 class="h3 mb-0">Hệ thống rạp BBCinema</h1></div></div>
     <div class="container mt-4">
         <div class="row g-4">
-            <div class="col-md-6" th:each="c : ${cinemas}">
-                <div class="panel h-100">
+            <div class="col-lg-5 d-grid gap-3 align-content-start" id="cinemaList">
+                <div class="panel cinema-card" th:each="c : ${cinemas}"
+                     th:attr="data-cinema-id=${c.id},data-lat=${c.latitude},data-lng=${c.longitude},data-name=${c.name},data-address=${c.address}">
                     <h2 class="h5"><i class="bi bi-building text-warning"></i> <span th:text="${c.name}">Rạp</span></h2>
                     <p class="mb-1"><i class="bi bi-geo-alt"></i> <span th:text="${c.address}">Địa chỉ</span></p>
                     <p class="mb-3"><i class="bi bi-telephone"></i> <span th:text="${c.phone}">SĐT</span></p>
-                    <a class="btn btn-navy btn-sm" th:href="@{/select-cinema(id=${c.id},redirect='/schedule')}">Xem lịch chiếu</a>
+                    <div class="d-flex flex-wrap gap-2">
+                        <a class="btn btn-navy btn-sm" th:href="@{/select-cinema(id=${c.id},redirect='/schedule')}">Xem lịch chiếu</a>
+                        <button type="button" class="btn btn-outline-navy btn-sm" data-role="show-on-map" th:if="${c.hasLocation()}">
+                            <i class="bi bi-map"></i> Xem trên bản đồ</button>
+                        <a class="btn btn-link btn-sm" target="_blank" rel="noopener" th:if="${c.hasLocation()}"
+                           th:href="'https://www.google.com/maps/dir/?api=1&destination=' + ${c.latitude} + ',' + ${c.longitude}">
+                            <i class="bi bi-sign-turn-right"></i> Chỉ đường</a>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-7">
+                <div class="panel p-2">
+                    <h2 class="h6 px-2 pt-1">Bản đồ vị trí</h2>
+                    <div id="cinemaMap" class="cinema-map" role="region" aria-label="Bản đồ các rạp BBCinema"></div>
+                    <p class="small text-muted px-2 mb-1 mt-2">Bản đồ © OpenStreetMap. Cần kết nối mạng để hiện nền bản đồ.</p>
                 </div>
             </div>
         </div>
     </div>
 </main>
-<th:block th:fragment="scripts"></th:block>
+<th:block th:fragment="scripts">
+    <link rel="stylesheet" href="/webjars/leaflet/1.9.4/dist/leaflet.css">
+    <script src="/webjars/leaflet/1.9.4/dist/leaflet.js"></script>
+    <script src="/js/cinema-map.js"></script>
+</th:block>
 </body>
 </html>
