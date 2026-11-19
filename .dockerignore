@@ -3,3 +3,7 @@ data/
 uploads/
 .git/
 .idea/
+.vscode/
+.env
+*.docx
+*.log

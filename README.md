@@ -35,7 +35,8 @@ JJWT, ZXing, springdoc-openapi, Bootstrap 5, Chart.js, Lombok, JUnit 5, Mockito,
 
 ## Chạy ứng dụng
 
-Cần **JDK 21**. Maven đã có sẵn trong project (`mvnw`), không cần cài riêng.
+Có ba cách. Nhanh nhất là **Cách 3 (Docker)**: không cần cài Java hay MySQL.
+Cách 1 và 2 cần **JDK 21**; Maven đã có sẵn trong project (`mvnw`), không cần cài riêng.
 
 ### Cách 1: chạy nhanh, không cần cài MySQL (H2)
 
@@ -58,15 +59,28 @@ Trên Windows dùng `mvnw.cmd` thay cho `./mvnw`. Dữ liệu lưu trong thư m�
 Đổi thông tin kết nối bằng biến môi trường: `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USERNAME`, `DB_PASSWORD`.
 Trong IntelliJ: mở `BbCinemaApplication`, bấm Run. Muốn dùng H2 thì thêm `h2` vào ô *Active profiles*.
 
-### Cách 3: Docker
+### Cách 3: Docker (khuyên dùng, không cần cài Java hay MySQL)
+
+Chỉ cần cài [Docker Desktop](https://www.docker.com/products/docker-desktop/) và mở nó lên. Docker tự build ứng dụng và chạy kèm MySQL.
 
 ```bash
-docker compose up --build
+docker compose up -d --build
 ```
 
-Lệnh này chạy cả MySQL và ứng dụng. MySQL được mở ra ở cổng 3307 trên máy.
+Lần đầu mất vài phút để tải image và thư viện; các lần sau chỉ vài giây. Đợi khoảng 1 phút cho ứng dụng khởi động, rồi mở **http://localhost:8080**.
 
-Mở **http://localhost:8080**.
+| Việc | Lệnh |
+|---|---|
+| Xem trạng thái (cột STATUS hiện `healthy` là chạy xong) | `docker compose ps` |
+| Xem log ứng dụng | `docker compose logs -f app` |
+| Cập nhật sau khi sửa code | `docker compose up -d --build` |
+| Tắt (giữ nguyên dữ liệu) | `docker compose down` |
+| Tắt và **xoá hết dữ liệu** (tạo lại dữ liệu mẫu) | `docker compose down -v` |
+
+- Cổng 8080 đã bị dùng (ví dụ đang chạy bằng `mvnw`)? Thêm dòng `APP_PORT=8090` vào file `.env` rồi mở http://localhost:8090.
+- MySQL trong Docker mở ở cổng **3307** trên máy (tài khoản `root` / `root`), xem được bằng MySQL Workbench.
+- Mật khẩu Gmail, khoá VNPay, `JWT_SECRET` được đọc từ file `.env` (chép từ `.env.example`). Không có file `.env` thì vẫn chạy được, chỉ là không gửi email thật.
+- Dữ liệu MySQL và ảnh tải lên nằm trong Docker volume, nên tắt rồi bật lại không bị mất.
 
 ## Tài khoản dùng thử
 
