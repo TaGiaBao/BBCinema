@@ -70,7 +70,7 @@ public class SecurityConfig {
                         .requestMatchers("/css/**", "/js/**", "/images/**", "/uploads/**", "/webjars/**",
                                 "/favicon.ico", "/error", "/error/**").permitAll()
                         .requestMatchers("/", "/movies/**", "/schedule", "/cinemas", "/prices", "/news/**",
-                                "/select-cinema", "/login", "/register").permitAll()
+                                "/select-cinema", "/login", "/register", "/internal/login").permitAll()
                         .requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**").permitAll()
                         .requestMatchers("/payment/vnpay-return", "/payment/vnpay-ipn").permitAll()
                         .requestMatchers("/api/auth/**").permitAll()
@@ -85,7 +85,9 @@ public class SecurityConfig {
                 .logout(logout -> logout
                         .logoutUrl("/logout")
                         .deleteCookies(properties.jwt().cookieName())
-                        .logoutSuccessUrl("/?logout"))
+                        .logoutSuccessHandler((request, response, auth) -> response.sendRedirect(
+                                request.getContextPath() + ("internal".equals(request.getParameter("area"))
+                                        ? "/internal/login?logout" : "/?logout"))))
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
                 .headers(h -> h.frameOptions(f -> f.sameOrigin()));
         return http.build();
@@ -120,7 +122,15 @@ public class SecurityConfig {
         if (request.getQueryString() != null) {
             target += "?" + request.getQueryString();
         }
-        response.sendRedirect(request.getContextPath() + "/login?redirect=" + URLEncoder.encode(target, StandardCharsets.UTF_8));
+        String loginPage = isInternalArea(target) ? "/internal/login" : "/login";
+        response.sendRedirect(request.getContextPath() + loginPage + "?redirect="
+                + URLEncoder.encode(target, StandardCharsets.UTF_8));
+    }
+
+    /** Pages for staff and admins; their visitors are sent to the internal login page. */
+    static boolean isInternalArea(String path) {
+        return path.equals("/admin") || path.startsWith("/admin/") || path.startsWith("/admin?")
+                || path.equals("/staff") || path.startsWith("/staff/") || path.startsWith("/staff?");
     }
 
     private void onForbidden(HttpServletRequest request, HttpServletResponse response) throws IOException {

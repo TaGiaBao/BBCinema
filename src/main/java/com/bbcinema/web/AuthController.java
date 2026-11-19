@@ -2,6 +2,7 @@ package com.bbcinema.web;
 
 import com.bbcinema.config.AppProperties;
 import com.bbcinema.dto.request.RegisterForm;
+import com.bbcinema.entity.enums.Role;
 import com.bbcinema.exception.BusinessException;
 import com.bbcinema.security.AppUserPrincipal;
 import com.bbcinema.security.JwtService;
@@ -24,7 +25,10 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.time.Duration;
 
-/** Login and registration pages. A successful login stores the JWT in an HttpOnly cookie. */
+/**
+ * Login and registration pages. A successful login stores the JWT in an HttpOnly cookie.
+ * Members sign in at /login; staff and admins use the separate internal login page.
+ */
 @Controller
 @RequiredArgsConstructor
 public class AuthController {
@@ -33,6 +37,8 @@ public class AuthController {
     private final JwtService jwtService;
     private final UserService userService;
     private final AppProperties properties;
+
+    public static final String INTERNAL_LOGIN = "/internal/login";
 
     @GetMapping("/login")
     public String loginPage(@RequestParam(required = false) String redirect,
@@ -45,26 +51,49 @@ public class AuthController {
         return "auth/login";
     }
 
+    /** Customer login: only members (USER) may sign in here. */
     @PostMapping("/login")
     public String login(@RequestParam String email,
                         @RequestParam String password,
                         @RequestParam(required = false) String redirect,
                         HttpServletResponse response,
                         Model model) {
-        try {
-            Authentication auth = authenticationManager.authenticate(
-                    new UsernamePasswordAuthenticationToken(email.trim(), password));
-            AppUserPrincipal user = (AppUserPrincipal) auth.getPrincipal();
-            writeTokenCookie(response, jwtService.generateToken(user));
-            return "redirect:" + SafeRedirect.localPath(redirect, homeFor(user));
-        } catch (DisabledException e) {
-            model.addAttribute("error", "Tài khoản của bạn đã bị khoá. Vui lòng liên hệ rạp.");
-        } catch (AuthenticationException e) {
-            model.addAttribute("error", "Email hoặc mật khẩu không đúng");
+        LoginResult result = signIn(email, password, false, response);
+        if (result.user() != null) {
+            return "redirect:" + SafeRedirect.localPath(redirect, "/");
         }
+        model.addAttribute("error", result.error());
         model.addAttribute("email", email);
         model.addAttribute("redirect", SafeRedirect.localPath(redirect, ""));
         return "auth/login";
+    }
+
+    @GetMapping(INTERNAL_LOGIN)
+    public String internalLoginPage(@RequestParam(required = false) String redirect,
+                                    @ModelAttribute("currentUser") AppUserPrincipal currentUser,
+                                    Model model) {
+        if (currentUser != null && isInternal(currentUser.getRole())) {
+            return "redirect:" + homeFor(currentUser.getRole());
+        }
+        model.addAttribute("redirect", SafeRedirect.localPath(redirect, ""));
+        return "auth/internal-login";
+    }
+
+    /** Staff and admin login: customer accounts are refused. */
+    @PostMapping(INTERNAL_LOGIN)
+    public String internalLogin(@RequestParam String email,
+                                @RequestParam String password,
+                                @RequestParam(required = false) String redirect,
+                                HttpServletResponse response,
+                                Model model) {
+        LoginResult result = signIn(email, password, true, response);
+        if (result.user() != null) {
+            return "redirect:" + SafeRedirect.localPath(redirect, homeFor(result.user().getRole()));
+        }
+        model.addAttribute("error", result.error());
+        model.addAttribute("email", email);
+        model.addAttribute("redirect", SafeRedirect.localPath(redirect, ""));
+        return "auth/internal-login";
     }
 
     @GetMapping("/register")
@@ -95,6 +124,39 @@ public class AuthController {
         return "redirect:/";
     }
 
+    private record LoginResult(AppUserPrincipal user, String error) {
+    }
+
+    /**
+     * Checks the password, then that the account belongs to the area it signs in to.
+     * The cookie is written only when both checks pass.
+     */
+    private LoginResult signIn(String email, String password, boolean internalArea, HttpServletResponse response) {
+        AppUserPrincipal user;
+        try {
+            Authentication auth = authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(email.trim(), password));
+            user = (AppUserPrincipal) auth.getPrincipal();
+        } catch (DisabledException e) {
+            return new LoginResult(null, "Tài khoản của bạn đã bị khoá. Vui lòng liên hệ rạp.");
+        } catch (AuthenticationException e) {
+            return new LoginResult(null, "Email hoặc mật khẩu không đúng");
+        }
+        if (internalArea && !isInternal(user.getRole())) {
+            return new LoginResult(null, "Trang này chỉ dành cho nhân viên và quản trị viên. "
+                    + "Thành viên vui lòng đăng nhập tại trang chủ.");
+        }
+        if (!internalArea && isInternal(user.getRole())) {
+            return new LoginResult(null, "Vui lòng dùng trang đăng nhập nội bộ.");
+        }
+        writeTokenCookie(response, jwtService.generateToken(user));
+        return new LoginResult(user, null);
+    }
+
+    private static boolean isInternal(Role role) {
+        return role == Role.STAFF || role == Role.ADMIN;
+    }
+
     private void writeTokenCookie(HttpServletResponse response, String token) {
         ResponseCookie cookie = ResponseCookie.from(properties.jwt().cookieName(), token)
                 .httpOnly(true)
@@ -105,8 +167,8 @@ public class AuthController {
         response.addHeader("Set-Cookie", cookie.toString());
     }
 
-    private static String homeFor(AppUserPrincipal user) {
-        return switch (user.getRole()) {
+    private static String homeFor(Role role) {
+        return switch (role) {
             case ADMIN -> "/admin";
             case STAFF -> "/staff";
             default -> "/";

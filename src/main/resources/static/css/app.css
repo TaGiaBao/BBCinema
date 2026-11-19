@@ -195,3 +195,9 @@ h1, h2, h3, h4, h5 { font-weight: 800; letter-spacing: -0.01em; }
   .bb-logo .mark { width: 34px; height: 34px; }
   .cinema-picker .btn { font-size: .8rem; }
 }
+
+/* Internal (staff/admin) login page */
+.internal-login { background: var(--bb-navy-3); min-height: 100vh; }
+.internal-login .bb-logo .word { color: #fff; }
+.internal-badge { display: inline-block; padding: .2rem .7rem; border-radius: 999px; font-size: .8rem;
+  background: var(--bb-navy-2); color: #c8cbe0; border: 1px solid #3a4075; }

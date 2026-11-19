@@ -60,6 +60,7 @@
                     <span th:text="${currentUser.fullName}">Tên</span> ·
                     <span th:text="${currentUser.role.label}">Vai trò</span></span>
                 <form th:action="@{/logout}" method="post" class="m-0">
+                    <input type="hidden" name="area" value="internal">
                     <button class="btn btn-sm btn-outline-secondary" type="submit">Đăng xuất</button>
                 </form>
             </div>
