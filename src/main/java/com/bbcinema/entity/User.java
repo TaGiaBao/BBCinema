@@ -47,6 +47,13 @@ public class User {
     @Column(nullable = false)
     private int points = 0;
 
+    /** SHA-256 of the one-time "forgot password" token, and when that link stops working. */
+    @Column(name = "reset_token_hash", length = 64)
+    private String resetTokenHash;
+
+    @Column(name = "reset_token_expires_at")
+    private LocalDateTime resetTokenExpiresAt;
+
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 

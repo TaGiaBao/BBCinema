@@ -4,6 +4,7 @@ import com.bbcinema.config.AppProperties;
 import com.bbcinema.entity.Booking;
 import com.bbcinema.repository.BookingRepository;
 import com.bbcinema.service.event.BookingPaidEvent;
+import com.bbcinema.service.event.PasswordResetRequestedEvent;
 import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -73,6 +74,33 @@ public class MailService {
             log.info("Ticket {} sent to {}", booking.getCode(), to);
         } catch (Exception e) {
             log.error("Could not send ticket {} to {}: {}", booking.getCode(), to, e.getMessage());
+        }
+    }
+
+    @Async
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    public void onPasswordResetRequested(PasswordResetRequestedEvent event) {
+        JavaMailSender sender = mailSender.getIfAvailable();
+        if (!properties.mail().enabled() || sender == null) {
+            // Demo mode without e-mail: the link is only written to the server log.
+            log.info("Mail is off. Password reset link for {}: {}", event.email(), event.link());
+            return;
+        }
+        try {
+            Context context = new Context();
+            context.setVariable("fullName", event.fullName());
+            context.setVariable("link", event.link());
+            context.setVariable("minutes", PasswordResetService.LINK_LIFETIME.toMinutes());
+            MimeMessage message = sender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, false, StandardCharsets.UTF_8.name());
+            helper.setFrom(properties.mail().from());
+            helper.setTo(event.email());
+            helper.setSubject("[BBCinema] Đặt lại mật khẩu");
+            helper.setText(templateEngine.process("mail/password-reset", context), true);
+            sender.send(message);
+            log.info("Password reset mail sent to {}", event.email());
+        } catch (Exception e) {
+            log.error("Could not send password reset mail to {}: {}", event.email(), e.getMessage());
         }
     }
 }

@@ -15,6 +15,8 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     boolean existsByEmailIgnoreCase(String email);
 
+    Optional<User> findByResetTokenHash(String resetTokenHash);
+
     long countByRole(Role role);
 
     @Query("""

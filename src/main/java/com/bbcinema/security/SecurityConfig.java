@@ -70,7 +70,8 @@ public class SecurityConfig {
                         .requestMatchers("/css/**", "/js/**", "/images/**", "/uploads/**", "/webjars/**",
                                 "/favicon.ico", "/error", "/error/**").permitAll()
                         .requestMatchers("/", "/movies/**", "/schedule", "/cinemas", "/prices", "/news/**",
-                                "/select-cinema", "/login", "/register", "/internal/login").permitAll()
+                                "/select-cinema", "/login", "/register", "/internal/login",
+                                "/forgot-password", "/reset-password").permitAll()
                         .requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**").permitAll()
                         .requestMatchers("/payment/vnpay-return", "/payment/vnpay-ipn").permitAll()
                         .requestMatchers("/api/auth/**").permitAll()

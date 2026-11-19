@@ -214,6 +214,8 @@ SET NAMES utf8mb4;
     ) engine=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
     create table users (
+        reset_token_expires_at datetime(6),
+        reset_token_hash varchar(64),
         birth_date date,
         enabled bit not null,
         points integer not null,

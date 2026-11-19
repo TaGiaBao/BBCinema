@@ -6,6 +6,7 @@ import com.bbcinema.entity.enums.Role;
 import com.bbcinema.exception.BusinessException;
 import com.bbcinema.security.AppUserPrincipal;
 import com.bbcinema.security.JwtService;
+import com.bbcinema.service.PasswordResetService;
 import com.bbcinema.service.UserService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -37,6 +38,7 @@ public class AuthController {
     private final JwtService jwtService;
     private final UserService userService;
     private final AppProperties properties;
+    private final PasswordResetService passwordResetService;
 
     public static final String INTERNAL_LOGIN = "/internal/login";
 
@@ -94,6 +96,44 @@ public class AuthController {
         model.addAttribute("email", email);
         model.addAttribute("redirect", SafeRedirect.localPath(redirect, ""));
         return "auth/internal-login";
+    }
+
+    // ---------- forgot password
+
+    @GetMapping("/forgot-password")
+    public String forgotPasswordPage() {
+        return "auth/forgot-password";
+    }
+
+    @PostMapping("/forgot-password")
+    public String forgotPassword(@RequestParam String email, Model model) {
+        passwordResetService.requestReset(email);
+        // Same answer whether or not the address has an account.
+        model.addAttribute("sent", true);
+        model.addAttribute("email", email);
+        return "auth/forgot-password";
+    }
+
+    @GetMapping("/reset-password")
+    public String resetPasswordPage(@RequestParam(required = false) String token, Model model) {
+        model.addAttribute("token", token);
+        model.addAttribute("valid", passwordResetService.isValid(token));
+        return "auth/reset-password";
+    }
+
+    @PostMapping("/reset-password")
+    public String resetPassword(@RequestParam String token, @RequestParam String password,
+                                @RequestParam String confirmPassword, Model model, RedirectAttributes redirect) {
+        try {
+            passwordResetService.resetPassword(token, password, confirmPassword);
+        } catch (BusinessException e) {
+            model.addAttribute("token", token);
+            model.addAttribute("valid", passwordResetService.isValid(token));
+            model.addAttribute("error", e.getMessage());
+            return "auth/reset-password";
+        }
+        redirect.addFlashAttribute("success", "Đã đặt mật khẩu mới. Vui lòng đăng nhập lại.");
+        return "redirect:/login";
     }
 
     @GetMapping("/register")
