@@ -16,6 +16,10 @@ spring:
     import: optional:file:.env[.properties]
   profiles:
     active: ${SPRING_PROFILES_ACTIVE:mysql}
+  # Dev, demo and tests: Hibernate creates and updates the tables. The prod profile turns this
+  # off and lets Flyway apply src/main/resources/db/migration instead.
+  flyway:
+    enabled: false
   jpa:
     open-in-view: true
     hibernate:

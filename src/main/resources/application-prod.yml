@@ -1,0 +1,56 @@
+# Production settings. Turn them on together with the database profile:
+#   SPRING_PROFILES_ACTIVE=mysql,prod
+#
+# Everything that has a development default elsewhere must be given here, through environment
+# variables. The app refuses to start when a value is missing or still a known demo value
+# (see ProductionSafetyCheck).
+#
+# Required: DB_HOST, DB_NAME, DB_USERNAME, DB_PASSWORD, JWT_SECRET, APP_BASE_URL
+# Optional: FLYWAY_USER / FLYWAY_PASSWORD (account allowed to change tables; defaults to the app
+#           account), SEED_DATA=true (demo data), SWAGGER_ENABLED=true
+
+spring:
+  datasource:
+    url: jdbc:mysql://${DB_HOST}:${DB_PORT:3306}/${DB_NAME}?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Ho_Chi_Minh
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+  # Schema changes come only from the migration files in db/migration. Hibernate just checks
+  # that the tables match the entities and stops the start-up if they do not.
+  flyway:
+    enabled: true
+    # A database first created by Hibernate (ddl-auto: update) already has the V1 tables:
+    # record it as version 1 instead of failing.
+    baseline-on-migrate: true
+    baseline-version: 1
+    user: ${FLYWAY_USER:${DB_USERNAME}}
+    password: ${FLYWAY_PASSWORD:${DB_PASSWORD}}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+  thymeleaf:
+    cache: true
+
+server:
+  error:
+    # Never show exception messages or stack traces to visitors. Business messages written for
+    # users (BusinessException, NotFoundException...) are still shown by the exception handlers.
+    include-message: never
+    include-stacktrace: never
+    include-binding-errors: never
+    include-exception: false
+
+springdoc:
+  api-docs:
+    enabled: ${SWAGGER_ENABLED:false}
+  swagger-ui:
+    enabled: ${SWAGGER_ENABLED:false}
+
+app:
+  base-url: ${APP_BASE_URL}
+  seed-data: ${SEED_DATA:false}
+  jwt:
+    secret: ${JWT_SECRET}
+
+logging:
+  level:
+    com.bbcinema: INFO

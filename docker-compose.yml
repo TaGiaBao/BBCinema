@@ -3,7 +3,10 @@
 # Then open http://localhost:8080  (change the port with APP_PORT, e.g. APP_PORT=8090 in .env).
 #
 # Optional secrets (Gmail app password, VNPay keys, JWT_SECRET) are read from the .env file next
-# to this file, if it exists. Database settings are fixed below and are not taken from .env.
+# to this file, if it exists.
+#
+# This stack is for running on your own computer (demo data on, Hibernate manages tables).
+# For a real server use the prod profile instead: see "Triển khai thật" in README.md.
 
 # Own project name, so this local stack never reuses the containers or volumes of
 # docker-compose.prod.yml (project "bbcinema"), whose MySQL has a different password.
@@ -14,8 +17,13 @@ services:
     image: mysql:8.4
     restart: unless-stopped
     environment:
-      MYSQL_ROOT_PASSWORD: root
+      # Change these in .env (LOCAL_MYSQL_ROOT_PASSWORD, LOCAL_DB_PASSWORD) before the first start;
+      # MySQL only reads them when it creates its data volume.
+      MYSQL_ROOT_PASSWORD: ${LOCAL_MYSQL_ROOT_PASSWORD:-root}
       MYSQL_DATABASE: bbcinema
+      # The app connects with this account, which only has rights on the bbcinema database.
+      MYSQL_USER: bbcinema
+      MYSQL_PASSWORD: ${LOCAL_DB_PASSWORD:-bbcinema-local}
       TZ: Asia/Ho_Chi_Minh
     command: ["--character-set-server=utf8mb4", "--collation-server=utf8mb4_unicode_ci"]
     ports:
@@ -23,7 +31,7 @@ services:
     volumes:
       - mysql-data:/var/lib/mysql
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-proot"]
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -u root -p\"$$MYSQL_ROOT_PASSWORD\""]
       interval: 5s
       timeout: 5s
       retries: 30
@@ -44,8 +52,8 @@ services:
       DB_HOST: mysql
       DB_PORT: 3306
       DB_NAME: bbcinema
-      DB_USERNAME: root
-      DB_PASSWORD: root
+      DB_USERNAME: bbcinema
+      DB_PASSWORD: ${LOCAL_DB_PASSWORD:-bbcinema-local}
       APP_BASE_URL: http://localhost:${APP_PORT:-8080}
       UPLOAD_DIR: /app/uploads
     ports:
