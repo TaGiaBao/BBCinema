@@ -146,6 +146,19 @@ Thẻ test: ngân hàng NCB, số thẻ `9704198526191432198`, tên `NGUYEN VAN 
 
 **JWT**: đổi `JWT_SECRET` khi triển khai thật (`openssl rand -base64 32`).
 
+### Đăng nhập bằng Google (không bắt buộc)
+
+1. Vào [Google Cloud Console](https://console.cloud.google.com/) → **APIs & Services** → **Credentials** → **Create credentials** → **OAuth client ID** (lần đầu phải cấu hình *OAuth consent screen*, chọn *External*).
+2. Loại ứng dụng: **Web application**. *Authorized redirect URIs*: `http://localhost:8080/login/oauth2/code/google` (thêm địa chỉ thật khi triển khai).
+3. Chép *Client ID* và *Client secret* vào `.env`:
+   ```
+   GOOGLE_CLIENT_ID=...apps.googleusercontent.com
+   GOOGLE_CLIENT_SECRET=...
+   ```
+4. Khởi động lại ứng dụng: trang đăng nhập có thêm nút **Đăng nhập bằng Google**. Không điền thì nút không hiện.
+
+Email Google phải đã xác minh. Email mới sẽ tạo tài khoản thành viên; tài khoản nhân viên/quản trị không đăng nhập bằng Google được.
+
 ## Kiểm thử
 
 ```bash

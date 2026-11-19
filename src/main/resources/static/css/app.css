@@ -281,3 +281,5 @@ h1, h2, h3, h4, h5 { font-weight: 800; letter-spacing: -0.01em; }
 .auto-slot .title { font-weight: 600; }
 .auto-slot .small { grid-column: 2; }
 .auto-slot.golden { border-left-color: var(--bb-amber); background: #fff8e6; }
+
+.google-btn { display: inline-flex; align-items: center; justify-content: center; gap: .5rem; font-weight: 600; background: #fff; }

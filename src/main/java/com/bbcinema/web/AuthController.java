@@ -1,18 +1,17 @@
 package com.bbcinema.web;
 
-import com.bbcinema.config.AppProperties;
 import com.bbcinema.dto.request.RegisterForm;
 import com.bbcinema.entity.enums.Role;
 import com.bbcinema.exception.BusinessException;
 import com.bbcinema.security.AppUserPrincipal;
-import com.bbcinema.security.JwtService;
+import com.bbcinema.security.TokenCookies;
+import com.bbcinema.service.GoogleLoginService;
 import com.bbcinema.service.PasswordResetService;
 import com.bbcinema.service.UserService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.ResponseCookie;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -24,7 +23,6 @@ import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
-import java.time.Duration;
 
 /**
  * Login and registration pages. A successful login stores the JWT in an HttpOnly cookie.
@@ -35,19 +33,34 @@ import java.time.Duration;
 public class AuthController {
 
     private final AuthenticationManager authenticationManager;
-    private final JwtService jwtService;
     private final UserService userService;
-    private final AppProperties properties;
     private final PasswordResetService passwordResetService;
+    private final TokenCookies tokenCookies;
+    private final org.springframework.beans.factory.ObjectProvider<
+            org.springframework.security.oauth2.client.registration.ClientRegistrationRepository> googleClients;
+
+    @ModelAttribute("googleEnabled")
+    public boolean googleEnabled() {
+        return googleClients.getIfAvailable() != null;
+    }
 
     public static final String INTERNAL_LOGIN = "/internal/login";
 
     @GetMapping("/login")
     public String loginPage(@RequestParam(required = false) String redirect,
+                            @RequestParam(required = false) String google,
                             @ModelAttribute("currentUser") AppUserPrincipal currentUser,
                             Model model) {
         if (currentUser != null) {
             return "redirect:/";
+        }
+        if (google != null) {
+            model.addAttribute("error", switch (google) {
+                case GoogleLoginService.UNVERIFIED -> "Email Google của bạn chưa được xác minh.";
+                case GoogleLoginService.INTERNAL -> "Vui lòng dùng trang đăng nhập nội bộ.";
+                case GoogleLoginService.LOCKED -> "Tài khoản của bạn đã bị khoá. Vui lòng liên hệ rạp.";
+                default -> "Không đăng nhập được bằng Google. Vui lòng thử lại.";
+            });
         }
         model.addAttribute("redirect", SafeRedirect.localPath(redirect, ""));
         return "auth/login";
@@ -159,7 +172,7 @@ public class AuthController {
         }
         Authentication auth = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(form.getEmail().trim(), form.getPassword()));
-        writeTokenCookie(response, jwtService.generateToken((AppUserPrincipal) auth.getPrincipal()));
+        tokenCookies.signIn(response, (AppUserPrincipal) auth.getPrincipal());
         redirect.addFlashAttribute("success", "Chào mừng " + form.getFullName() + " đến với BBCinema!");
         return "redirect:/";
     }
@@ -189,22 +202,12 @@ public class AuthController {
         if (!internalArea && isInternal(user.getRole())) {
             return new LoginResult(null, "Vui lòng dùng trang đăng nhập nội bộ.");
         }
-        writeTokenCookie(response, jwtService.generateToken(user));
+        tokenCookies.signIn(response, user);
         return new LoginResult(user, null);
     }
 
     private static boolean isInternal(Role role) {
         return role == Role.STAFF || role == Role.ADMIN;
-    }
-
-    private void writeTokenCookie(HttpServletResponse response, String token) {
-        ResponseCookie cookie = ResponseCookie.from(properties.jwt().cookieName(), token)
-                .httpOnly(true)
-                .sameSite("Lax")
-                .path("/")
-                .maxAge(Duration.ofSeconds(jwtService.getLifetimeSeconds()))
-                .build();
-        response.addHeader("Set-Cookie", cookie.toString());
     }
 
     private static String homeFor(Role role) {

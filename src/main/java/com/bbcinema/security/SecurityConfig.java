@@ -6,6 +6,8 @@ import com.bbcinema.dto.response.ApiError;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -41,6 +43,9 @@ public class SecurityConfig {
     private final CustomUserDetailsService userDetailsService;
     private final AppProperties properties;
     private final ObjectMapper objectMapper;
+    private final ObjectProvider<ClientRegistrationRepository> googleClients;
+    /** Looked up lazily: it needs UserService, which needs the PasswordEncoder defined here. */
+    private final ObjectProvider<GoogleLoginSuccessHandler> googleLoginSuccessHandler;
 
     @Bean
     public PasswordEncoder passwordEncoder() {
@@ -72,7 +77,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/movies/*/reviews").authenticated()
                         .requestMatchers("/", "/movies/**", "/schedule", "/cinemas", "/prices", "/news/**",
                                 "/select-cinema", "/login", "/register", "/internal/login",
-                                "/forgot-password", "/reset-password").permitAll()
+                                "/forgot-password", "/reset-password", "/oauth2/**", "/login/oauth2/**").permitAll()
                         .requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**").permitAll()
                         .requestMatchers("/payment/vnpay-return", "/payment/vnpay-ipn").permitAll()
                         .requestMatchers("/api/auth/**").permitAll()
@@ -92,6 +97,13 @@ public class SecurityConfig {
                                         ? "/internal/login?logout" : "/?logout"))))
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
                 .headers(h -> h.frameOptions(f -> f.sameOrigin()));
+        if (googleClients.getIfAvailable() != null) {
+            http.oauth2Login(o -> o
+                    .loginPage("/login")
+                    .successHandler(googleLoginSuccessHandler.getObject())
+                    .failureHandler((request, response, e) -> response.sendRedirect(
+                            request.getContextPath() + "/login?google=failed")));
+        }
         return http.build();
     }
 
