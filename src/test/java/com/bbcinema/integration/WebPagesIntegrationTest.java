@@ -2,9 +2,11 @@ package com.bbcinema.integration;
 
 import com.bbcinema.dto.request.CounterSaleForm;
 import com.bbcinema.entity.Booking;
+import com.bbcinema.entity.Movie;
 import com.bbcinema.entity.Showtime;
 import com.bbcinema.entity.User;
 import com.bbcinema.entity.enums.AgeRating;
+import com.bbcinema.entity.enums.MovieStatus;
 import com.bbcinema.entity.enums.Role;
 import jakarta.servlet.http.Cookie;
 import org.junit.jupiter.api.Test;
@@ -14,7 +16,9 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.not;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -201,7 +205,7 @@ class WebPagesIntegrationTest extends IntegrationTestBase {
                 .andExpect(content().string(containsString("= 2 × giá VIP (tự động)")))
                 .andReturn().getResponse().getContentAsString();
         // Only standard and VIP prices have inputs: 2 formats x 2 day types x 2 time slots x 2 seat types.
-        org.assertj.core.api.Assertions.assertThat(page.split("name=\"price_", -1).length - 1).isEqualTo(16);
+        assertThat(page.split("name=\"price_", -1).length - 1).isEqualTo(16);
         mvc.perform(get("/prices"))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("Ghế đôi (dành cho hai người) có giá bằng 2 ghế VIP")));
@@ -217,5 +221,37 @@ class WebPagesIntegrationTest extends IntegrationTestBase {
         mvc.perform(get("/staff").cookie(authCookie(account(Role.STAFF))))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("date=" + lastDay)));
+    }
+
+    @Test
+    void upcomingMoviePicksAppearOnHomeMovieAndTicketPages() throws Exception {
+        int n = unique();
+        Movie upcoming = new Movie();
+        upcoming.setTitle("Phim sắp chiếu " + n);
+        upcoming.setSlug("phim-sap-chieu-" + n);
+        upcoming.setDurationMinutes(110);
+        upcoming.setAgeRating(AgeRating.P);
+        upcoming.setStatus(MovieStatus.COMING_SOON);
+        upcoming.setReleaseDate(LocalDate.now().plusDays(1));
+        movieRepository.save(upcoming);
+
+        mvc.perform(get("/"))
+                .andExpect(content().string(containsString("Phim sắp chiếu bạn có thể thích")))
+                .andExpect(content().string(containsString("Phim sắp chiếu " + n)));
+        // On its own detail page the movie is not suggested to itself.
+        String detail = mvc.perform(get("/movies/" + upcoming.getSlug())).andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+        String picks = detail.substring(Math.max(0, detail.indexOf("comingSoonPicksTitle")));
+        assertThat(picks).doesNotContain("/movies/" + upcoming.getSlug() + "\"");
+
+        Showtime st = showtimeTomorrow();
+        User member = member(22);
+        Booking booking = bookingService.holdSeats(member.getId(), st.getId(), freeSeats(st.getId(), 1));
+        mvc.perform(get("/booking/" + booking.getCode()).cookie(authCookie(member)))
+                .andExpect(content().string(not(containsString("Phim sắp chiếu bạn có thể thích"))));
+        bookingService.payWithMock(booking.getCode(), member.getId());
+        mvc.perform(get("/booking/" + booking.getCode()).cookie(authCookie(member)))
+                .andExpect(content().string(containsString("Phim sắp chiếu bạn có thể thích")))
+                .andExpect(content().string(containsString("Phim sắp chiếu " + n)));
     }
 }

@@ -38,6 +38,7 @@ public class BookingController {
     private final ComboService comboService;
     private final VnPayService vnPayService;
     private final QrCodeService qrCodeService;
+    private final MovieService movieService;
     private final Clock clock;
 
     // ---------- step 1: seats
@@ -193,6 +194,10 @@ public class BookingController {
         model.addAttribute("canCancel", bookingService.canCancel(booking));
         model.addAttribute("cancelDeadline", bookingService.cancelDeadline(booking));
         model.addAttribute("payments", bookingService.payments(booking.getId()));
+        if (booking.isPaid()) {
+            model.addAttribute("comingSoonPicks",
+                    movieService.featuredComingSoon(booking.getShowtime().getMovie().getId()));
+        }
         return "booking/ticket";
     }
 

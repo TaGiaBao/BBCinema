@@ -20,6 +20,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.time.Clock;
 import java.time.LocalDateTime;
+import java.util.Comparator;
 import java.util.LinkedHashSet;
 import java.util.List;
 
@@ -44,6 +45,21 @@ public class MovieService {
 
     public List<Movie> findByStatus(MovieStatus status) {
         return movieRepository.findByStatusOrderByReleaseDateDesc(status);
+    }
+
+    /** How many upcoming movies the "you may like" sections show. */
+    public static final int FEATURED_COMING_SOON = 4;
+
+    /**
+     * Upcoming movies to suggest: the ones opening soonest first (movies without a release date
+     * last), leaving out the movie the visitor is already looking at.
+     */
+    public List<Movie> featuredComingSoon(Long excludeMovieId) {
+        return movieRepository.findByStatusOrderByReleaseDateDesc(MovieStatus.COMING_SOON).stream()
+                .filter(m -> !m.getId().equals(excludeMovieId))
+                .sorted(Comparator.comparing(Movie::getReleaseDate, Comparator.nullsLast(Comparator.naturalOrder())))
+                .limit(FEATURED_COMING_SOON)
+                .toList();
     }
 
     public List<Movie> findWithSpecialShowtimes(Long cinemaId) {

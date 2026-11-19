@@ -34,6 +34,18 @@
     </div>
 </div>
 
+<!-- "Upcoming movies you may like": the featured coming-soon list, shown on several pages -->
+<section th:fragment="comingSoonPicks(movies)" class="coming-soon-picks mt-5" th:if="${!#lists.isEmpty(movies)}"
+         aria-labelledby="comingSoonPicksTitle">
+    <div class="d-flex justify-content-between align-items-end mb-3">
+        <h2 class="h4 mb-0" id="comingSoonPicksTitle">Phim sắp chiếu bạn có thể thích</h2>
+        <a href="/movies?status=COMING_SOON" class="fw-semibold">Xem tất cả <i class="bi bi-arrow-right"></i></a>
+    </div>
+    <div class="row row-cols-2 row-cols-md-4 g-4">
+        <div class="col" th:each="m : ${movies}"><div th:replace="~{fragments/common :: movieCard(${m})}"></div></div>
+    </div>
+</section>
+
 <!-- Pagination: needs ${page} (Spring Page) and a base URL with the current filters -->
 <nav th:fragment="pager(page, baseUrl)" th:if="${page.totalPages > 1}" aria-label="Phân trang" class="mt-4">
     <ul class="pagination justify-content-center">

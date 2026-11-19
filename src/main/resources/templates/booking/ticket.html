@@ -72,6 +72,9 @@
                 </tr></tbody>
             </table>
         </div>
+
+        <div class="no-print" th:if="${comingSoonPicks != null}"
+             th:insert="~{fragments/common :: comingSoonPicks(${comingSoonPicks})}"></div>
     </div>
 </main>
 <th:block th:fragment="scripts"></th:block>

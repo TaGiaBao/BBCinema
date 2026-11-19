@@ -35,6 +35,7 @@ public class HomeController {
         model.addAttribute("comingSoon", movieService.findByStatus(MovieStatus.COMING_SOON));
         model.addAttribute("special", movieService.findWithSpecialShowtimes(currentCinema == null ? null : currentCinema.getId()));
         model.addAttribute("posts", contentService.latestPosts());
+        model.addAttribute("comingSoonPicks", movieService.featuredComingSoon(null));
         return "home";
     }
 

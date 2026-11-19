@@ -51,6 +51,7 @@ public class MovieController {
         model.addAttribute("today", today);
         model.addAttribute("dates", showtimeService.upcomingDates());
         model.addAttribute("selectedDate", selected);
+        model.addAttribute("comingSoonPicks", movieService.featuredComingSoon(movie.getId()));
         model.addAttribute("showtimes", currentCinema == null ? java.util.List.of()
                 : showtimeService.findForMovie(movie.getId(), currentCinema.getId(), selected));
         return "movies/detail";
