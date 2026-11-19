@@ -48,7 +48,8 @@ public class RoomService {
 
     /**
      * Creates a room and generates its seats: rows A, B, C... with {@code seatsPerRow} seats each.
-     * Rows listed in vipRows become VIP and rows in coupleRows become couple seats.
+     * Rows listed in vipRows become VIP and rows in coupleRows become couple seats. Couple seats
+     * are only allowed in the last row, at the back of the room.
      */
     @Transactional
     public Room create(RoomForm form) {
@@ -59,6 +60,10 @@ public class RoomService {
         coupleRows.retainAll(rowLabels(form.getRowCount()));
         if (vipRows.stream().anyMatch(coupleRows::contains)) {
             throw new BusinessException("Một hàng không thể vừa là VIP vừa là ghế đôi");
+        }
+        String lastRow = lastRowLabel(form.getRowCount());
+        if (coupleRows.stream().anyMatch(row -> !row.equals(lastRow))) {
+            throw new BusinessException("Ghế đôi chỉ đặt ở hàng cuối cùng của phòng (hàng " + lastRow + ")");
         }
 
         Room room = new Room();
@@ -97,6 +102,9 @@ public class RoomService {
         Seat seat = seatRepository.findById(seatId)
                 .filter(s -> s.getRoom().getId().equals(roomId))
                 .orElseThrow(() -> new NotFoundException("Không tìm thấy ghế"));
+        if (type == SeatType.COUPLE && !seat.getRowLabel().equals(lastRowLabel(seat.getRoom().getRowCount()))) {
+            throw new BusinessException("Ghế đôi chỉ đặt ở hàng cuối cùng của phòng");
+        }
         seat.setType(type);
         seat.setActive(active);
         return seat;
@@ -104,6 +112,10 @@ public class RoomService {
 
     public boolean hasShowtimes(Long roomId) {
         return showtimeRepository.existsByRoomId(roomId);
+    }
+
+    static String lastRowLabel(int rowCount) {
+        return String.valueOf((char) ('A' + rowCount - 1));
     }
 
     static List<String> rowLabels(int rowCount) {

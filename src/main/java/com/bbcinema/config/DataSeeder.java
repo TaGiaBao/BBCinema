@@ -115,19 +115,19 @@ public class DataSeeder implements ApplicationRunner {
     // ------------------------------------------------------------------ prices, combos, promotions
 
     private void seedPrices() {
-        // {standard, vip, couple} for 2D; 3D adds 20,000 per person.
+        // {standard, vip} for 2D; 3D adds 20,000. Couple seats cost two VIP seats (PricingService).
         Map<String, int[]> base = Map.of(
-                "WEEKDAY_BEFORE_17", new int[]{60_000, 70_000, 130_000},
-                "WEEKDAY_FROM_17", new int[]{75_000, 85_000, 160_000},
-                "WEEKEND_BEFORE_17", new int[]{80_000, 90_000, 170_000},
-                "WEEKEND_FROM_17", new int[]{90_000, 100_000, 190_000});
+                "WEEKDAY_BEFORE_17", new int[]{60_000, 70_000},
+                "WEEKDAY_FROM_17", new int[]{75_000, 85_000},
+                "WEEKEND_BEFORE_17", new int[]{80_000, 90_000},
+                "WEEKEND_FROM_17", new int[]{90_000, 100_000});
         for (ScreenFormat format : ScreenFormat.values()) {
             for (DayType day : DayType.values()) {
                 for (TimeSlot slot : TimeSlot.values()) {
                     int[] values = base.get(day.name() + "_" + slot.name());
-                    SeatType[] types = SeatType.values();
+                    SeatType[] types = {SeatType.STANDARD, SeatType.VIP};
                     for (int i = 0; i < types.length; i++) {
-                        int extra = format == ScreenFormat.THREE_D ? (types[i] == SeatType.COUPLE ? 40_000 : 20_000) : 0;
+                        int extra = format == ScreenFormat.THREE_D ? 20_000 : 0;
                         ticketPriceRepository.save(new TicketPrice(types[i], format, day, slot, BigDecimal.valueOf(values[i] + extra)));
                     }
                 }
@@ -186,7 +186,7 @@ public class DataSeeder implements ApplicationRunner {
                         "1 điểm tương đương 1.000đ khi thanh toán.\n\nĐiểm được cộng ngay sau khi thanh toán và bị thu hồi nếu bạn huỷ vé. Mỗi đơn được dùng điểm để giảm tối đa 50% giá trị."},
                 {"BBCinema Hà Đông khai trương phòng chiếu 3D", PostType.NEWS, "/images/posts/opening.svg",
                         "Phòng chiếu 3D mới với 140 ghế, âm thanh vòm và ghế đôi ở hàng cuối.",
-                        "Phòng 3 tại BBCinema Hà Đông chính thức hoạt động từ tuần này.\n\nPhòng có 10 hàng ghế, trong đó 3 hàng VIP ở giữa và một hàng ghế đôi ở cuối phòng."},
+                        "Phòng 3 tại BBCinema Hà Đông chính thức hoạt động từ tuần này.\n\nPhòng có 10 hàng ghế: hàng A-E ghế thường, hàng F-I ghế VIP và hàng J ghế đôi ở cuối phòng."},
                 {"Lịch chiếu sớm \"Hành Tinh Lặng Im\"", PostType.NEWS, "/images/posts/premiere.svg",
                         "Suất chiếu đặc biệt trước ngày khởi chiếu chính thức, số lượng ghế có hạn.",
                         "Khán giả có thể đặt vé các suất chiếu sớm ngay hôm nay trong tab \"Suất chiếu đặc biệt\" ở trang chủ.\n\nVé suất chiếu sớm không áp dụng mã giảm giá thành viên."}};
@@ -272,12 +272,13 @@ public class DataSeeder implements ApplicationRunner {
     private void seedCinemas() {
         Cinema cauGiay = cinema("BBCinema Cầu Giấy", "Tầng 5, 241 Xuân Thủy, Cầu Giấy, Hà Nội", "0243 888 1111");
         Cinema haDong = cinema("BBCinema Hà Đông", "Tầng 4, 10 Quang Trung, Hà Đông, Hà Nội", "0243 888 2222");
-        room(cauGiay, "Phòng 1", 8, 12, "E,F,G", "H");
-        room(cauGiay, "Phòng 2", 8, 12, "E,F,G", "H");
-        room(cauGiay, "Phòng 3", 7, 10, "D,E,F", "");
-        room(haDong, "Phòng 1", 8, 12, "E,F,G", "H");
-        room(haDong, "Phòng 2", 8, 12, "E,F", "H");
-        room(haDong, "Phòng 3 (3D)", 10, 14, "F,G,H", "J");
+        // Standard layout: A-E standard, F-I VIP, couple seats only in the last row (J).
+        room(cauGiay, "Phòng 1", 10, 12, "F,G,H,I", "J");
+        room(cauGiay, "Phòng 2", 10, 12, "F,G,H,I", "J");
+        room(cauGiay, "Phòng 3", 9, 10, "F,G,H,I", "");
+        room(haDong, "Phòng 1", 10, 12, "F,G,H,I", "J");
+        room(haDong, "Phòng 2", 10, 12, "F,G,H,I", "J");
+        room(haDong, "Phòng 3 (3D)", 10, 14, "F,G,H,I", "J");
     }
 
     private Cinema cinema(String name, String address, String phone) {

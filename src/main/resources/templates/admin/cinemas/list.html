@@ -58,10 +58,10 @@
                 <div class="col-6"><label class="form-label small" for="rseats">Ghế mỗi hàng</label>
                     <input class="form-control" id="rseats" type="number" th:field="*{seatsPerRow}" th:errorclass="is-invalid"><div class="invalid-feedback" th:errors="*{seatsPerRow}"></div></div>
                 <div class="col-6"><label class="form-label small" for="rvip">Hàng VIP</label>
-                    <input class="form-control" id="rvip" th:field="*{vipRows}" th:errorclass="is-invalid" placeholder="E,F,G"><div class="invalid-feedback" th:errors="*{vipRows}"></div></div>
+                    <input class="form-control" id="rvip" th:field="*{vipRows}" th:errorclass="is-invalid" placeholder="F,G,H,I"><div class="invalid-feedback" th:errors="*{vipRows}"></div></div>
                 <div class="col-6"><label class="form-label small" for="rcouple">Hàng ghế đôi</label>
-                    <input class="form-control" id="rcouple" th:field="*{coupleRows}" th:errorclass="is-invalid" placeholder="H"><div class="invalid-feedback" th:errors="*{coupleRows}"></div></div>
-                <div class="col-12 small text-muted">Hàng ghế đôi có số ghế bằng một nửa vì mỗi ghế rộng gấp đôi. Sau khi tạo, bạn có thể bấm vào từng ghế để đổi loại hoặc biến thành lối đi.</div>
+                    <input class="form-control" id="rcouple" th:field="*{coupleRows}" th:errorclass="is-invalid" placeholder="J"><div class="invalid-feedback" th:errors="*{coupleRows}"></div></div>
+                <div class="col-12 small text-muted">Mặc định: hàng A-E ghế thường, F-I ghế VIP, hàng cuối (J) ghế đôi. Phòng cần ít nhất 9 hàng; ghế đôi chỉ đặt ở hàng cuối và có số ghế bằng một nửa vì mỗi ghế rộng gấp đôi. Sau khi tạo, bạn có thể bấm vào từng ghế để đổi loại hoặc biến thành lối đi.</div>
                 <div class="col-12"><button class="btn btn-amber" type="submit">Tạo phòng và sinh ghế</button></div>
             </form>
         </div>

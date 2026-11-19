@@ -191,4 +191,18 @@ class WebPagesIntegrationTest extends IntegrationTestBase {
                 .andExpect(content().string(containsString("class=\"ticket-watermark\" src=\"/images/logo-watermark.svg\"")));
         mvc.perform(get("/images/logo-watermark.svg")).andExpect(status().isOk());
     }
+
+    @Test
+    void couplePriceIsShownButNotEditable() throws Exception {
+        Cookie admin = authCookie(account(Role.ADMIN));
+        String page = mvc.perform(get("/admin/prices").cookie(admin))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("= 2 × giá VIP (tự động)")))
+                .andReturn().getResponse().getContentAsString();
+        // Only standard and VIP prices have inputs: 2 formats x 2 day types x 2 time slots x 2 seat types.
+        org.assertj.core.api.Assertions.assertThat(page.split("name=\"price_", -1).length - 1).isEqualTo(16);
+        mvc.perform(get("/prices"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Ghế đôi (dành cho hai người) có giá bằng 2 ghế VIP")));
+    }
 }
