@@ -6,7 +6,7 @@
 <section class="p-4" style="max-width: 1000px">
     <a href="/admin/movies" class="small"><i class="bi bi-arrow-left"></i> Danh sách phim</a>
     <h1 class="h4 mt-2" th:text="${form.id == null ? 'Thêm phim' : 'Sửa phim'}">Phim</h1>
-    <form class="panel row g-3" method="post" action="/admin/movies/save" enctype="multipart/form-data" th:object="${form}">
+    <form class="panel row g-3" method="post" th:action="@{/admin/movies/save}" enctype="multipart/form-data" th:object="${form}">
         <input type="hidden" th:field="*{id}">
         <div class="col-12 alert alert-danger" th:if="${#fields.hasGlobalErrors()}" th:text="${#fields.globalErrors()[0]}">Lỗi</div>
         <div class="col-md-8">

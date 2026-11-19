@@ -1,12 +1,16 @@
 package com.bbcinema.integration;
 
+import com.bbcinema.dto.request.CounterSaleForm;
 import com.bbcinema.entity.Booking;
 import com.bbcinema.entity.Showtime;
 import com.bbcinema.entity.User;
+import com.bbcinema.entity.enums.AgeRating;
 import com.bbcinema.entity.enums.Role;
 import jakarta.servlet.http.Cookie;
 import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockMultipartFile;
+
+import java.time.LocalDateTime;
 
 import static org.hamcrest.Matchers.containsString;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
@@ -109,5 +113,43 @@ class WebPagesIntegrationTest extends IntegrationTestBase {
                         .param("showtimeSeatIds", seat.toString()).param("customerName", "Khách"))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrlPattern("/staff/tickets/*"));
+    }
+
+    @Test
+    void checkInPageScansWithCameraAndConfirmsTicket() throws Exception {
+        User staff = account(Role.STAFF);
+        Showtime st = showtime(AgeRating.P,
+                LocalDateTime.now().plusMinutes(30).withSecond(0).withNano(0));
+        CounterSaleForm form = new CounterSaleForm();
+        form.setShowtimeSeatIds(freeSeats(st.getId(), 1));
+        form.setCustomerName("Khách lẻ");
+        Booking sold = bookingService.sellAtCounter(staff.getId(), st.getId(), form);
+        Cookie cookie = authCookie(staff);
+
+        mvc.perform(get("/staff/checkin").param("code", sold.getCode().toLowerCase()).cookie(cookie))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("/webjars/html5-qrcode/2.3.8/html5-qrcode.min.js")))
+                .andExpect(content().string(containsString("/js/checkin-scanner.js")))
+                .andExpect(content().string(containsString("data-current-code=\"" + sold.getCode() + "\"")))
+                // The confirm form must carry the CSRF token, otherwise the POST is refused.
+                .andExpect(content().string(containsString(
+                        "action=\"/staff/checkin\" class=\"mt-3\"><input type=\"hidden\" name=\"_csrf\"")));
+        mvc.perform(post("/staff/checkin").with(csrf()).cookie(cookie).param("code", sold.getCode()))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(flash().attribute("success", containsString(sold.getCode())));
+    }
+
+    @Test
+    void scannerLibraryIsServedLocally() throws Exception {
+        mvc.perform(get("/webjars/html5-qrcode/2.3.8/html5-qrcode.min.js")).andExpect(status().isOk());
+        mvc.perform(get("/js/checkin-scanner.js")).andExpect(status().isOk());
+    }
+
+    @Test
+    void adminPostFormsCarryCsrfToken() throws Exception {
+        Cookie admin = authCookie(account(Role.ADMIN));
+        mvc.perform(get("/admin/prices").cookie(admin))
+                .andExpect(content().string(containsString(
+                        "action=\"/admin/prices\" class=\"panel\"><input type=\"hidden\" name=\"_csrf\"")));
     }
 }

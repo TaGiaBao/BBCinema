@@ -37,7 +37,7 @@
             </div>
         </div>
         <div class="col-xl-4">
-            <form class="panel row g-2" method="post" action="/admin/showtimes" th:object="${form}">
+            <form class="panel row g-2" method="post" th:action="@{/admin/showtimes}" th:object="${form}">
                 <h2 class="h6 col-12">Tạo suất chiếu</h2>
                 <div class="col-12"><label class="form-label small" for="movieId">Phim</label>
                     <select class="form-select" id="movieId" th:field="*{movieId}"><option th:each="m : ${movies}" th:value="${m.id}" th:text="${m.title} + ' (' + ${m.durationMinutes} + ' phút)'">Phim</option></select></div>

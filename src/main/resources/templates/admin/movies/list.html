@@ -43,7 +43,7 @@
         <div class="col-xl-3">
             <div class="panel">
                 <h2 class="h6">Thể loại</h2>
-                <form class="d-flex gap-2 mb-3" method="post" action="/admin/movies/genres">
+                <form class="d-flex gap-2 mb-3" method="post" th:action="@{/admin/movies/genres}">
                     <input class="form-control form-control-sm" name="name" placeholder="Thể loại mới" aria-label="Thể loại mới" required>
                     <button class="btn btn-sm btn-navy" type="submit">Thêm</button>
                 </form>

@@ -6,7 +6,7 @@
 <section class="p-4" style="max-width: 1100px">
     <h1 class="h4">Bảng giá vé</h1>
     <p class="text-muted small">Giá mới chỉ áp dụng cho suất chiếu tạo sau khi lưu. Vé đã tạo giữ nguyên giá cũ.</p>
-    <form method="post" action="/admin/prices" class="panel">
+    <form method="post" th:action="@{/admin/prices}" class="panel">
         <div class="table-responsive">
             <table class="table align-middle">
                 <thead><tr><th>Định dạng</th><th>Ngày</th><th>Khung giờ</th><th>Loại ghế</th><th style="width: 200px">Giá (đ)</th></tr></thead>

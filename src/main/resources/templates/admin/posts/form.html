@@ -6,7 +6,7 @@
 <section class="p-4" style="max-width: 900px">
     <a href="/admin/posts" class="small"><i class="bi bi-arrow-left"></i> Danh sách bài viết</a>
     <h1 class="h4 mt-2" th:text="${form.id == null ? 'Viết bài mới' : 'Sửa bài viết'}">Bài viết</h1>
-    <form class="panel row g-3" method="post" action="/admin/posts" enctype="multipart/form-data" th:object="${form}">
+    <form class="panel row g-3" method="post" th:action="@{/admin/posts}" enctype="multipart/form-data" th:object="${form}">
         <div class="col-12 alert alert-danger" th:if="${#fields.hasGlobalErrors()}" th:text="${#fields.globalErrors()[0]}">Lỗi</div>
         <input type="hidden" th:field="*{id}"><input type="hidden" th:field="*{thumbnailPath}">
         <div class="col-md-9"><label class="form-label" for="title">Tiêu đề</label><input class="form-control" id="title" th:field="*{title}" th:errorclass="is-invalid"><div class="invalid-feedback" th:errors="*{title}"></div></div>

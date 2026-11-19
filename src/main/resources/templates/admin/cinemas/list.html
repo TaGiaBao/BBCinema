@@ -34,7 +34,7 @@
             </div>
         </div>
         <div class="col-xl-5 d-grid gap-4 align-content-start">
-            <form class="panel row g-2" method="post" action="/admin/cinemas/save" th:object="${cinemaForm}">
+            <form class="panel row g-2" method="post" th:action="@{/admin/cinemas/save}" th:object="${cinemaForm}">
                 <h2 class="h6 col-12" th:text="*{id == null} ? 'Thêm rạp' : 'Sửa rạp'">Thêm rạp</h2>
                 <input type="hidden" th:field="*{id}">
                 <div class="col-12"><label class="form-label small" for="cname">Tên rạp</label>
@@ -46,7 +46,7 @@
                 <div class="col-12"><button class="btn btn-navy" type="submit">Lưu rạp</button>
                     <a class="btn btn-link" href="/admin/cinemas" th:if="*{id != null}">Thêm rạp mới</a></div>
             </form>
-            <form class="panel row g-2" method="post" action="/admin/cinemas/rooms" th:object="${roomForm}">
+            <form class="panel row g-2" method="post" th:action="@{/admin/cinemas/rooms}" th:object="${roomForm}">
                 <h2 class="h6 col-12">Thêm phòng chiếu</h2>
                 <div class="col-12 alert alert-danger" th:if="${#fields.hasGlobalErrors()}" th:text="${#fields.globalErrors()[0]}">Lỗi</div>
                 <div class="col-6"><label class="form-label small" for="rcinema">Rạp</label>

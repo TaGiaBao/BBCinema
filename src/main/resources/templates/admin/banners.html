@@ -21,7 +21,7 @@
             </table>
         </div></div>
         <div class="col-xl-4">
-            <form class="panel row g-2" method="post" action="/admin/banners" enctype="multipart/form-data" th:object="${form}">
+            <form class="panel row g-2" method="post" th:action="@{/admin/banners}" enctype="multipart/form-data" th:object="${form}">
                 <h2 class="h6 col-12" th:text="*{id == null} ? 'Thêm banner' : 'Sửa banner'">Banner</h2>
                 <div class="col-12 alert alert-danger" th:if="${#fields.hasGlobalErrors()}" th:text="${#fields.globalErrors()[0]}">Lỗi</div>
                 <input type="hidden" th:field="*{id}"><input type="hidden" th:field="*{imagePath}">
