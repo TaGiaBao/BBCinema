@@ -19,7 +19,7 @@
                         </div>
                         <div th:replace="~{fragments/seatmap :: seatMap(${seatMap}, 'seatIds')}"></div>
                         <p class="small text-muted text-center mt-3 mb-0">
-                            Còn <strong th:text="${seatMap.availableCount}">0</strong> / <span th:text="${seatMap.totalCount}">0</span> ghế trống.
+                            Còn <strong data-role="available-count" th:text="${seatMap.availableCount}">0</strong> / <span th:text="${seatMap.totalCount}">0</span> ghế trống.
                             Ghế được giữ trong 5 phút sau khi bạn bấm Tiếp tục.</p>
                     </div>
                 </div>

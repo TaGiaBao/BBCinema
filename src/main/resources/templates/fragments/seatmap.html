@@ -2,8 +2,10 @@
 <html lang="vi" xmlns:th="http://www.thymeleaf.org">
 <body>
 <!-- Seat map used by the customer booking page and the counter sale page.
-     Each free seat is a button; a hidden checkbox with the same id is what the form submits. -->
-<div th:fragment="seatMap(seatMap, inputName)">
+     Each free seat is a button; a hidden checkbox with the same id is what the form submits.
+     seat-map.js polls the seat API and marks seats that other people hold or buy. -->
+<div th:fragment="seatMap(seatMap, inputName)" class="seat-map-live" th:attr="data-showtime-id=${seatMap.showtimeId}">
+    <div class="alert alert-warning small d-none" data-role="seat-notice" role="alert"></div>
     <div class="screen"></div>
     <div class="screen-label">MÀN HÌNH</div>
     <div class="seat-map-wrap">
@@ -13,8 +15,8 @@
                 <th:block th:each="cell : ${row.cells}">
                     <span th:if="${cell.gap}" class="seat gap" aria-hidden="true"></span>
                     <button th:unless="${cell.gap}" type="button" class="seat"
-                            th:classappend="${cell.type.name()} + ' ' + (${cell.available} ? '' : 'taken')"
-                            th:attr="data-id=${cell.showtimeSeatId},data-label=${cell.label},data-price=${cell.price.longValue()},aria-pressed='false',aria-label=${'Ghế ' + cell.label + ', ' + cell.type.label + (cell.available ? ', ' + @fmt.money(cell.price) : ', đã có người đặt')},title=${cell.label + ' · ' + cell.type.label + ' · ' + @fmt.money(cell.price)}"
+                            th:classappend="${cell.type.name()} + ' ' + (${cell.available} ? '' : 'taken') + ' ' + (${cell.status != null and cell.status.name() == 'HELD'} ? 'held' : '')"
+                            th:attr="data-id=${cell.showtimeSeatId},data-label=${cell.label},data-price=${cell.price.longValue()},aria-pressed='false',aria-label=${'Ghế ' + cell.label + ', ' + cell.type.label + (cell.available ? ', ' + @fmt.money(cell.price) : (cell.status.name() == 'HELD' ? ', đang có người giữ' : ', đã bán'))},title=${cell.label + ' · ' + cell.type.label + ' · ' + @fmt.money(cell.price)}"
                             th:disabled="${!cell.available}"><span class="num" th:text="${cell.number}">1</span></button>
                     <input th:unless="${cell.gap}" type="checkbox" class="d-none" th:name="${inputName}" th:value="${cell.showtimeSeatId}" th:disabled="${!cell.available}">
                 </th:block>
@@ -27,6 +29,7 @@
         <span><span class="seat VIP"></span>Ghế VIP</span>
         <span><span class="seat COUPLE"></span>Ghế đôi</span>
         <span><span class="seat selected"></span>Đang chọn</span>
+        <span><span class="seat taken held"></span>Đang có người giữ</span>
         <span><span class="seat taken"></span>Đã bán</span>
     </div>
 </div>

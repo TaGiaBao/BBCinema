@@ -1,5 +1,6 @@
 package com.bbcinema.integration;
 
+import com.bbcinema.entity.Booking;
 import com.bbcinema.entity.Showtime;
 import com.bbcinema.entity.User;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -101,5 +102,35 @@ class ApiIntegrationTest extends IntegrationTestBase {
     void openApiDocumentIsPublished() throws Exception {
         mvc.perform(get("/v3/api-docs/bbcinema")).andExpect(status().isOk())
                 .andExpect(jsonPath("$.paths['/api/bookings']").exists());
+    }
+
+    @Test
+    void seatApiShowsSeatsHeldOrSoldByOthers() throws Exception {
+        Showtime st = showtimeTomorrow();
+        User buyer = member(25);
+        List<Long> seats = freeSeats(st.getId(), 2);
+        bookingService.holdSeats(buyer.getId(), st.getId(), List.of(seats.get(0)));
+        Booking paid = bookingService.holdSeats(buyer.getId(), st.getId(), List.of(seats.get(1)));
+        bookingService.payWithMock(paid.getCode(), buyer.getId());
+
+        // The seat map page polls this endpoint anonymously.
+        String body = mvc.perform(get("/api/showtimes/" + st.getId() + "/seats"))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+        JsonNode rows = json.readTree(body).path("rows");
+        String held = null;
+        String booked = null;
+        for (JsonNode row : rows) {
+            for (JsonNode cell : row.path("cells")) {
+                long id = cell.path("showtimeSeatId").asLong();
+                if (id == seats.get(0)) {
+                    held = cell.path("status").asText();
+                } else if (id == seats.get(1)) {
+                    booked = cell.path("status").asText();
+                }
+            }
+        }
+        assertThat(held).isEqualTo("HELD");
+        assertThat(booked).isEqualTo("BOOKED");
     }
 }

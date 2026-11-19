@@ -11,6 +11,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockMultipartFile;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 import static org.hamcrest.Matchers.containsString;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
@@ -151,5 +152,22 @@ class WebPagesIntegrationTest extends IntegrationTestBase {
         mvc.perform(get("/admin/prices").cookie(admin))
                 .andExpect(content().string(containsString(
                         "action=\"/admin/prices\" class=\"panel\"><input type=\"hidden\" name=\"_csrf\"")));
+    }
+
+    @Test
+    void seatPagesAreReadyForLiveUpdates() throws Exception {
+        Showtime st = showtimeTomorrow();
+        User other = member(30);
+        Long heldSeat = freeSeats(st.getId(), 1).get(0);
+        bookingService.holdSeats(other.getId(), st.getId(), List.of(heldSeat));
+        Cookie member = authCookie(member(20));
+        mvc.perform(get("/booking/showtime/" + st.getId()).cookie(member))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("data-showtime-id=\"" + st.getId() + "\"")))
+                .andExpect(content().string(containsString("data-role=\"available-count\"")))
+                .andExpect(content().string(containsString("đang có người giữ")));
+        mvc.perform(get("/staff/sell/" + st.getId()).cookie(authCookie(account(Role.STAFF))))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("data-showtime-id=\"" + st.getId() + "\"")));
     }
 }

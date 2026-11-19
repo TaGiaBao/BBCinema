@@ -116,6 +116,12 @@ h1, h2, h3, h4, h5 { font-weight: 800; letter-spacing: -0.01em; }
 .seat.taken { background: var(--seat-taken) !important; color: #e8e9f0; cursor: not-allowed; }
 .seat.taken::after { content: "×"; position: absolute; inset: 0; display: grid; place-items: center; font-size: 1rem; }
 .seat.taken .num { visibility: hidden; }
+/* Held by someone else: striped and without the cross, so it reads differently from a sold seat. */
+.seat.taken.held { background: repeating-linear-gradient(135deg, #8a8fa6 0 4px, #b7bbcf 4px 8px) !important; }
+.seat.taken.held::after { content: ""; }
+.seat.just-changed { animation: seat-flash .9s ease-out; }
+@keyframes seat-flash { 0% { box-shadow: 0 0 0 3px var(--bb-amber); } 100% { box-shadow: 0 0 0 0 transparent; } }
+@media (prefers-reduced-motion: reduce) { .seat.just-changed { animation: none; } }
 .seat.selected { background: var(--seat-selected) !important; color: #fff; box-shadow: 0 0 0 2px #fff, 0 0 0 4px var(--seat-selected); }
 .seat:focus-visible { outline: 3px solid var(--bb-navy); outline-offset: 2px; }
 .seat-legend { display: flex; flex-wrap: wrap; gap: 1rem; justify-content: center; font-size: .85rem; color: var(--bb-muted); }
