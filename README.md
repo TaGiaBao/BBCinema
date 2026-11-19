@@ -26,7 +26,7 @@ Các điểm kỹ thuật chính:
 - **Kiểm tra độ tuổi** theo ngày sinh với phim T13, T16, T18.
 - **VNPay sandbox** (ký HMAC-SHA512), email vé dạng HTML có mã QR (ZXing), gửi bất đồng bộ sau khi thanh toán.
 - **REST API** có tài liệu Swagger, xử lý lỗi tập trung, kiểm tra dữ liệu với Bean Validation.
-- **179 test** (JUnit 5, Mockito, MockMvc, test tích hợp với H2), báo cáo độ phủ JaCoCo.
+- **200 test** (JUnit 5, Mockito, MockMvc, test tích hợp với H2), báo cáo độ phủ JaCoCo.
 
 ## Công nghệ
 
