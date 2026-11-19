@@ -26,7 +26,7 @@ Các điểm kỹ thuật chính:
 - **Kiểm tra độ tuổi** theo ngày sinh với phim T13, T16, T18.
 - **VNPay sandbox** (ký HMAC-SHA512), email vé dạng HTML có mã QR (ZXing), gửi bất đồng bộ sau khi thanh toán.
 - **REST API** có tài liệu Swagger, xử lý lỗi tập trung, kiểm tra dữ liệu với Bean Validation.
-- **133 test** (JUnit 5, Mockito, MockMvc, test tích hợp với H2), báo cáo độ phủ JaCoCo.
+- **171 test** (JUnit 5, Mockito, MockMvc, test tích hợp với H2), báo cáo độ phủ JaCoCo.
 
 ## Công nghệ
 
@@ -78,9 +78,29 @@ Lần đầu mất vài phút để tải image và thư viện; các lần sau 
 | Tắt và **xoá hết dữ liệu** (tạo lại dữ liệu mẫu) | `docker compose down -v` |
 
 - Cổng 8080 đã bị dùng (ví dụ đang chạy bằng `mvnw`)? Thêm dòng `APP_PORT=8090` vào file `.env` rồi mở http://localhost:8090.
-- MySQL trong Docker mở ở cổng **3307** trên máy (tài khoản `root` / `root`), xem được bằng MySQL Workbench.
+- MySQL trong Docker mở ở cổng **3307** trên máy, xem được bằng MySQL Workbench. Ứng dụng dùng tài khoản riêng `bbcinema` (mật khẩu `bbcinema-local`), không dùng `root`. Muốn đổi mật khẩu thì đặt `LOCAL_DB_PASSWORD` và `LOCAL_MYSQL_ROOT_PASSWORD` trong `.env` **trước lần chạy đầu tiên** (hoặc chạy `docker compose down -v` để tạo lại).
 - Mật khẩu Gmail, khoá VNPay, `JWT_SECRET` được đọc từ file `.env` (chép từ `.env.example`). Không có file `.env` thì vẫn chạy được, chỉ là không gửi email thật.
 - Dữ liệu MySQL và ảnh tải lên nằm trong Docker volume, nên tắt rồi bật lại không bị mất.
+- Bản Docker này dành cho máy cá nhân và demo: có dữ liệu mẫu, Hibernate tự tạo bảng. Lên server thật thì xem mục **Triển khai thật** bên dưới.
+
+### Triển khai thật (profile `prod`)
+
+Chạy với `SPRING_PROFILES_ACTIVE=mysql,prod`. Profile này (file `src/main/resources/application-prod.yml`):
+
+- **Tắt dữ liệu mẫu**, tắt Swagger, bật cache giao diện.
+- **Không có giá trị mặc định** cho mật khẩu và khoá bí mật. Ứng dụng **không chịu khởi động** nếu thiếu `JWT_SECRET`, `DB_USERNAME`, `DB_PASSWORD`, `APP_BASE_URL`, hoặc còn dùng giá trị demo (khoá JWT mẫu, tài khoản `root`, mật khẩu `root`, địa chỉ `localhost`) và báo rõ cần sửa gì.
+- **Quản lý bảng bằng Flyway** (`src/main/resources/db/migration`); Hibernate chỉ kiểm tra bảng khớp với code (`ddl-auto: validate`). Database cũ do Hibernate tạo được tự nhận là phiên bản 1. Mỗi lần đổi bảng về sau thì thêm file `V2__...sql`, `V3__...sql`, không sửa file đã chạy.
+- **Tài khoản DB quyền tối thiểu**: chạy `database/create-app-user.sql` (sửa mật khẩu trước) để tạo `bbcinema_app` (chỉ đọc/ghi dữ liệu, không xoá được bảng) và `bbcinema_migrate` (dùng cho Flyway).
+- **Không lộ chi tiết lỗi**: trang lỗi và API không trả về thông báo exception hay stack trace.
+
+| Biến | Bắt buộc | Ví dụ |
+|---|---|---|
+| `DB_HOST`, `DB_NAME` | Có | `db.example.com`, `bbcinema` |
+| `DB_USERNAME`, `DB_PASSWORD` | Có | `bbcinema_app`, mật khẩu mạnh |
+| `FLYWAY_USER`, `FLYWAY_PASSWORD` | Không (mặc định giống tài khoản app) | `bbcinema_migrate` |
+| `JWT_SECRET` | Có | kết quả của `openssl rand -base64 32` |
+| `APP_BASE_URL` | Có | `https://bbcinema.example.com` |
+| `SEED_DATA`, `SWAGGER_ENABLED` | Không | `true` để bật |
 
 ## Tài khoản dùng thử
 
@@ -134,10 +154,13 @@ Thẻ test: ngân hàng NCB, số thẻ `9704198526191432198`, tên `NGUYEN VAN 
 
 Báo cáo độ phủ code: `target/site/jacoco/index.html`.
 
+Mỗi lần push hoặc mở pull request, GitHub Actions (`.github/workflows/ci.yml`) chạy toàn bộ test trước; chỉ khi test qua mới build image Docker. Kết quả và báo cáo độ phủ xem ở tab **Actions** trên GitHub.
+
 | Nhóm test | Nội dung |
 |---|---|
-| `service/*Test` | Unit test với Mockito: tính giá, giữ ghế, mã giảm giá, điểm thưởng, huỷ vé, soát vé, VNPay, tạo phòng và suất chiếu |
+| `service/*Test` | Unit test với Mockito: tính giá, giữ ghế, mã giảm giá, điểm thưởng, huỷ vé, soát vé, VNPay (kể cả thanh toán đến sau khi hết giờ giữ ghế), tạo phòng và suất chiếu |
 | `security/JwtServiceTest` | Tạo, kiểm tra, hết hạn và sửa token |
+| `config/ProductionSafetyCheckTest` | Profile prod từ chối khởi động khi thiếu khoá bí mật hoặc còn giá trị demo |
 | `integration/BookingFlowIntegrationTest` | Đặt vé trọn luồng, 8 người tranh 1 ghế, hết hạn giữ ghế, kiểm tra tuổi, bán tại quầy và soát vé |
 | `integration/SecurityIntegrationTest` | Phân quyền, chuyển hướng đăng nhập, CSRF, tài khoản bị khoá |
 | `integration/ApiIntegrationTest` | REST API: đăng nhập, đặt vé, lỗi 401/403/404/409/400 |
