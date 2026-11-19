@@ -22,7 +22,7 @@
                         <div class="col-6"><div class="small text-muted">Phòng chiếu</div><div class="fw-bold" th:text="${booking.showtime.room.name}">P1</div></div>
                         <div class="col-6"><div class="small text-muted">Suất chiếu</div>
                             <div class="fw-bold" th:text="${#temporals.format(booking.showtime.startTime, 'HH:mm')} + ' · ' + ${@fmt.dayName(booking.showtime.startTime.toLocalDate())} + ' ' + ${#temporals.format(booking.showtime.startTime, 'dd/MM/yyyy')}">19:00</div></div>
-                        <div class="col-6"><div class="small text-muted">Định dạng</div><div class="fw-bold" th:text="${booking.showtime.format.label}">2D</div></div>
+                        <div class="col-6"><div class="small text-muted">Định dạng</div><div class="fw-bold" th:text="${booking.showtime.versionLabel}">2D</div></div>
                         <div class="col-6"><div class="small text-muted">Ghế</div><div class="fw-bold fs-5" th:text="${booking.seatLabels}">A1</div></div>
                         <div class="col-6"><div class="small text-muted">Khách hàng</div><div class="fw-bold" th:text="${booking.displayName}">Tên</div></div>
                         <div class="col-12" th:if="${!#lists.isEmpty(booking.combos)}"><div class="small text-muted">Bắp nước</div>

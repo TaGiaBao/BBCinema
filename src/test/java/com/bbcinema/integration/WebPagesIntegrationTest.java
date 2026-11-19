@@ -322,4 +322,23 @@ class WebPagesIntegrationTest extends IntegrationTestBase {
         mvc.perform(get("/webjars/leaflet/1.9.4/dist/leaflet.js")).andExpect(status().isOk());
         mvc.perform(get("/js/cinema-map.js")).andExpect(status().isOk());
     }
+
+    @Test
+    void showtimeLanguageIsChosenByAdminAndShownToCustomers() throws Exception {
+        Showtime st = showtimeTomorrow(); // test movies have no language: subtitled by default
+        assertThat(st.getVersionLabel()).isEqualTo("2D Phụ đề");
+        Cookie admin = authCookie(account(Role.ADMIN));
+        String day = st.getStartTime().toLocalDate().plusDays(2).toString();
+        mvc.perform(post("/admin/showtimes").with(csrf()).cookie(admin)
+                        .param("movieId", st.getMovie().getId().toString()).param("roomId", st.getRoom().getId().toString())
+                        .param("fromDate", day).param("times", "09:00").param("format", "TWO_D").param("language", "DUBBED"))
+                .andExpect(flash().attribute("success", "Đã tạo 1 suất chiếu"));
+        mvc.perform(get("/api/movies/" + st.getMovie().getId() + "/showtimes")
+                        .param("cinemaId", st.getRoom().getCinema().getId().toString()).param("date", day))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].language").value("Lồng tiếng"));
+        mvc.perform(get("/movies/" + st.getMovie().getSlug()).param("date", day)
+                        .cookie(new Cookie("BB_CINEMA", st.getRoom().getCinema().getId().toString())))
+                .andExpect(content().string(containsString("2D Lồng tiếng")));
+    }
 }

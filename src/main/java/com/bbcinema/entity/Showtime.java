@@ -1,6 +1,7 @@
 package com.bbcinema.entity;
 
 import com.bbcinema.entity.enums.ScreenFormat;
+import com.bbcinema.entity.enums.ShowLanguage;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -39,9 +40,26 @@ public class Showtime {
     private ScreenFormat format = ScreenFormat.TWO_D;
 
     /** Special screenings (early premieres, midnight shows) are listed in their own tab. */
+    /** Subtitled, dubbed or Vietnamese. Null for showtimes made before this existed. */
+    @Enumerated(EnumType.STRING)
+    @Column(length = 12)
+    private ShowLanguage language;
+
     @Column(nullable = false)
     private boolean special = false;
 
     @Column(nullable = false)
     private boolean cancelled = false;
+
+    public ShowLanguage getLanguage() {
+        if (language != null) {
+            return language;
+        }
+        return ShowLanguage.defaultFor(movie == null ? null : movie.getLanguage());
+    }
+
+    /** What customers see next to the time, e.g. "2D Phụ đề". */
+    public String getVersionLabel() {
+        return format.getLabel() + " " + getLanguage().getLabel();
+    }
 }

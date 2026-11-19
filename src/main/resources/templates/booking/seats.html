@@ -30,7 +30,7 @@
                             <div>
                                 <div class="fw-bold" th:text="${showtime.movie.title}">Phim</div>
                                 <div class="small text-muted"><span class="age-badge" th:classappend="${showtime.movie.ageRating.name()}"
-                                        th:text="${showtime.movie.ageRating.name()}">P</span> <span th:text="${showtime.format.label}">2D</span></div>
+                                        th:text="${showtime.movie.ageRating.name()}">P</span> <span th:text="${showtime.versionLabel}">2D</span></div>
                             </div>
                         </div>
                         <div class="summary-row"><span class="text-muted">Rạp</span><strong th:text="${showtime.room.cinema.name}">Rạp</strong></div>

@@ -66,12 +66,12 @@
           return;
         }
         const groups = {};
-        list.forEach((s) => { (groups[s.format] = groups[s.format] || []).push(s); });
+        list.forEach((s) => { const key = s.format + ' ' + (s.language || 'Phụ đề'); (groups[key] = groups[key] || []).push(s); });
         timesEl.innerHTML = '';
         Object.keys(groups).forEach((format) => {
           const block = document.createElement('div');
           block.className = 'mb-3';
-          block.innerHTML = '<div class="fw-bold mb-2">' + format + ' Phụ đề</div><div class="d-flex flex-wrap gap-2"></div>';
+          block.innerHTML = '<div class="fw-bold mb-2">' + format + '</div><div class="d-flex flex-wrap gap-2"></div>';
           const row = block.lastElementChild;
           groups[format].forEach((s) => {
             const a = document.createElement('a');

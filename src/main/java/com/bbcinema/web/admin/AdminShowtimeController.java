@@ -63,6 +63,7 @@ public class AdminShowtimeController {
         }
         model.addAttribute("rooms", roomService.findAll());
         model.addAttribute("formats", ScreenFormat.values());
+        model.addAttribute("languages", com.bbcinema.entity.enums.ShowLanguage.values());
         return "admin/showtimes/list";
     }
 

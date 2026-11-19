@@ -191,6 +191,7 @@ SET NAMES utf8mb4;
     ) engine=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
     create table showtimes (
+        language varchar(12),
         cancelled bit not null,
         special bit not null,
         end_time datetime(6) not null,

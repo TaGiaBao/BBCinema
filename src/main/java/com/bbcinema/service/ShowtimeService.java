@@ -10,6 +10,7 @@ import com.bbcinema.entity.*;
 import com.bbcinema.entity.enums.BookingStatus;
 import com.bbcinema.entity.enums.MovieStatus;
 import com.bbcinema.entity.enums.ScreenFormat;
+import com.bbcinema.entity.enums.ShowLanguage;
 import com.bbcinema.entity.enums.SeatStatus;
 import com.bbcinema.exception.BusinessException;
 import com.bbcinema.exception.NotFoundException;
@@ -154,7 +155,7 @@ public class ShowtimeService {
                 if (!start.isAfter(now)) {
                     throw new BusinessException("Suất " + format(start) + " đã ở trong quá khứ");
                 }
-                create(movie, room, start, form.getFormat(), form.isSpecial());
+                create(movie, room, start, form.getFormat(), form.getLanguage(), form.isSpecial());
                 created++;
             }
         }
@@ -163,6 +164,12 @@ public class ShowtimeService {
 
     @Transactional
     public Showtime create(Movie movie, Room room, LocalDateTime start, ScreenFormat format, boolean special) {
+        return create(movie, room, start, format, null, special);
+    }
+
+    @Transactional
+    public Showtime create(Movie movie, Room room, LocalDateTime start, ScreenFormat format, ShowLanguage language,
+                           boolean special) {
         if (!room.isActive()) {
             throw new BusinessException("Phòng " + room.getName() + " đang tạm ngưng");
         }
@@ -179,6 +186,7 @@ public class ShowtimeService {
         showtime.setStartTime(start);
         showtime.setEndTime(end);
         showtime.setFormat(format);
+        showtime.setLanguage(language != null ? language : ShowLanguage.defaultFor(movie.getLanguage()));
         showtime.setSpecial(special);
         showtime = showtimeRepository.save(showtime);
 

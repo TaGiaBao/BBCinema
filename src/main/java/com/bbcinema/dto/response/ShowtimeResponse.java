@@ -14,6 +14,7 @@ public record ShowtimeResponse(
         LocalDateTime startTime,
         LocalDateTime endTime,
         String format,
+        String language,
         boolean special) {
 
     public static ShowtimeResponse from(Showtime s) {
@@ -27,6 +28,7 @@ public record ShowtimeResponse(
                 s.getStartTime(),
                 s.getEndTime(),
                 s.getFormat().getLabel(),
+                s.getLanguage().getLabel(),
                 s.isSpecial());
     }
 }

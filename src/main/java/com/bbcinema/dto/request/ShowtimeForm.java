@@ -1,6 +1,7 @@
 package com.bbcinema.dto.request;
 
 import com.bbcinema.entity.enums.ScreenFormat;
+import com.bbcinema.entity.enums.ShowLanguage;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
@@ -31,6 +32,9 @@ public class ShowtimeForm {
 
     @NotNull
     private ScreenFormat format = ScreenFormat.TWO_D;
+
+    /** Null means: use the default for the movie (Vietnamese films in Vietnamese, others subtitled). */
+    private ShowLanguage language;
 
     private boolean special;
 }

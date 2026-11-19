@@ -165,4 +165,14 @@ class ShowtimeServiceTest {
         assertThat(dates.get(0)).isEqualTo(today);
         assertThat(dates.get(13)).isEqualTo(today.plusDays(13));
     }
+
+    @Test
+    void vietnameseFilmsDefaultToVietnameseOthersToSubtitles() {
+        assertThat(com.bbcinema.entity.enums.ShowLanguage.defaultFor("Tiếng Việt"))
+                .isEqualTo(com.bbcinema.entity.enums.ShowLanguage.VIETNAMESE);
+        assertThat(com.bbcinema.entity.enums.ShowLanguage.defaultFor("Tiếng Anh - Phụ đề Tiếng Việt".replace("Việt", "Viet")))
+                .isEqualTo(com.bbcinema.entity.enums.ShowLanguage.SUBTITLED);
+        assertThat(com.bbcinema.entity.enums.ShowLanguage.defaultFor(null))
+                .isEqualTo(com.bbcinema.entity.enums.ShowLanguage.SUBTITLED);
+    }
 }

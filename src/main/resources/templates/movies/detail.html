@@ -54,7 +54,7 @@
         <div class="d-flex flex-wrap gap-2">
             <a th:each="s : ${showtimes}" class="time-btn" th:classappend="${s.special} ? 'special'" th:href="@{/booking/showtime/{id}(id=${s.id})}">
                 <span th:text="${#temporals.format(s.startTime, 'HH:mm')}">19:00</span>
-                <small th:text="${s.format.label} + ' · ' + ${s.room.name}">2D · P1</small>
+                <small th:text="${s.versionLabel} + ' · ' + ${s.room.name}">2D · P1</small>
             </a>
         </div>
     </section>
