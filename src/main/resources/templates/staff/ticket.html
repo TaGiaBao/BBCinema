@@ -9,7 +9,8 @@
             <div class="fw-bold"><span class="text-warning">BB</span>Cinema</div>
             <div class="small opacity-75" th:text="${booking.showtime.room.cinema.name}">Rạp</div>
         </div>
-        <div class="ticket-body text-center">
+        <div class="ticket-body text-center ticket-watermarked">
+            <img class="ticket-watermark" src="/images/logo-watermark.svg" alt="" aria-hidden="true">
             <div class="h5" th:text="${booking.showtime.movie.title}">Phim</div>
             <div th:text="${booking.showtime.room.name} + ' · ' + ${booking.showtime.format.label}">P1</div>
             <div class="fs-4 fw-bold" th:text="${#temporals.format(booking.showtime.startTime, 'HH:mm dd/MM/yyyy')}">19:00</div>

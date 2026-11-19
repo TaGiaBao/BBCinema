@@ -9,7 +9,8 @@
                 <div style="font-size:20px;font-weight:bold"><span style="color:#ffb400">BB</span>Cinema</div>
                 <div style="font-size:14px;opacity:.8">Cảm ơn bạn đã đặt vé!</div>
             </td></tr>
-            <tr><td style="padding:24px">
+            <!-- Faded logo behind the ticket details (pre-faded PNG, since mail clients ignore opacity). -->
+            <tr><td background="cid:watermark" style="padding:24px;background-color:#ffffff;background-image:url('cid:watermark');background-repeat:no-repeat;background-position:center center">
                 <h2 style="margin:0 0 12px" th:text="${booking.showtime.movie.title}">Phim</h2>
                 <p style="margin:4px 0"><b>Rạp:</b> <span th:text="${booking.showtime.room.cinema.name} + ' - ' + ${booking.showtime.room.name}">Rạp</span></p>
                 <p style="margin:4px 0"><b>Suất chiếu:</b> <span th:text="${#temporals.format(booking.showtime.startTime, 'HH:mm dd/MM/yyyy')}">19:00</span></p>

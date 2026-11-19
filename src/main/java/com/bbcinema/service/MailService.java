@@ -34,6 +34,7 @@ public class MailService {
     private final ObjectProvider<JavaMailSender> mailSender;
     private final BookingRepository bookingRepository;
     private final QrCodeService qrCodeService;
+    private final TicketWatermark ticketWatermark;
     private final TemplateEngine templateEngine;
     private final AppProperties properties;
 
@@ -67,6 +68,7 @@ public class MailService {
             helper.setSubject("[BBCinema] Vé xem phim " + booking.getShowtime().getMovie().getTitle() + " - " + booking.getCode());
             helper.setText(html, true);
             helper.addInline("qr", new ByteArrayResource(qrCodeService.png(booking.getCode(), 240)), "image/png");
+            helper.addInline("watermark", new ByteArrayResource(ticketWatermark.png()), "image/png");
             sender.send(message);
             log.info("Ticket {} sent to {}", booking.getCode(), to);
         } catch (Exception e) {

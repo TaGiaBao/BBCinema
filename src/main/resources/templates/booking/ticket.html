@@ -14,7 +14,8 @@
                 </div>
                 <span class="status-pill" th:classappend="'status-' + ${booking.status.name()}" th:text="${booking.status.label}">Đã thanh toán</span>
             </div>
-            <div class="row g-0">
+            <div class="row g-0 ticket-watermarked">
+                <img class="ticket-watermark" src="/images/logo-watermark.svg" alt="" aria-hidden="true">
                 <div class="col-md-8 ticket-body">
                     <div class="row g-3">
                         <div class="col-6"><div class="small text-muted">Rạp</div><div class="fw-bold" th:text="${booking.showtime.room.cinema.name}">Rạp</div></div>

@@ -170,4 +170,25 @@ class WebPagesIntegrationTest extends IntegrationTestBase {
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("data-showtime-id=\"" + st.getId() + "\"")));
     }
+
+    @Test
+    void ticketsShowFadedLogoBehindText() throws Exception {
+        User staff = account(Role.STAFF);
+        Showtime st = showtimeTomorrow();
+        CounterSaleForm form = new CounterSaleForm();
+        form.setShowtimeSeatIds(freeSeats(st.getId(), 1));
+        form.setCustomerName("Khách lẻ");
+        Booking sold = bookingService.sellAtCounter(staff.getId(), st.getId(), form);
+        mvc.perform(get("/staff/tickets/" + sold.getCode()).cookie(authCookie(staff)))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("class=\"ticket-watermark\" src=\"/images/logo-watermark.svg\"")));
+
+        User member = member(22);
+        Booking online = bookingService.holdSeats(member.getId(), st.getId(), freeSeats(st.getId(), 1));
+        bookingService.payWithMock(online.getCode(), member.getId());
+        mvc.perform(get("/booking/" + online.getCode()).cookie(authCookie(member)))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("class=\"ticket-watermark\" src=\"/images/logo-watermark.svg\"")));
+        mvc.perform(get("/images/logo-watermark.svg")).andExpect(status().isOk());
+    }
 }
