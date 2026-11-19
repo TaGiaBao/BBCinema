@@ -3,11 +3,11 @@ package com.bbcinema.web.admin;
 import com.bbcinema.dto.request.CinemaForm;
 import com.bbcinema.dto.request.RoomForm;
 import com.bbcinema.entity.Room;
-import com.bbcinema.entity.Seat;
-import com.bbcinema.entity.enums.SeatType;
 import com.bbcinema.exception.BusinessException;
 import com.bbcinema.service.CinemaService;
 import com.bbcinema.service.RoomService;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -19,8 +19,6 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.util.List;
 import java.util.Map;
-import java.util.TreeMap;
-import java.util.stream.Collectors;
 
 /** Cinemas, their rooms, and the seat layout editor. */
 @Controller
@@ -30,6 +28,7 @@ public class AdminCinemaController {
 
     private final CinemaService cinemaService;
     private final RoomService roomService;
+    private final ObjectMapper objectMapper;
 
     @ModelAttribute("menu")
     public String menu() {
@@ -89,15 +88,25 @@ public class AdminCinemaController {
     }
 
     @GetMapping("/rooms/{id}")
-    public String roomLayout(@PathVariable Long id, Model model) {
-        Room room = roomService.getById(id);
-        Map<String, List<Seat>> rows = roomService.getSeats(id).stream()
-                .collect(Collectors.groupingBy(Seat::getRowLabel, TreeMap::new, Collectors.toList()));
-        model.addAttribute("room", room);
-        model.addAttribute("rows", rows);
-        model.addAttribute("seatTypes", SeatType.values());
+    public String roomLayout(@PathVariable Long id, Model model) throws JsonProcessingException {
+        model.addAttribute("room", roomService.getById(id));
+        model.addAttribute("layoutJson", objectMapper.writeValueAsString(roomService.layout(id)));
         model.addAttribute("hasShowtimes", roomService.hasShowtimes(id));
         return "admin/cinemas/room";
+    }
+
+    /** Saves the whole seat layout sent by the drag-and-drop editor (admin/cinemas/room.html). */
+    @PostMapping("/rooms/{id}/layout")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> saveLayout(@PathVariable Long id,
+                                                          @RequestBody List<RoomService.LayoutSeat> seats) {
+        try {
+            Room room = roomService.saveLayout(id, seats);
+            return ResponseEntity.ok(Map.of("message", "Đã lưu sơ đồ ghế (" + room.getActiveSeatCount() + " ghế bán được)",
+                    "layout", roomService.layout(id)));
+        } catch (BusinessException e) {
+            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
+        }
     }
 
     @PostMapping("/rooms/{id}")
@@ -110,15 +119,5 @@ public class AdminCinemaController {
             redirect.addFlashAttribute("error", e.getMessage());
         }
         return "redirect:/admin/cinemas/rooms/" + id;
-    }
-
-    /** Called by the seat editor (JavaScript) when the admin clicks a seat. */
-    @PostMapping("/rooms/{roomId}/seats/{seatId}")
-    @ResponseBody
-    public ResponseEntity<Map<String, Object>> updateSeat(@PathVariable Long roomId, @PathVariable Long seatId,
-                                                          @RequestParam SeatType type,
-                                                          @RequestParam boolean active) {
-        Seat seat = roomService.updateSeat(roomId, seatId, type, active);
-        return ResponseEntity.ok(Map.of("id", seat.getId(), "type", seat.getType().name(), "active", seat.isActive()));
     }
 }

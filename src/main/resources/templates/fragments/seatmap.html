@@ -9,17 +9,19 @@
     <div class="screen"></div>
     <div class="screen-label">MÀN HÌNH</div>
     <div class="seat-map-wrap">
-        <div class="seat-map">
-            <div class="seat-row" th:each="row : ${seatMap.rows}">
+        <div class="seat-map" th:style="'--seat-cols:' + ${seatMap.columns}">
+            <div class="seat-row" th:each="row : ${seatMap.rows}" th:classappend="${#lists.isEmpty(row.cells)} ? 'walkway'">
                 <span class="row-label" th:text="${row.label}">A</span>
+                <div class="seat-line">
                 <th:block th:each="cell : ${row.cells}">
-                    <span th:if="${cell.gap}" class="seat gap" aria-hidden="true"></span>
-                    <button th:unless="${cell.gap}" type="button" class="seat"
+                    <button type="button" class="seat"
+                            th:style="'grid-column:' + ${cell.x + 1} + ' / span ' + ${cell.width}"
                             th:classappend="${cell.type.name()} + ' ' + (${cell.available} ? '' : 'taken') + ' ' + (${cell.status != null and cell.status.name() == 'HELD'} ? 'held' : '')"
                             th:attr="data-id=${cell.showtimeSeatId},data-label=${cell.label},data-price=${cell.price.longValue()},aria-pressed='false',aria-label=${'Ghế ' + cell.label + ', ' + cell.type.label + (cell.available ? ', ' + @fmt.money(cell.price) : (cell.status.name() == 'HELD' ? ', đang có người giữ' : ', đã bán'))},title=${cell.label + ' · ' + cell.type.label + ' · ' + @fmt.money(cell.price)}"
                             th:disabled="${!cell.available}"><span class="num" th:text="${cell.number}">1</span></button>
-                    <input th:unless="${cell.gap}" type="checkbox" class="d-none" th:name="${inputName}" th:value="${cell.showtimeSeatId}" th:disabled="${!cell.available}">
+                    <input type="checkbox" class="d-none" th:name="${inputName}" th:value="${cell.showtimeSeatId}" th:disabled="${!cell.available}">
                 </th:block>
+                </div>
                 <span class="row-label" th:text="${row.label}">A</span>
             </div>
         </div>

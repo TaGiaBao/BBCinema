@@ -61,7 +61,6 @@ public class ShowtimeService {
         return showtimeRepository.search(cinemaId, movieId, from.atStartOfDay(), to.plusDays(1).atStartOfDay(), pageable);
     }
 
-    /** The next seven days, used by the date strip on booking pages. */
     /** Customers can see and book showtimes this many days ahead, today included. */
     public static final int BOOKING_WINDOW_DAYS = 14;
 
@@ -77,26 +76,44 @@ public class ShowtimeService {
                 .collect(Collectors.toMap(ss -> ss.getSeat().getId(), ss -> ss));
         LocalDateTime now = LocalDateTime.now(clock);
 
-        Map<String, List<SeatCell>> rows = new TreeMap<>();
+        // Seats sit where the admin placed them on the room grid. Only seats on sale in this
+        // showtime are drawn; aisles and empty grid lines stay as space.
+        Map<Seat, SeatLayout.Position> positions = SeatLayout.positions(layout);
+        int gridRows = SeatLayout.rows(layout, positions);
+        List<List<SeatCell>> cellsByLine = new ArrayList<>();
+        List<String> labelByLine = new ArrayList<>();
+        for (int y = 0; y < gridRows; y++) {
+            cellsByLine.add(new ArrayList<>());
+            labelByLine.add("");
+        }
         long available = 0;
-        int columns = 0;
         for (Seat seat : layout) {
             ShowtimeSeat ss = bySeatId.get(seat.getId());
-            SeatCell cell;
             if (ss == null) {
-                cell = new SeatCell(null, seat.getLabel(), seat.getNumber(), seat.getType(), null, null);
-            } else {
-                SeatStatus status = effectiveStatus(ss, now);
-                if (status == SeatStatus.AVAILABLE) {
-                    available++;
-                }
-                cell = new SeatCell(ss.getId(), seat.getLabel(), seat.getNumber(), seat.getType(), status, ss.getPrice());
+                continue;
             }
-            rows.computeIfAbsent(seat.getRowLabel(), k -> new ArrayList<>()).add(cell);
-            columns = Math.max(columns, seat.getNumber());
+            SeatStatus status = effectiveStatus(ss, now);
+            if (status == SeatStatus.AVAILABLE) {
+                available++;
+            }
+            SeatLayout.Position pos = positions.get(seat);
+            cellsByLine.get(pos.y()).add(new SeatCell(ss.getId(), seat.getLabel(), seat.getNumber(), seat.getType(),
+                    status, ss.getPrice(), pos.x(), seat.getWidth()));
+            if (labelByLine.get(pos.y()).isEmpty()) {
+                labelByLine.set(pos.y(), seat.getRowLabel());
+            }
         }
-        List<SeatRow> seatRows = rows.entrySet().stream().map(e -> new SeatRow(e.getKey(), e.getValue())).toList();
-        return new SeatMap(showtimeId, seatRows, columns, available, bySeatId.size());
+        List<SeatRow> seatRows = new ArrayList<>();
+        for (int y = 0; y < gridRows; y++) {
+            List<SeatCell> cells = cellsByLine.get(y);
+            cells.sort(java.util.Comparator.comparingInt(SeatCell::x));
+            seatRows.add(new SeatRow(labelByLine.get(y), cells));
+        }
+        // Trim empty lines at the back (seats that are not on sale) so the map ends at the last seat.
+        while (!seatRows.isEmpty() && seatRows.get(seatRows.size() - 1).cells().isEmpty()) {
+            seatRows.remove(seatRows.size() - 1);
+        }
+        return new SeatMap(showtimeId, seatRows, SeatLayout.columns(layout, positions), available, bySeatId.size());
     }
 
     /** A hold that has run out counts as free even before the cleanup job releases it. */

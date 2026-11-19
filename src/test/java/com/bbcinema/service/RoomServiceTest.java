@@ -18,7 +18,9 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import jakarta.validation.Validation;
 import jakarta.validation.Validator;
 import jakarta.validation.ValidatorFactory;
+import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -32,6 +34,7 @@ class RoomServiceTest {
     @Mock SeatRepository seatRepository;
     @Mock ShowtimeRepository showtimeRepository;
     @Mock CinemaService cinemaService;
+    @Mock com.bbcinema.repository.ShowtimeSeatRepository showtimeSeatRepository;
     @InjectMocks RoomService service;
 
     private RoomForm form(int rows, int perRow, String vip, String couple) {
@@ -73,20 +76,6 @@ class RoomServiceTest {
     }
 
     @Test
-    void updateSeatChecksRoom() {
-        Room room = TestFixtures.room(1);
-        Seat seat = new Seat("A", 1, SeatType.STANDARD);
-        seat.setRoom(room);
-        when(seatRepository.findById(5L)).thenReturn(Optional.of(seat));
-
-        Seat updated = service.updateSeat(1L, 5L, SeatType.VIP, false);
-        assertThat(updated.getType()).isEqualTo(SeatType.VIP);
-        assertThat(updated.isActive()).isFalse();
-
-        assertThatThrownBy(() -> service.updateSeat(2L, 5L, SeatType.VIP, true)).hasMessageContaining("Không tìm thấy ghế");
-    }
-
-    @Test
     void defaultRoomFormGivesStandardLayout() {
         when(cinemaService.getById(1L)).thenReturn(TestFixtures.room(1).getCinema());
         when(roomRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
@@ -109,28 +98,6 @@ class RoomServiceTest {
     }
 
     @Test
-    void coupleSeatsOnlyInLastRow() {
-        when(cinemaService.getById(1L)).thenReturn(TestFixtures.room(1).getCinema());
-        assertThatThrownBy(() -> service.create(form(10, 12, "F,G", "H")))
-                .isInstanceOf(BusinessException.class)
-                .hasMessageContaining("hàng cuối");
-    }
-
-    @Test
-    void seatEditorCannotMakeCoupleSeatOutsideLastRow() {
-        Room room = TestFixtures.room(1); // rows A-B
-        Seat front = new Seat("A", 1, SeatType.STANDARD);
-        front.setRoom(room);
-        Seat back = new Seat("B", 1, SeatType.STANDARD);
-        back.setRoom(room);
-        when(seatRepository.findById(5L)).thenReturn(Optional.of(front));
-        when(seatRepository.findById(6L)).thenReturn(Optional.of(back));
-
-        assertThatThrownBy(() -> service.updateSeat(1L, 5L, SeatType.COUPLE, true)).hasMessageContaining("hàng cuối");
-        assertThat(service.updateSeat(1L, 6L, SeatType.COUPLE, true).getType()).isEqualTo(SeatType.COUPLE);
-    }
-
-    @Test
     void roomNeedsAtLeastNineRows() {
         try (ValidatorFactory factory = Validation.buildDefaultValidatorFactory()) {
             Validator validator = factory.getValidator();
@@ -139,5 +106,76 @@ class RoomServiceTest {
             form.setRowCount(9);
             assertThat(validator.validate(form)).isEmpty();
         }
+    }
+
+    @Test
+    void newRoomSeatsGetGridPositionsAndCoupleRowIsCentred() {
+        when(cinemaService.getById(1L)).thenReturn(TestFixtures.room(1).getCinema());
+        when(roomRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        Room room = service.create(form(3, 5, "B", "C"));
+
+        Seat a1 = room.getSeats().stream().filter(s -> s.getLabel().equals("A1")).findFirst().orElseThrow();
+        Seat a5 = room.getSeats().stream().filter(s -> s.getLabel().equals("A5")).findFirst().orElseThrow();
+        assertThat(a1.getGridX()).isZero();
+        assertThat(a1.getGridY()).isZero();
+        assertThat(a5.getGridX()).isEqualTo(4);
+        // Row C: 2 couple seats (4 columns) centred under 5 columns -> start at column 0.
+        assertThat(room.getSeats()).filteredOn(s -> s.getRowLabel().equals("C"))
+                .extracting(Seat::getGridX).containsExactly(0, 2);
+        assertThat(room.getSeats()).filteredOn(s -> s.getRowLabel().equals("C")).allMatch(s -> s.getGridY() == 2);
+    }
+
+    @Test
+    void coupleSeatsCanBeInAnyRowNow() {
+        when(cinemaService.getById(1L)).thenReturn(TestFixtures.room(1).getCinema());
+        when(roomRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        Room room = service.create(form(10, 12, "F,G", "C"));
+        assertThat(room.getSeats()).filteredOn(s -> s.getRowLabel().equals("C")).allMatch(s -> s.getType() == SeatType.COUPLE);
+    }
+
+    private static RoomService.LayoutSeat at(Long id, String row, int number, SeatType type, int x, int y) {
+        return new RoomService.LayoutSeat(id, row, number, type, true, x, y);
+    }
+
+    @Test
+    void layoutAcceptsSeatsAnywhereWithoutOverlap() {
+        RoomService.validateLayout(List.of(
+                at(1L, "A", 1, SeatType.STANDARD, 0, 0),
+                at(2L, "A", 2, SeatType.STANDARD, 3, 0),      // an aisle between A1 and A2
+                at(null, "K", 1, SeatType.COUPLE, 5, 7),      // a new couple seat far back
+                at(null, "k", 2, SeatType.VIP, 7, 7)), Set.of(1L, 2L));
+    }
+
+    @Test
+    void layoutRefusesOverlapsIncludingTheSecondCellOfACoupleSeat() {
+        assertThatThrownBy(() -> RoomService.validateLayout(List.of(
+                at(null, "J", 1, SeatType.COUPLE, 0, 0),
+                at(null, "J", 2, SeatType.STANDARD, 1, 0)), Set.of()))
+                .isInstanceOf(BusinessException.class)
+                .hasMessageContaining("J2 chồng lên ghế J1");
+    }
+
+    @Test
+    void layoutRefusesDuplicateNamesBadNamesAndSeatsOffTheGrid() {
+        assertThatThrownBy(() -> RoomService.validateLayout(List.of(
+                at(null, "A", 1, SeatType.STANDARD, 0, 0),
+                at(null, "a", 1, SeatType.STANDARD, 1, 0)), Set.of()))
+                .hasMessageContaining("hai ghế cùng tên A1");
+        assertThatThrownBy(() -> RoomService.validateLayout(List.of(
+                at(null, "A1", 1, SeatType.STANDARD, 0, 0)), Set.of()))
+                .hasMessageContaining("không hợp lệ");
+        assertThatThrownBy(() -> RoomService.validateLayout(List.of(
+                at(null, "A", 1, SeatType.COUPLE, SeatLayout.MAX_COLUMNS - 1, 0)), Set.of()))
+                .hasMessageContaining("ngoài sơ đồ");
+        assertThatThrownBy(() -> RoomService.validateLayout(List.of(), Set.of()))
+                .hasMessageContaining("ít nhất một ghế");
+    }
+
+    @Test
+    void layoutRefusesSeatsOfAnotherRoom() {
+        assertThatThrownBy(() -> RoomService.validateLayout(List.of(
+                at(99L, "A", 1, SeatType.STANDARD, 0, 0)), Set.of(1L)))
+                .hasMessageContaining("không hợp lệ");
     }
 }

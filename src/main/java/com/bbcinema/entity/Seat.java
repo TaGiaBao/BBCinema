@@ -35,6 +35,17 @@ public class Seat {
     @Column(nullable = false)
     private boolean active = true;
 
+    /**
+     * Position on the room grid, set by the admin layout editor: column (0 = left) and grid row
+     * (0 = nearest the screen). A couple seat takes two columns. Null for seats created before the
+     * editor existed; {@link com.bbcinema.service.SeatLayout} then derives it from row and number.
+     */
+    @Column(name = "grid_x")
+    private Integer gridX;
+
+    @Column(name = "grid_y")
+    private Integer gridY;
+
     public Seat(String rowLabel, int number, SeatType type) {
         this.rowLabel = rowLabel;
         this.number = number;
@@ -43,5 +54,10 @@ public class Seat {
 
     public String getLabel() {
         return rowLabel + number;
+    }
+
+    /** Grid columns the seat takes: a couple seat is as wide as two seats. */
+    public int getWidth() {
+        return type == SeatType.COUPLE ? 2 : 1;
     }
 }

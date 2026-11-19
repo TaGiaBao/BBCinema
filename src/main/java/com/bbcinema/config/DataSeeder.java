@@ -273,13 +273,36 @@ public class DataSeeder implements ApplicationRunner {
         // Approximate map positions of the two addresses, for the "nearest cinema" suggestion.
         Cinema cauGiay = cinema("BBCinema Cầu Giấy", "Tầng 5, 241 Xuân Thủy, Cầu Giấy, Hà Nội", "0243 888 1111", 21.0368, 105.7820);
         Cinema haDong = cinema("BBCinema Hà Đông", "Tầng 4, 10 Quang Trung, Hà Đông, Hà Nội", "0243 888 2222", 20.9714, 105.7788);
-        // Standard layout: A-E standard, F-I VIP, couple seats only in the last row (J).
+        // Default layout: A-E standard, F-I VIP, couple seats in the last row (J).
         room(cauGiay, "Phòng 1", 10, 12, "F,G,H,I", "J");
         room(cauGiay, "Phòng 2", 10, 12, "F,G,H,I", "J");
         room(cauGiay, "Phòng 3", 9, 10, "F,G,H,I", "");
         room(haDong, "Phòng 1", 10, 12, "F,G,H,I", "J");
         room(haDong, "Phòng 2", 10, 12, "F,G,H,I", "J");
-        room(haDong, "Phòng 3 (3D)", 10, 14, "F,G,H,I", "J");
+        Room threeD = room(haDong, "Phòng 3 (3D)", 10, 14, "F,G,H,I", "J");
+        // A Lotte-style room made with the layout editor's data: two aisles split the room into
+        // side blocks of 2 seats and a middle block, and a walkway separates standard from VIP.
+        addAisles(threeD, new int[]{2, 12}, 5);
+    }
+
+    /** Moves seats right of each aisle column one cell further, and seats from walkwayLine down. */
+    private void addAisles(Room room, int[] aisleColumns, int walkwayLine) {
+        for (Seat seat : room.getSeats()) {
+            int x = seat.getGridX();
+            int shift = 0;
+            for (int column : aisleColumns) {
+                if (x >= column) {
+                    shift++;
+                }
+            }
+            seat.setGridX(x + shift);
+            if (seat.getGridY() >= walkwayLine) {
+                seat.setGridY(seat.getGridY() + 1);
+            }
+        }
+        room.setSeatsPerRow(room.getSeatsPerRow() + aisleColumns.length);
+        room.setRowCount(room.getRowCount() + 1);
+        roomRepository.save(room);
     }
 
     private Cinema cinema(String name, String address, String phone, double latitude, double longitude) {
@@ -292,7 +315,7 @@ public class DataSeeder implements ApplicationRunner {
         return cinemaRepository.save(c);
     }
 
-    private void room(Cinema cinema, String name, int rows, int perRow, String vip, String couple) {
+    private Room room(Cinema cinema, String name, int rows, int perRow, String vip, String couple) {
         RoomForm form = new RoomForm();
         form.setCinemaId(cinema.getId());
         form.setName(name);
@@ -300,7 +323,7 @@ public class DataSeeder implements ApplicationRunner {
         form.setSeatsPerRow(perRow);
         form.setVipRows(vip);
         form.setCoupleRows(couple);
-        roomService.create(form);
+        return roomService.create(form);
     }
 
     // ------------------------------------------------------------------ showtimes

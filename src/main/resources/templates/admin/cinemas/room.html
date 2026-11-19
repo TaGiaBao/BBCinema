@@ -11,28 +11,66 @@
         <div class="form-check"><input class="form-check-input" type="checkbox" name="active" value="true" id="roomActive" th:checked="${room.active}"><label class="form-check-label" for="roomActive">Đang hoạt động</label></div>
         <button class="btn btn-sm btn-navy" type="submit">Lưu</button>
     </form>
-    <div class="alert alert-info small" th:if="${hasShowtimes}">Phòng đã có suất chiếu. Thay đổi sơ đồ ghế chỉ áp dụng cho các suất chiếu tạo sau.</div>
-    <div class="panel">
-        <p class="small text-muted">Bấm vào ghế để đổi lần lượt: Thường → VIP → Đôi → Lối đi → Thường. Thay đổi được lưu ngay.</p>
+    <div class="alert alert-info small" th:if="${hasShowtimes}">
+        Phòng đã có suất chiếu. Sơ đồ mới áp dụng cho các suất chiếu tạo sau. Ghế đã từng bán không xoá được
+        (hãy chuyển thành lối đi), và ghế đang có khách cho suất sắp chiếu không đổi tên được (có biểu tượng khoá).
+    </div>
+
+    <div class="panel layout-editor" id="layoutEditor"
+         th:attr="data-layout=${layoutJson},data-save-url=@{/admin/cinemas/rooms/{id}/layout(id=${room.id})}">
+        <div class="layout-toolbar d-flex flex-wrap gap-2 align-items-center mb-2">
+            <div class="btn-group btn-group-sm" role="group" aria-label="Chế độ">
+                <input type="radio" class="btn-check" name="mode" id="modeSelect" value="select" checked>
+                <label class="btn btn-outline-navy" for="modeSelect"><i class="bi bi-cursor"></i> Chọn, kéo thả</label>
+                <input type="radio" class="btn-check" name="mode" id="modeAdd" value="add">
+                <label class="btn btn-outline-navy" for="modeAdd"><i class="bi bi-plus-square"></i> Thêm ghế</label>
+            </div>
+            <select class="form-select form-select-sm w-auto" data-role="add-type" aria-label="Loại ghế khi thêm">
+                <option value="STANDARD">Ghế thường</option>
+                <option value="VIP">Ghế VIP</option>
+                <option value="COUPLE">Ghế đôi</option>
+            </select>
+            <span class="vr"></span>
+            <div class="btn-group btn-group-sm" role="group" aria-label="Thao tác với ghế đang chọn" data-role="selection-tools">
+                <button type="button" class="btn btn-outline-secondary" data-action="type" data-type="STANDARD">Thường</button>
+                <button type="button" class="btn btn-outline-secondary" data-action="type" data-type="VIP">VIP</button>
+                <button type="button" class="btn btn-outline-secondary" data-action="type" data-type="COUPLE">Đôi</button>
+                <button type="button" class="btn btn-outline-secondary" data-action="aisle" title="Lối đi / ghế không bán"><i class="bi bi-slash-circle"></i> Lối đi</button>
+                <button type="button" class="btn btn-outline-secondary" data-action="rename"><i class="bi bi-fonts"></i> Đặt tên hàng</button>
+                <button type="button" class="btn btn-outline-danger" data-action="delete"><i class="bi bi-trash"></i> Xoá</button>
+            </div>
+            <span class="vr"></span>
+            <button type="button" class="btn btn-sm btn-outline-secondary" data-action="renumber" title="Đặt tên hàng A, B, C... từ màn hình xuống, số ghế từ trái sang phải">
+                <i class="bi bi-sort-numeric-down"></i> Đánh số lại cả phòng</button>
+            <button type="button" class="btn btn-sm btn-outline-secondary" data-action="undo" title="Hoàn tác (Ctrl+Z)"><i class="bi bi-arrow-counterclockwise"></i> Hoàn tác</button>
+            <span class="ms-auto d-flex gap-2">
+                <button type="button" class="btn btn-sm btn-outline-secondary" data-action="reset">Bỏ thay đổi</button>
+                <button type="button" class="btn btn-sm btn-amber" data-action="save"><i class="bi bi-save"></i> Lưu sơ đồ</button>
+            </span>
+        </div>
+        <p class="small text-muted mb-2">
+            Kéo ghế (hoặc nhóm ghế đang chọn) tới chỗ trống. Giữ <kbd>Ctrl</kbd> hoặc <kbd>Shift</kbd> để chọn nhiều ghế,
+            bấm chữ cái đầu hàng để chọn cả hàng. Phím mũi tên dịch chuyển, <kbd>Delete</kbd> xoá, <kbd>Ctrl</kbd>+<kbd>Z</kbd> hoàn tác.
+        </p>
+        <div class="small mb-2" data-role="status" role="status" aria-live="polite"></div>
         <div class="screen"></div>
         <div class="screen-label">MÀN HÌNH</div>
-        <div class="seat-map-wrap">
-            <div class="seat-map" id="seatEditor" th:attr="data-url=@{/admin/cinemas/rooms/{id}/seats(id=${room.id})}">
-                <div class="seat-row" th:each="row : ${rows}">
-                    <span class="row-label" th:text="${row.key}">A</span>
-                    <button type="button" th:each="s : ${row.value}" class="seat" th:classappend="${s.type.name()} + ' ' + (${s.active} ? '' : 'inactive-seat')"
-                            th:attr="data-seat-id=${s.id},data-type=${s.type.name()},data-active=${s.active},data-label=${s.label}" th:text="${s.number}">1</button>
-                    <span class="row-label" th:text="${row.key}">A</span>
-                </div>
+        <div class="layout-scroll">
+            <div class="layout-board" data-role="board" tabindex="0" aria-label="Sơ đồ ghế, dùng phím mũi tên để dịch chuyển ghế đang chọn">
+                <div class="layout-labels" data-role="labels"></div>
+                <div class="layout-grid" data-role="grid"></div>
             </div>
         </div>
-        <div class="seat-legend mt-3">
-            <span><span class="seat STANDARD"></span>Thường</span><span><span class="seat VIP"></span>VIP</span>
-            <span><span class="seat COUPLE"></span>Đôi</span><span><span class="seat STANDARD inactive-seat"></span>Lối đi / không bán</span>
+        <div class="d-flex flex-wrap justify-content-between align-items-center mt-3 gap-2">
+            <div class="seat-legend m-0">
+                <span><span class="seat STANDARD"></span>Thường</span><span><span class="seat VIP"></span>VIP</span>
+                <span><span class="seat COUPLE"></span>Đôi</span><span><span class="seat STANDARD inactive-seat"></span>Lối đi / không bán</span>
+                <span><i class="bi bi-lock-fill"></i> Có khách, không đổi tên</span>
+            </div>
+            <div class="small text-muted" data-role="summary"></div>
         </div>
-        <p class="small text-success mt-2 mb-0" id="editorStatus" role="status"></p>
     </div>
 </section>
-<th:block th:fragment="scripts"><script src="/js/seat-editor.js"></script></th:block>
+<th:block th:fragment="scripts"><script src="/js/seat-layout-editor.js"></script></th:block>
 </body>
 </html>

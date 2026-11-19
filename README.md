@@ -11,7 +11,7 @@ với tên, logo, màu sắc và hình ảnh riêng.
 | Khách | Chọn rạp, xem phim đang chiếu / sắp chiếu / suất chiếu đặc biệt, chi tiết phim và trailer, lịch chiếu theo rạp, bảng giá vé, tin tức và ưu đãi, đăng ký, đăng nhập |
 | Thành viên | Chọn ghế trên sơ đồ, giữ ghế 5 phút, chọn combo bắp nước, áp mã giảm giá, dùng điểm thưởng, thanh toán (thử hoặc VNPay sandbox), nhận vé có mã QR qua email, xem lịch sử vé, huỷ vé trước giờ chiếu 2 tiếng, tích điểm 5% |
 | Nhân viên quầy | Bán vé tại quầy (thu tiền mặt, in vé), soát vé theo mã |
-| Quản trị viên | Thống kê doanh thu có biểu đồ, quản lý phim và thể loại (tải poster), rạp, phòng chiếu và sơ đồ ghế, suất chiếu (chặn trùng giờ), bảng giá vé, combo, mã giảm giá, tin tức, banner, tài khoản và phân quyền, danh sách đơn đặt vé |
+| Quản trị viên | Thống kê doanh thu có biểu đồ, quản lý phim và thể loại (tải poster), rạp, phòng chiếu và sơ đồ ghế (kéo thả tự do: chia khu, lối đi, ghế đôi ở bất kỳ đâu), suất chiếu (chặn trùng giờ), bảng giá vé, combo, mã giảm giá, tin tức, banner, tài khoản và phân quyền, danh sách đơn đặt vé |
 
 Các điểm kỹ thuật chính:
 
@@ -26,7 +26,7 @@ Các điểm kỹ thuật chính:
 - **Kiểm tra độ tuổi** theo ngày sinh với phim T13, T16, T18.
 - **VNPay sandbox** (ký HMAC-SHA512), email vé dạng HTML có mã QR (ZXing), gửi bất đồng bộ sau khi thanh toán.
 - **REST API** có tài liệu Swagger, xử lý lỗi tập trung, kiểm tra dữ liệu với Bean Validation.
-- **171 test** (JUnit 5, Mockito, MockMvc, test tích hợp với H2), báo cáo độ phủ JaCoCo.
+- **179 test** (JUnit 5, Mockito, MockMvc, test tích hợp với H2), báo cáo độ phủ JaCoCo.
 
 ## Công nghệ
 

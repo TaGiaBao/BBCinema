@@ -168,6 +168,8 @@ SET NAMES utf8mb4;
 
     create table seats (
         active bit not null,
+        grid_x integer,
+        grid_y integer,
         number integer not null,
         row_label varchar(2) not null,
         id bigint not null auto_increment,
