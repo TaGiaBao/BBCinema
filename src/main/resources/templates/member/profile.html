@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/main :: layout(~{::title}, ~{::main}, ~{::scripts})}">
+<head><title>Tài khoản · BBCinema</title></head>
+<body>
+<main>
+    <div class="page-head"><div class="container"><h1 class="h3 mb-0">Thành viên</h1></div></div>
+    <div class="container mt-4">
+        <div class="row g-4">
+            <div class="col-lg-3"><div th:replace="~{member/_nav :: nav}"></div></div>
+            <div class="col-lg-9 d-grid gap-4">
+                <div class="panel">
+                    <h2 class="h5 mb-3">Thông tin tài khoản</h2>
+                    <form th:action="@{/member/profile}" th:object="${profileForm}" method="post" class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Email</label>
+                            <input class="form-control" th:value="${user.email}" disabled>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label" for="fullName">Họ và tên</label>
+                            <input class="form-control" id="fullName" th:field="*{fullName}" th:errorclass="is-invalid">
+                            <div class="invalid-feedback" th:errors="*{fullName}"></div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label" for="phone">Số điện thoại</label>
+                            <input class="form-control" id="phone" th:field="*{phone}" th:errorclass="is-invalid">
+                            <div class="invalid-feedback" th:errors="*{phone}"></div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label" for="birthDate">Ngày sinh</label>
+                            <input class="form-control" id="birthDate" type="date" th:field="*{birthDate}" th:errorclass="is-invalid">
+                            <div class="invalid-feedback" th:errors="*{birthDate}"></div>
+                        </div>
+                        <div class="col-12"><button class="btn btn-navy" type="submit">Lưu thông tin</button></div>
+                    </form>
+                </div>
+                <div class="panel">
+                    <h2 class="h5 mb-3">Đổi mật khẩu</h2>
+                    <form th:action="@{/member/password}" th:object="${passwordForm}" method="post" class="row g-3">
+                        <div class="col-12 alert alert-danger mb-0" th:if="${#fields.hasGlobalErrors()}" th:text="${#fields.globalErrors()[0]}">Lỗi</div>
+                        <div class="col-md-4">
+                            <label class="form-label" for="currentPassword">Mật khẩu hiện tại</label>
+                            <input class="form-control" id="currentPassword" type="password" th:field="*{currentPassword}" th:errorclass="is-invalid">
+                            <div class="invalid-feedback" th:errors="*{currentPassword}"></div>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label" for="newPassword">Mật khẩu mới</label>
+                            <input class="form-control" id="newPassword" type="password" th:field="*{newPassword}" th:errorclass="is-invalid">
+                            <div class="invalid-feedback" th:errors="*{newPassword}"></div>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label" for="confirmPassword">Nhập lại mật khẩu mới</label>
+                            <input class="form-control" id="confirmPassword" type="password" th:field="*{confirmPassword}" th:errorclass="is-invalid">
+                            <div class="invalid-feedback" th:errors="*{confirmPassword}"></div>
+                        </div>
+                        <div class="col-12"><button class="btn btn-outline-navy" type="submit">Đổi mật khẩu</button></div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+<th:block th:fragment="scripts"></th:block>
+</body>
+</html>

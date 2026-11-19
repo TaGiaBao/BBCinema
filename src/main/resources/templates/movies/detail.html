@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/main :: layout(~{::title}, ~{::main}, ~{::scripts})}">
+<head><title th:text="${movie.title} + ' · BBCinema'">Phim</title></head>
+<body>
+<main>
+    <section class="movie-hero py-5">
+        <div class="container">
+            <nav aria-label="breadcrumb"><ol class="breadcrumb small">
+                <li class="breadcrumb-item"><a class="text-warning" href="/">Trang chủ</a></li>
+                <li class="breadcrumb-item"><a class="text-warning" href="/movies">Phim</a></li>
+                <li class="breadcrumb-item active text-light" th:text="${movie.title}">Phim</li>
+            </ol></nav>
+            <div class="row g-4 align-items-start">
+                <div class="col-md-4 col-lg-3 text-center">
+                    <img class="poster-lg" th:src="${movie.posterPath != null ? movie.posterPath : '/images/no-image.svg'}" th:alt="${movie.title}">
+                </div>
+                <div class="col-md-8 col-lg-9">
+                    <h1 class="display-6" th:text="${movie.title}">Tên phim</h1>
+                    <p class="mb-3"><span class="age-badge" th:classappend="${movie.ageRating.name()}" th:text="${movie.ageRating.name()}">P</span>
+                        <span class="ms-2 text-light opacity-75" th:text="${movie.ageRating.label}">Mọi lứa tuổi</span></p>
+                    <p class="lead opacity-75" style="max-width: 70ch" th:text="${movie.description}">Mô tả</p>
+                    <dl class="row small mb-4" style="max-width: 640px">
+                        <dt class="col-4 col-sm-3">Đạo diễn</dt><dd class="col-8 col-sm-9" th:text="${movie.director ?: 'Đang cập nhật'}">-</dd>
+                        <dt class="col-4 col-sm-3">Diễn viên</dt><dd class="col-8 col-sm-9" th:text="${movie.actors ?: 'Đang cập nhật'}">-</dd>
+                        <dt class="col-4 col-sm-3">Thể loại</dt><dd class="col-8 col-sm-9" th:text="${movie.genreNames}">-</dd>
+                        <dt class="col-4 col-sm-3">Thời lượng</dt><dd class="col-8 col-sm-9" th:text="${@fmt.duration(movie.durationMinutes)}">-</dd>
+                        <dt class="col-4 col-sm-3">Ngôn ngữ</dt><dd class="col-8 col-sm-9" th:text="${movie.language ?: 'Đang cập nhật'}">-</dd>
+                        <dt class="col-4 col-sm-3">Khởi chiếu</dt><dd class="col-8 col-sm-9" th:text="${movie.releaseDate != null ? #temporals.format(movie.releaseDate, 'dd/MM/yyyy') : 'Đang cập nhật'}">-</dd>
+                    </dl>
+                    <a th:if="${movie.trailerUrl != null}" class="btn btn-outline-light" th:href="${movie.trailerUrl}" target="_blank" rel="noopener">
+                        <i class="bi bi-play-circle"></i> Xem trailer</a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="container mt-4" th:if="${@fmt.youtubeEmbed(movie.trailerUrl) != null}">
+        <div class="ratio ratio-16x9" style="max-width: 860px">
+            <iframe th:src="${@fmt.youtubeEmbed(movie.trailerUrl)}" title="Trailer" allowfullscreen loading="lazy"></iframe>
+        </div>
+    </section>
+
+    <section class="container mt-5">
+        <h2 class="h4">Lịch chiếu tại <span class="text-primary" th:text="${currentCinema != null ? currentCinema.name : ''}">rạp</span></h2>
+        <p class="small text-muted">Muốn xem ở rạp khác? Đổi rạp ở thanh trên cùng.</p>
+        <div class="date-strip mb-4">
+            <a th:each="d : ${dates}" th:href="@{/movies/{slug}(slug=${movie.slug},date=${d})}" th:classappend="${d == selectedDate} ? 'active'">
+                <span class="day" th:text="${#temporals.format(d, 'dd')}">01</span>
+                <span class="dow" th:text="${@fmt.relativeDay(d, today)} + ' · ' + ${#temporals.format(d, 'MM')}">Hôm nay</span>
+            </a>
+        </div>
+        <div th:if="${#lists.isEmpty(showtimes)}" class="text-muted">Không có suất chiếu trong ngày này.</div>
+        <div class="d-flex flex-wrap gap-2">
+            <a th:each="s : ${showtimes}" class="time-btn" th:classappend="${s.special} ? 'special'" th:href="@{/booking/showtime/{id}(id=${s.id})}">
+                <span th:text="${#temporals.format(s.startTime, 'HH:mm')}">19:00</span>
+                <small th:text="${s.format.label} + ' · ' + ${s.room.name}">2D · P1</small>
+            </a>
+        </div>
+    </section>
+</main>
+<th:block th:fragment="scripts"></th:block>
+</body>
+</html>

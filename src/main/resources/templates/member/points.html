@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/main :: layout(~{::title}, ~{::main}, ~{::scripts})}">
+<head><title>Điểm thưởng · BBCinema</title></head>
+<body>
+<main>
+    <div class="page-head"><div class="container"><h1 class="h3 mb-0">Thành viên</h1></div></div>
+    <div class="container mt-4">
+        <div class="row g-4">
+            <div class="col-lg-3"><div th:replace="~{member/_nav :: nav}"></div></div>
+            <div class="col-lg-9">
+                <div class="panel">
+                    <h2 class="h5 mb-1">Điểm thưởng</h2>
+                    <p class="small text-muted">Mỗi đơn thanh toán được tích 5% giá trị. 1 điểm = 1.000đ, dùng tối đa 50% giá trị đơn. Huỷ vé sẽ hoàn điểm đã dùng và thu hồi điểm đã tích.</p>
+                    <p class="text-muted" th:if="${#lists.isEmpty(transactions)}">Chưa có giao dịch điểm.</p>
+                    <div class="table-responsive" th:unless="${#lists.isEmpty(transactions)}">
+                        <table class="table align-middle">
+                            <thead><tr><th>Thời gian</th><th>Loại</th><th>Nội dung</th><th class="text-end">Điểm</th></tr></thead>
+                            <tbody>
+                            <tr th:each="t : ${transactions}">
+                                <td class="small" th:text="${#temporals.format(t.createdAt, 'HH:mm dd/MM/yyyy')}">-</td>
+                                <td th:text="${t.type.label}">Tích điểm</td>
+                                <td class="small" th:text="${t.note}">-</td>
+                                <td class="text-end fw-bold tabular" th:classappend="${t.points > 0} ? 'text-success' : 'text-danger'"
+                                    th:text="${t.points > 0 ? '+' + t.points : t.points}">+10</td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+<th:block th:fragment="scripts"></th:block>
+</body>
+</html>

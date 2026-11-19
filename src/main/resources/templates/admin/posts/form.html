@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/admin :: layout(~{::title}, ~{::section}, ~{::scripts})}">
+<head><title>Bài viết · Quản trị BBCinema</title></head>
+<body>
+<section class="p-4" style="max-width: 900px">
+    <a href="/admin/posts" class="small"><i class="bi bi-arrow-left"></i> Danh sách bài viết</a>
+    <h1 class="h4 mt-2" th:text="${form.id == null ? 'Viết bài mới' : 'Sửa bài viết'}">Bài viết</h1>
+    <form class="panel row g-3" method="post" action="/admin/posts" enctype="multipart/form-data" th:object="${form}">
+        <div class="col-12 alert alert-danger" th:if="${#fields.hasGlobalErrors()}" th:text="${#fields.globalErrors()[0]}">Lỗi</div>
+        <input type="hidden" th:field="*{id}"><input type="hidden" th:field="*{thumbnailPath}">
+        <div class="col-md-9"><label class="form-label" for="title">Tiêu đề</label><input class="form-control" id="title" th:field="*{title}" th:errorclass="is-invalid"><div class="invalid-feedback" th:errors="*{title}"></div></div>
+        <div class="col-md-3"><label class="form-label" for="type">Loại</label><select class="form-select" id="type" th:field="*{type}"><option th:each="t : ${types}" th:value="${t}" th:text="${t.label}">-</option></select></div>
+        <div class="col-12"><label class="form-label" for="summary">Tóm tắt</label><textarea class="form-control" id="summary" rows="2" th:field="*{summary}"></textarea></div>
+        <div class="col-12"><label class="form-label" for="content">Nội dung</label><textarea class="form-control" id="content" rows="10" th:field="*{content}" th:errorclass="is-invalid"></textarea><div class="invalid-feedback" th:errors="*{content}"></div></div>
+        <div class="col-md-8"><label class="form-label" for="thumbnail">Ảnh đại diện</label><input class="form-control" type="file" id="thumbnail" name="thumbnail" accept="image/*"></div>
+        <div class="col-md-4 d-flex align-items-end"><div class="form-check"><input class="form-check-input" type="checkbox" th:field="*{published}"><label class="form-check-label" th:for="${#ids.prev('published')}">Hiển thị trên trang</label></div></div>
+        <div class="col-12"><button class="btn btn-amber" type="submit">Lưu bài viết</button></div>
+    </form>
+</section>
+<th:block th:fragment="scripts"></th:block>
+</body>
+</html>

@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 600" width="400" height="600">
+<defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2b9348"/><stop offset="1" stop-color="#0b3d2e"/></linearGradient></defs>
+<rect width="400" height="600" fill="url(#g)"/>
+<path d="M0 300 Q100 260 200 300 T400 300 V420 H0Z" fill="#0b3d2e" opacity="0.7"/>
+<path d="M120 290 Q200 270 280 290 L260 310 H140Z" fill="#5c3d1e"/>
+<line x1="200" y1="290" x2="200" y2="200" stroke="#5c3d1e" stroke-width="4"/>
+<circle cx="300" cy="110" r="46" fill="#f9dc5c" opacity="0.85"/>
+<path d="M60 200 q10 -20 20 0" stroke="#f9dc5c" stroke-width="3" fill="none" opacity="0.7"/>
+<path d="M130 200 q10 -20 20 0" stroke="#f9dc5c" stroke-width="3" fill="none" opacity="0.7"/>
+<path d="M200 200 q10 -20 20 0" stroke="#f9dc5c" stroke-width="3" fill="none" opacity="0.7"/>
+<path d="M270 200 q10 -20 20 0" stroke="#f9dc5c" stroke-width="3" fill="none" opacity="0.7"/>
+<path d="M340 200 q10 -20 20 0" stroke="#f9dc5c" stroke-width="3" fill="none" opacity="0.7"/>
+<rect x="0" y="420" width="400" height="180" fill="#0b3d2e" opacity="0.35"/>
+<text x="200" y="470" text-anchor="middle" font-family="'Be Vietnam Pro', 'Segoe UI', Arial, sans-serif" font-size="46" font-weight="800" letter-spacing="1" fill="#ffffff">TIẾNG ĐÀN</text><text x="200" y="522" text-anchor="middle" font-family="'Be Vietnam Pro', 'Segoe UI', Arial, sans-serif" font-size="46" font-weight="800" letter-spacing="1" fill="#ffffff">TRÊN SÔNG</text>
+<text x="200" y="580" text-anchor="middle" font-family="'Be Vietnam Pro', 'Segoe UI', Arial, sans-serif" font-size="15" fill="#ffffff" opacity="0.85">Giữ lấy câu hò của cha</text>
+<rect x="320" y="18" width="62" height="30" rx="6" fill="#ffb400"/>
+<text x="351" y="39" text-anchor="middle" font-family="'Be Vietnam Pro', 'Segoe UI', Arial, sans-serif" font-size="16" font-weight="800" fill="#1b1f3b">K</text>
+<text x="20" y="38" font-family="'Be Vietnam Pro', 'Segoe UI', Arial, sans-serif" font-size="14" font-weight="800" fill="#ffffff" opacity="0.8">BBCINEMA</text>
+</svg>

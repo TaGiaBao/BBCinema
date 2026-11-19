@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<body>
+<!-- Seat map used by the customer booking page and the counter sale page.
+     Each free seat is a button; a hidden checkbox with the same id is what the form submits. -->
+<div th:fragment="seatMap(seatMap, inputName)">
+    <div class="screen"></div>
+    <div class="screen-label">MÀN HÌNH</div>
+    <div class="seat-map-wrap">
+        <div class="seat-map">
+            <div class="seat-row" th:each="row : ${seatMap.rows}">
+                <span class="row-label" th:text="${row.label}">A</span>
+                <th:block th:each="cell : ${row.cells}">
+                    <span th:if="${cell.gap}" class="seat gap" aria-hidden="true"></span>
+                    <button th:unless="${cell.gap}" type="button" class="seat"
+                            th:classappend="${cell.type.name()} + ' ' + (${cell.available} ? '' : 'taken')"
+                            th:attr="data-id=${cell.showtimeSeatId},data-label=${cell.label},data-price=${cell.price.longValue()},aria-pressed='false',aria-label=${'Ghế ' + cell.label + ', ' + cell.type.label + (cell.available ? ', ' + @fmt.money(cell.price) : ', đã có người đặt')},title=${cell.label + ' · ' + cell.type.label + ' · ' + @fmt.money(cell.price)}"
+                            th:disabled="${!cell.available}"><span class="num" th:text="${cell.number}">1</span></button>
+                    <input th:unless="${cell.gap}" type="checkbox" class="d-none" th:name="${inputName}" th:value="${cell.showtimeSeatId}" th:disabled="${!cell.available}">
+                </th:block>
+                <span class="row-label" th:text="${row.label}">A</span>
+            </div>
+        </div>
+    </div>
+    <div class="seat-legend mt-3">
+        <span><span class="seat STANDARD"></span>Ghế thường</span>
+        <span><span class="seat VIP"></span>Ghế VIP</span>
+        <span><span class="seat COUPLE"></span>Ghế đôi</span>
+        <span><span class="seat selected"></span>Đang chọn</span>
+        <span><span class="seat taken"></span>Đã bán</span>
+    </div>
+</div>
+</body>
+</html>

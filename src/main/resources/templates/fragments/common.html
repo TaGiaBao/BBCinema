@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<body>
+
+<!-- Success / error message after a redirect -->
+<div th:fragment="flash" class="container mt-3" th:if="${success != null or error != null}">
+    <div th:if="${success != null}" class="alert alert-success alert-dismissible fade show mb-0" role="alert">
+        <i class="bi bi-check-circle-fill"></i> <span th:text="${success}">OK</span>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Đóng"></button>
+    </div>
+    <div th:if="${error != null}" class="alert alert-danger alert-dismissible fade show mb-0" role="alert">
+        <i class="bi bi-exclamation-triangle-fill"></i> <span th:text="${error}">Lỗi</span>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Đóng"></button>
+    </div>
+</div>
+
+<!-- Movie card with hover actions; "Mua vé" opens the showtime picker -->
+<div th:fragment="movieCard(movie)" class="movie-card">
+    <div class="poster">
+        <img th:src="${movie.posterPath != null ? movie.posterPath : '/images/no-image.svg'}" th:alt="${movie.title}" loading="lazy">
+        <div class="overlay">
+            <a class="btn btn-amber btn-sm px-4" href="#" th:if="${movie.status.name() != 'ENDED'}"
+               th:attr="data-buy-movie=${movie.id},data-movie-title=${movie.title}"><i class="bi bi-ticket-perforated"></i> Mua vé</a>
+            <a class="btn btn-outline-light btn-sm px-4" th:href="@{/movies/{slug}(slug=${movie.slug})}"><i class="bi bi-info-circle"></i> Chi tiết</a>
+        </div>
+    </div>
+    <div class="body">
+        <a class="title" th:href="@{/movies/{slug}(slug=${movie.slug})}" th:text="${movie.title}">Tên phim</a>
+        <div class="meta"><span class="age-badge" th:classappend="${movie.ageRating.name()}" th:text="${movie.ageRating.name()}">P</span>
+            <span th:text="${movie.genreNames}">Thể loại</span></div>
+        <div class="meta"><i class="bi bi-clock"></i> <span th:text="${movie.durationMinutes} + ' phút'">120 phút</span>
+            <span th:if="${movie.releaseDate != null}"> · <i class="bi bi-calendar-event"></i>
+                <span th:text="${#temporals.format(movie.releaseDate, 'dd/MM/yyyy')}">01/01</span></span></div>
+    </div>
+</div>
+
+<!-- Pagination: needs ${page} (Spring Page) and a base URL with the current filters -->
+<nav th:fragment="pager(page, baseUrl)" th:if="${page.totalPages > 1}" aria-label="Phân trang" class="mt-4">
+    <ul class="pagination justify-content-center">
+        <li class="page-item" th:classappend="${page.first} ? 'disabled'">
+            <a class="page-link" th:href="${baseUrl + (baseUrl.contains('?') ? '&' : '?') + 'page=' + (page.number - 1)}">‹</a>
+        </li>
+        <li class="page-item" th:each="i : ${#numbers.sequence(0, page.totalPages - 1)}" th:classappend="${i == page.number} ? 'active'">
+            <a class="page-link" th:href="${baseUrl + (baseUrl.contains('?') ? '&' : '?') + 'page=' + i}" th:text="${i + 1}">1</a>
+        </li>
+        <li class="page-item" th:classappend="${page.last} ? 'disabled'">
+            <a class="page-link" th:href="${baseUrl + (baseUrl.contains('?') ? '&' : '?') + 'page=' + (page.number + 1)}">›</a>
+        </li>
+    </ul>
+</nav>
+
+<!-- Booking progress -->
+<div th:fragment="steps(current)" class="steps mb-3">
+    <span th:classappend="${current > 1} ? 'done' : (${current == 1} ? 'current')">1. Chọn ghế</span>
+    <span th:classappend="${current > 2} ? 'done' : (${current == 2} ? 'current')">2. Bắp nước</span>
+    <span th:classappend="${current > 3} ? 'done' : (${current == 3} ? 'current')">3. Thanh toán</span>
+    <span th:classappend="${current == 4} ? 'current'">4. Nhận vé</span>
+</div>
+
+<!-- Booking summary sidebar -->
+<div th:fragment="summary(booking)" class="summary-card p-3">
+    <div class="d-flex gap-3 mb-3">
+        <img class="poster-sm" th:src="${booking.showtime.movie.posterPath}" th:alt="${booking.showtime.movie.title}">
+        <div>
+            <div class="fw-bold" th:text="${booking.showtime.movie.title}">Phim</div>
+            <div class="small text-muted"><span class="age-badge" th:classappend="${booking.showtime.movie.ageRating.name()}"
+                    th:text="${booking.showtime.movie.ageRating.name()}">P</span>
+                <span th:text="${booking.showtime.format.label}">2D</span></div>
+        </div>
+    </div>
+    <div class="summary-row"><span class="text-muted">Rạp</span><strong th:text="${booking.showtime.room.cinema.name}">Rạp</strong></div>
+    <div class="summary-row"><span class="text-muted">Phòng</span><strong th:text="${booking.showtime.room.name}">P1</strong></div>
+    <div class="summary-row"><span class="text-muted">Suất</span>
+        <strong th:text="${#temporals.format(booking.showtime.startTime, 'HH:mm')} + ' · ' + ${@fmt.dayName(booking.showtime.startTime.toLocalDate())} + ' ' + ${#temporals.format(booking.showtime.startTime, 'dd/MM')}">19:00</strong></div>
+    <div class="summary-row"><span class="text-muted">Ghế</span><strong th:text="${booking.seatLabels}">A1</strong></div>
+    <hr>
+    <div class="summary-row"><span>Tiền vé</span><span class="tabular" th:text="${@fmt.money(booking.ticketAmount)}">0đ</span></div>
+    <div class="summary-row" th:each="line : ${booking.combos}">
+        <span th:text="${line.quantity} + ' × ' + ${line.combo.name}">Combo</span>
+        <span class="tabular" th:text="${@fmt.money(line.lineTotal)}">0đ</span></div>
+    <div class="summary-row text-success" th:if="${booking.promotionDiscount.signum() > 0}">
+        <span th:text="'Mã ' + ${booking.promotion != null ? booking.promotion.code : ''}">Mã</span>
+        <span class="tabular" th:text="'-' + ${@fmt.money(booking.promotionDiscount)}">0đ</span></div>
+    <div class="summary-row text-success" th:if="${booking.pointsUsed > 0}">
+        <span th:text="'Dùng ' + ${booking.pointsUsed} + ' điểm'">Điểm</span>
+        <span class="tabular" th:text="'-' + ${@fmt.money(booking.pointsDiscount)}">0đ</span></div>
+    <hr>
+    <div class="summary-row align-items-center"><span class="fw-bold">Tổng cộng</span>
+        <span class="summary-total tabular" th:text="${@fmt.money(booking.totalAmount)}">0đ</span></div>
+    <div class="summary-row small" th:if="${booking.pending and booking.expiresAt != null}">
+        <span class="text-muted">Thời gian giữ ghế</span>
+        <span class="countdown" th:attr="data-expires-at=${booking.expiresAtEpochMillis}">05:00</span></div>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/admin :: layout(~{::title}, ~{::section}, ~{::scripts})}">
+<head><title>Bán vé · BBCinema</title></head>
+<body>
+<section class="p-4">
+    <a href="/staff" class="small"><i class="bi bi-arrow-left"></i> Danh sách suất chiếu</a>
+    <h1 class="h4 mt-2" th:text="${showtime.movie.title}">Phim</h1>
+    <p class="text-muted" th:text="${showtime.room.cinema.name} + ' · ' + ${showtime.room.name} + ' · ' + ${#temporals.format(showtime.startTime, 'HH:mm dd/MM/yyyy')} + ' · ' + ${showtime.format.label}">Suất</p>
+    <form id="seatForm" method="post" th:action="@{/staff/sell/{id}(id=${showtime.id})}" th:object="${form}">
+        <div class="row g-4">
+            <div class="col-xl-8">
+                <div class="panel">
+                    <div th:replace="~{fragments/seatmap :: seatMap(${seatMap}, 'showtimeSeatIds')}"></div>
+                </div>
+            </div>
+            <div class="col-xl-4 d-grid gap-3 align-content-start">
+                <div class="panel">
+                    <h2 class="h6">Bắp nước</h2>
+                    <div class="d-flex justify-content-between align-items-center py-1" th:each="c : ${combos}">
+                        <label class="small" th:for="'combo_' + ${c.id}" th:text="${c.name} + ' · ' + ${@fmt.money(c.price)}">Combo</label>
+                        <input class="form-control form-control-sm text-center" style="width: 70px" type="number" min="0" max="20" value="0"
+                               th:id="'combo_' + ${c.id}" th:name="'combo_' + ${c.id}">
+                    </div>
+                </div>
+                <div class="panel">
+                    <h2 class="h6">Khách hàng (không bắt buộc)</h2>
+                    <input class="form-control form-control-sm mb-2" th:field="*{customerName}" placeholder="Họ tên" aria-label="Họ tên">
+                    <input class="form-control form-control-sm mb-2" th:field="*{customerPhone}" placeholder="Số điện thoại" aria-label="Số điện thoại">
+                    <input class="form-control form-control-sm" th:field="*{customerEmail}" placeholder="Email nhận vé" aria-label="Email">
+                </div>
+                <div class="panel">
+                    <div class="summary-row"><span>Ghế</span><strong id="selectedSeats">Chưa chọn ghế</strong></div>
+                    <div class="summary-row"><span>Tiền vé</span><strong class="tabular" id="seatTotal">0đ</strong></div>
+                    <div class="small text-muted">Tiền bắp nước được cộng khi xác nhận.</div>
+                    <div class="alert alert-warning small mt-2 mb-0" th:if="${showtime.movie.ageRating.minAge > 0}">
+                        Kiểm tra giấy tờ: phim <strong th:text="${showtime.movie.ageRating.name()}">T16</strong>.</div>
+                    <button id="seatSubmit" class="btn btn-amber w-100 mt-3" type="submit" disabled><i class="bi bi-cash"></i> Thu tiền mặt và in vé</button>
+                </div>
+            </div>
+        </div>
+    </form>
+</section>
+<th:block th:fragment="scripts"><script src="/js/seat-map.js"></script></th:block>
+</body>
+</html>

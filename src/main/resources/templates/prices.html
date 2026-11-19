@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/main :: layout(~{::title}, ~{::main}, ~{::scripts})}">
+<head><title>Giá vé · BBCinema</title></head>
+<body>
+<main>
+    <div class="page-head"><div class="container"><h1 class="h3 mb-0">Giá vé</h1></div></div>
+    <div class="container mt-4">
+        <p class="text-muted">Giá áp dụng cho một vé. Ghế đôi là giá cho một ghế dành cho hai người.</p>
+        <div class="row g-4">
+            <div class="col-lg-6" th:each="format : ${formats}">
+                <div class="panel">
+                    <h2 class="h5 mb-3" th:text="'Phim ' + ${format.label}">2D</h2>
+                    <div class="table-responsive">
+                        <table class="table align-middle mb-0">
+                            <thead><tr><th>Ngày</th><th>Khung giờ</th>
+                                <th class="text-end" th:each="t : ${seatTypes}" th:text="${t.label}">Ghế</th></tr></thead>
+                            <tbody>
+                            <th:block th:each="day : ${dayTypes}">
+                                <tr th:each="slot : ${timeSlots}">
+                                    <td th:text="${day.label}">T2</td>
+                                    <td th:text="${slot.label}">Trước 17h</td>
+                                    <td class="text-end tabular fw-semibold" th:each="t : ${seatTypes}">
+                                        <th:block th:each="p : ${prices}" th:if="${p.format == format and p.dayType == day and p.timeSlot == slot and p.seatType == t}"
+                                                  th:text="${@fmt.money(p.price)}">0đ</th:block>
+                                    </td>
+                                </tr>
+                            </th:block>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <h2 class="h4 mt-5 mb-3">Combo bắp nước</h2>
+        <div class="row row-cols-2 row-cols-md-4 g-4">
+            <div class="col" th:each="c : ${combos}">
+                <div class="panel h-100 text-center">
+                    <img th:src="${c.imagePath != null ? c.imagePath : '/images/no-image.svg'}" th:alt="${c.name}" class="img-fluid mb-2 rounded">
+                    <div class="fw-bold" th:text="${c.name}">Combo</div>
+                    <div class="small text-muted" th:text="${c.description}">Mô tả</div>
+                    <div class="fw-bold text-primary mt-1" th:text="${@fmt.money(c.price)}">0đ</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+<th:block th:fragment="scripts"></th:block>
+</body>
+</html>

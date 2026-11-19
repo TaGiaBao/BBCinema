@@ -1,0 +1,92 @@
+// Shared scripts for the public site: CSRF helper and the "Mua vé" showtime picker.
+(function () {
+  'use strict';
+
+  /** CSRF token for fetch() calls that use the login cookie. */
+  window.bbCsrf = function () {
+    const token = document.querySelector('meta[name="_csrf"]');
+    const header = document.querySelector('meta[name="_csrf_header"]');
+    return token && header ? { [header.content]: token.content } : {};
+  };
+
+  const pad = (n) => String(n).padStart(2, '0');
+  const isoDate = (d) => d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
+  const dayNames = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
+
+  const modalEl = document.getElementById('showtimeModal');
+  if (!modalEl || !window.bootstrap) {
+    return;
+  }
+  const modal = new bootstrap.Modal(modalEl);
+  const cinemaId = document.body.dataset.cinemaId;
+  const cinemaName = document.body.dataset.cinemaName || '';
+  const titleEl = modalEl.querySelector('[data-role="title"]');
+  const datesEl = modalEl.querySelector('[data-role="dates"]');
+  const timesEl = modalEl.querySelector('[data-role="times"]');
+  let movieId = null;
+
+  function renderDates(selected) {
+    datesEl.innerHTML = '';
+    const today = new Date();
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(today.getFullYear(), today.getMonth(), today.getDate() + i);
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = isoDate(d) === selected ? 'active' : '';
+      btn.innerHTML = '<span class="day">' + pad(d.getDate()) + '</span><span class="dow">' +
+        (i === 0 ? 'Hôm nay' : dayNames[d.getDay()]) + ' · ' + pad(d.getMonth() + 1) + '</span>';
+      btn.addEventListener('click', () => load(isoDate(d)));
+      datesEl.appendChild(btn);
+    }
+  }
+
+  function load(date) {
+    renderDates(date);
+    timesEl.innerHTML = '<div class="text-muted py-3">Đang tải suất chiếu...</div>';
+    fetch('/api/movies/' + movieId + '/showtimes?cinemaId=' + encodeURIComponent(cinemaId) + '&date=' + date)
+      .then((r) => (r.ok ? r.json() : Promise.reject(r.status)))
+      .then((list) => {
+        if (list.length === 0) {
+          timesEl.innerHTML = '<div class="text-muted py-3">Không có suất chiếu tại ' + cinemaName +
+            ' trong ngày này. Hãy chọn ngày khác hoặc đổi rạp ở đầu trang.</div>';
+          return;
+        }
+        const groups = {};
+        list.forEach((s) => { (groups[s.format] = groups[s.format] || []).push(s); });
+        timesEl.innerHTML = '';
+        Object.keys(groups).forEach((format) => {
+          const block = document.createElement('div');
+          block.className = 'mb-3';
+          block.innerHTML = '<div class="fw-bold mb-2">' + format + ' Phụ đề</div><div class="d-flex flex-wrap gap-2"></div>';
+          const row = block.lastElementChild;
+          groups[format].forEach((s) => {
+            const a = document.createElement('a');
+            a.className = 'time-btn' + (s.special ? ' special' : '');
+            a.href = '/booking/showtime/' + s.id;
+            a.innerHTML = s.startTime.substring(11, 16) + '<small>' + s.roomName + (s.special ? ' · Đặc biệt' : '') + '</small>';
+            row.appendChild(a);
+          });
+          timesEl.appendChild(block);
+        });
+      })
+      .catch(() => {
+        timesEl.innerHTML = '<div class="text-danger py-3">Không tải được suất chiếu. Vui lòng thử lại.</div>';
+      });
+  }
+
+  document.addEventListener('click', (e) => {
+    const trigger = e.target.closest('[data-buy-movie]');
+    if (!trigger) {
+      return;
+    }
+    e.preventDefault();
+    if (!cinemaId) {
+      alert('Chưa có rạp nào đang hoạt động.');
+      return;
+    }
+    movieId = trigger.dataset.buyMovie;
+    titleEl.textContent = trigger.dataset.movieTitle + ' · ' + cinemaName;
+    load(isoDate(new Date()));
+    modal.show();
+  });
+})();

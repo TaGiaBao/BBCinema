@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      th:fragment="layout(title, content, scripts)">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="_csrf" th:if="${_csrf != null}" th:content="${_csrf.token}">
+    <meta name="_csrf_header" th:if="${_csrf != null}" th:content="${_csrf.headerName}">
+    <title th:replace="${title}">Quản trị BBCinema</title>
+    <link rel="icon" href="/images/favicon.svg" type="image/svg+xml">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap">
+    <link rel="stylesheet" href="/webjars/bootstrap/5.3.3/css/bootstrap.min.css">
+    <link rel="stylesheet" href="/webjars/bootstrap-icons/1.11.3/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="/css/app.css">
+</head>
+<body>
+<div class="admin-shell">
+    <aside class="admin-sidebar no-print">
+        <div class="p-3">
+            <a class="bb-logo" href="/"><span class="mark">BB</span><span class="word">BB<span>Cinema</span></span></a>
+        </div>
+        <nav>
+            <div sec:authorize="hasRole('ADMIN')" class="contents">
+                <div class="group">Tổng quan</div>
+                <a href="/admin" th:classappend="${menu == 'dashboard'} ? 'active'"><i class="bi bi-graph-up"></i> Thống kê</a>
+                <a href="/admin/bookings" th:classappend="${menu == 'bookings'} ? 'active'"><i class="bi bi-receipt"></i> Đơn đặt vé</a>
+                <div class="group">Rạp chiếu</div>
+                <a href="/admin/movies" th:classappend="${menu == 'movies'} ? 'active'"><i class="bi bi-film"></i> Phim</a>
+                <a href="/admin/cinemas" th:classappend="${menu == 'cinemas'} ? 'active'"><i class="bi bi-building"></i> Rạp và phòng</a>
+                <a href="/admin/showtimes" th:classappend="${menu == 'showtimes'} ? 'active'"><i class="bi bi-calendar3"></i> Suất chiếu</a>
+                <a href="/admin/prices" th:classappend="${menu == 'prices'} ? 'active'"><i class="bi bi-cash-coin"></i> Bảng giá vé</a>
+                <a href="/admin/combos" th:classappend="${menu == 'combos'} ? 'active'"><i class="bi bi-cup-straw"></i> Combo bắp nước</a>
+                <div class="group">Marketing</div>
+                <a href="/admin/promotions" th:classappend="${menu == 'promotions'} ? 'active'"><i class="bi bi-percent"></i> Mã giảm giá</a>
+                <a href="/admin/posts" th:classappend="${menu == 'posts'} ? 'active'"><i class="bi bi-newspaper"></i> Tin tức, ưu đãi</a>
+                <a href="/admin/banners" th:classappend="${menu == 'banners'} ? 'active'"><i class="bi bi-images"></i> Banner</a>
+                <div class="group">Hệ thống</div>
+                <a href="/admin/users" th:classappend="${menu == 'users'} ? 'active'"><i class="bi bi-people"></i> Tài khoản</a>
+            </div>
+            <div class="group">Quầy vé</div>
+            <a href="/staff" th:classappend="${menu == 'staff'} ? 'active'"><i class="bi bi-shop"></i> Bán vé tại quầy</a>
+            <a href="/staff/checkin" th:classappend="${menu == 'checkin'} ? 'active'"><i class="bi bi-qr-code-scan"></i> Soát vé</a>
+            <div class="group">Khác</div>
+            <a href="/swagger-ui.html"><i class="bi bi-braces"></i> Tài liệu API</a>
+            <a href="/"><i class="bi bi-house"></i> Về trang chủ</a>
+        </nav>
+    </aside>
+    <div class="admin-main">
+        <div class="topbar d-flex justify-content-between align-items-center px-4 py-2 no-print">
+            <div class="dropdown" th:if="${!#lists.isEmpty(cinemas)}">
+                <button class="btn btn-sm btn-outline-navy dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                    <i class="bi bi-geo-alt"></i> <span th:text="${currentCinema != null ? currentCinema.name : 'Chọn rạp'}">Rạp</span>
+                </button>
+                <ul class="dropdown-menu">
+                    <li th:each="c : ${cinemas}"><a class="dropdown-item" th:href="@{/select-cinema(id=${c.id},redirect=${currentPath})}" th:text="${c.name}">Rạp</a></li>
+                </ul>
+            </div>
+            <div class="d-flex align-items-center gap-3">
+                <span class="small text-muted"><i class="bi bi-person-badge"></i>
+                    <span th:text="${currentUser.fullName}">Tên</span> ·
+                    <span th:text="${currentUser.role.label}">Vai trò</span></span>
+                <form th:action="@{/logout}" method="post" class="m-0">
+                    <button class="btn btn-sm btn-outline-secondary" type="submit">Đăng xuất</button>
+                </form>
+            </div>
+        </div>
+        <div th:replace="~{fragments/common :: flash}"></div>
+        <div class="p-4" th:replace="${content}">Nội dung</div>
+    </div>
+</div>
+<script src="/webjars/bootstrap/5.3.3/js/bootstrap.bundle.min.js"></script>
+<script src="/js/app.js"></script>
+<th:block th:replace="${scripts}"></th:block>
+</body>
+</html>

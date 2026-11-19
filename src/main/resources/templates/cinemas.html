@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/main :: layout(~{::title}, ~{::main}, ~{::scripts})}">
+<head><title>Hệ thống rạp · BBCinema</title></head>
+<body>
+<main>
+    <div class="page-head"><div class="container"><h1 class="h3 mb-0">Hệ thống rạp BBCinema</h1></div></div>
+    <div class="container mt-4">
+        <div class="row g-4">
+            <div class="col-md-6" th:each="c : ${cinemas}">
+                <div class="panel h-100">
+                    <h2 class="h5"><i class="bi bi-building text-warning"></i> <span th:text="${c.name}">Rạp</span></h2>
+                    <p class="mb-1"><i class="bi bi-geo-alt"></i> <span th:text="${c.address}">Địa chỉ</span></p>
+                    <p class="mb-3"><i class="bi bi-telephone"></i> <span th:text="${c.phone}">SĐT</span></p>
+                    <a class="btn btn-navy btn-sm" th:href="@{/select-cinema(id=${c.id},redirect='/schedule')}">Xem lịch chiếu</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+<th:block th:fragment="scripts"></th:block>
+</body>
+</html>

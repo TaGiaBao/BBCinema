@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 600" width="400" height="600">
+<defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1a1a1a"/><stop offset="1" stop-color="#3b0a0a"/></linearGradient></defs>
+<rect width="400" height="600" fill="url(#g)"/>
+<rect x="130" y="90" width="140" height="260" fill="#0d0d0d" stroke="#d7263d" stroke-width="4"/>
+<rect x="140" y="100" width="120" height="250" fill="#2a0505"/>
+<polygon points="140,100 200,130 200,330 140,350" fill="#000" opacity="0.6"/>
+<text x="200" y="200" text-anchor="middle" font-family="'Be Vietnam Pro', 'Segoe UI', Arial, sans-serif" font-size="64" font-weight="800" fill="#d7263d">13</text>
+<circle cx="245" cy="230" r="5" fill="#d7263d"/>
+<rect x="0" y="420" width="400" height="180" fill="#3b0a0a" opacity="0.35"/>
+<text x="200" y="470" text-anchor="middle" font-family="'Be Vietnam Pro', 'Segoe UI', Arial, sans-serif" font-size="46" font-weight="800" letter-spacing="1" fill="#ffffff">CĂN NHÀ</text><text x="200" y="522" text-anchor="middle" font-family="'Be Vietnam Pro', 'Segoe UI', Arial, sans-serif" font-size="46" font-weight="800" letter-spacing="1" fill="#ffffff">SỐ 13</text>
+<text x="200" y="580" text-anchor="middle" font-family="'Be Vietnam Pro', 'Segoe UI', Arial, sans-serif" font-size="15" fill="#ffffff" opacity="0.85">Căn phòng không có trong bản vẽ</text>
+<rect x="320" y="18" width="62" height="30" rx="6" fill="#ffb400"/>
+<text x="351" y="39" text-anchor="middle" font-family="'Be Vietnam Pro', 'Segoe UI', Arial, sans-serif" font-size="16" font-weight="800" fill="#1b1f3b">T18</text>
+<text x="20" y="38" font-family="'Be Vietnam Pro', 'Segoe UI', Arial, sans-serif" font-size="14" font-weight="800" fill="#ffffff" opacity="0.8">BBCINEMA</text>
+</svg>

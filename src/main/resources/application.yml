@@ -1,0 +1,107 @@
+# BBCinema configuration. Values written as ${NAME:default} can be overridden by environment variables.
+server:
+  port: ${PORT:8080}
+  servlet:
+    encoding:
+      charset: UTF-8
+      force: true
+  error:
+    include-message: always
+
+spring:
+  application:
+    name: bbcinema
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:mysql}
+  jpa:
+    open-in-view: true
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: Asia/Ho_Chi_Minh
+  servlet:
+    multipart:
+      max-file-size: 5MB
+      max-request-size: 10MB
+  thymeleaf:
+    cache: false
+  mail:
+    host: ${MAIL_HOST:smtp.gmail.com}
+    port: ${MAIL_PORT:587}
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+          connectiontimeout: 5000
+          timeout: 5000
+          writetimeout: 5000
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+  api-docs:
+    path: /v3/api-docs
+
+app:
+  base-url: ${APP_BASE_URL:http://localhost:8080}
+  timezone: Asia/Ho_Chi_Minh
+  seed-data: ${SEED_DATA:true}
+  booking:
+    hold-minutes: 5
+    cancel-before-hours: 2
+    cleaning-minutes: 15
+    check-in-opens-minutes-before: 60
+  points:
+    earn-percent: 5
+    value-per-point: 1000
+    max-redeem-percent: 50
+  jwt:
+    # Base64 of a random 32+ byte key. Change it in production: openssl rand -base64 32
+    secret: ${JWT_SECRET:Ymljb2luZW1hLWRldmVsb3BtZW50LXNlY3JldC1rZXktY2hhbmdlLW1lLTIwMjY=}
+    expiration-hours: 24
+    cookie-name: BB_TOKEN
+  upload:
+    dir: ${UPLOAD_DIR:uploads}
+  mail:
+    enabled: ${MAIL_ENABLED:false}
+    from: ${MAIL_FROM:BBCinema <no-reply@bbcinema.local>}
+  vnpay:
+    # Register a free sandbox account at https://sandbox.vnpayment.vn/devreg/ to get these two values.
+    tmn-code: ${VNPAY_TMN_CODE:}
+    hash-secret: ${VNPAY_HASH_SECRET:}
+    pay-url: https://sandbox.vnpayment.vn/paymentv2/vpcpay.html
+    return-path: /payment/vnpay-return
+
+logging:
+  level:
+    com.bbcinema: INFO
+
+---
+spring:
+  config:
+    activate:
+      on-profile: mysql
+  datasource:
+    url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/${DB_NAME:bbcinema}?createDatabaseIfNotExist=true&useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Ho_Chi_Minh
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD:root}
+
+---
+# Runs without installing MySQL: data is kept in ./data/bbcinema.mv.db
+spring:
+  config:
+    activate:
+      on-profile: h2
+  datasource:
+    url: jdbc:h2:file:./data/bbcinema;MODE=MySQL;DATABASE_TO_LOWER=TRUE;AUTO_SERVER=TRUE
+    username: sa
+    password:

@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/main :: layout(~{::title}, ~{::main}, ~{::scripts})}">
+<head><title>Tin mới và ưu đãi · BBCinema</title></head>
+<body>
+<main>
+    <div class="page-head"><div class="container"><h1 class="h3 mb-0">Tin mới và ưu đãi</h1></div></div>
+    <div class="container mt-4">
+        <ul class="nav section-tabs mb-4">
+            <li class="nav-item"><a class="nav-link" th:classappend="${type == null} ? 'active'" href="/news">Tất cả</a></li>
+            <li class="nav-item"><a class="nav-link" th:classappend="${type != null and type.name() == 'PROMOTION'} ? 'active'" href="/news?type=PROMOTION">Ưu đãi</a></li>
+            <li class="nav-item"><a class="nav-link" th:classappend="${type != null and type.name() == 'NEWS'} ? 'active'" href="/news?type=NEWS">Tin mới</a></li>
+        </ul>
+        <div class="row row-cols-1 row-cols-sm-2 row-cols-lg-3 g-4">
+            <div class="col" th:each="p : ${page.content}">
+                <a class="card post-card h-100 border-0 shadow-sm text-decoration-none" th:href="@{/news/{slug}(slug=${p.slug})}">
+                    <img class="card-img-top" th:src="${p.thumbnailPath != null ? p.thumbnailPath : '/images/no-image.svg'}" th:alt="${p.title}">
+                    <div class="card-body">
+                        <span class="badge text-bg-warning mb-2" th:text="${p.type.label}">Ưu đãi</span>
+                        <h2 class="h6 text-dark" th:text="${p.title}">Tiêu đề</h2>
+                        <p class="small text-muted mb-0" th:text="${p.summary}">Tóm tắt</p>
+                    </div>
+                </a>
+            </div>
+        </div>
+        <p class="text-muted" th:if="${page.empty}">Chưa có bài viết.</p>
+        <div th:replace="~{fragments/common :: pager(${page}, ${'/news' + (type != null ? '?type=' + type : '')})}"></div>
+    </div>
+</main>
+<th:block th:fragment="scripts"></th:block>
+</body>
+</html>

@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/admin :: layout(~{::title}, ~{::section}, ~{::scripts})}">
+<head><title>Combo bắp nước · Quản trị BBCinema</title></head>
+<body>
+<section class="p-4">
+    <h1 class="h4 mb-3">Combo bắp nước</h1>
+    <div class="row g-4">
+        <div class="col-xl-8"><div class="panel">
+            <table class="table align-middle mb-0">
+                <thead><tr><th></th><th>Tên</th><th>Mô tả</th><th class="text-end">Giá</th><th>Trạng thái</th><th></th></tr></thead>
+                <tbody><tr th:each="c : ${combos}">
+                    <td><img th:src="${c.imagePath != null ? c.imagePath : '/images/no-image.svg'}" alt="" style="width: 72px; border-radius: 6px"></td>
+                    <td class="fw-semibold" th:text="${c.name}">Combo</td>
+                    <td class="small" th:text="${c.description}">-</td>
+                    <td class="text-end tabular" th:text="${@fmt.money(c.price)}">0đ</td>
+                    <td><span class="badge" th:classappend="${c.active} ? 'text-bg-success' : 'text-bg-secondary'" th:text="${c.active ? 'Đang bán' : 'Ngừng bán'}">-</span></td>
+                    <td class="text-end"><a class="btn btn-sm btn-outline-navy" th:href="@{/admin/combos/{id}/edit(id=${c.id})}">Sửa</a></td>
+                </tr></tbody>
+            </table>
+        </div></div>
+        <div class="col-xl-4">
+            <form class="panel row g-2" method="post" action="/admin/combos" enctype="multipart/form-data" th:object="${form}">
+                <h2 class="h6 col-12" th:text="*{id == null} ? 'Thêm combo' : 'Sửa combo'">Combo</h2>
+                <div class="col-12 alert alert-danger" th:if="${#fields.hasGlobalErrors()}" th:text="${#fields.globalErrors()[0]}">Lỗi</div>
+                <input type="hidden" th:field="*{id}"><input type="hidden" th:field="*{imagePath}">
+                <div class="col-12"><label class="form-label small" for="name">Tên</label><input class="form-control" id="name" th:field="*{name}" th:errorclass="is-invalid"><div class="invalid-feedback" th:errors="*{name}"></div></div>
+                <div class="col-12"><label class="form-label small" for="description">Mô tả</label><input class="form-control" id="description" th:field="*{description}"></div>
+                <div class="col-6"><label class="form-label small" for="price">Giá (đ)</label><input class="form-control" type="number" min="0" step="1000" id="price" th:field="*{price}" th:errorclass="is-invalid"><div class="invalid-feedback" th:errors="*{price}"></div></div>
+                <div class="col-6 d-flex align-items-end"><div class="form-check"><input class="form-check-input" type="checkbox" th:field="*{active}"><label class="form-check-label" th:for="${#ids.prev('active')}">Đang bán</label></div></div>
+                <div class="col-12"><label class="form-label small" for="image">Ảnh</label><input class="form-control" type="file" id="image" name="image" accept="image/*"></div>
+                <div class="col-12"><button class="btn btn-amber" type="submit">Lưu combo</button> <a class="btn btn-link" href="/admin/combos" th:if="*{id != null}">Thêm mới</a></div>
+            </form>
+        </div>
+    </div>
+</section>
+<th:block th:fragment="scripts"></th:block>
+</body>
+</html>

@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head><meta charset="UTF-8"><title>Vé BBCinema</title></head>
+<body style="margin:0;background:#f5f6fa;font-family:Arial,sans-serif;color:#1d2033">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="padding:24px 0">
+    <tr><td align="center">
+        <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:12px;overflow:hidden">
+            <tr><td style="background:#1b1f3b;color:#ffffff;padding:20px 24px">
+                <div style="font-size:20px;font-weight:bold"><span style="color:#ffb400">BB</span>Cinema</div>
+                <div style="font-size:14px;opacity:.8">Cảm ơn bạn đã đặt vé!</div>
+            </td></tr>
+            <tr><td style="padding:24px">
+                <h2 style="margin:0 0 12px" th:text="${booking.showtime.movie.title}">Phim</h2>
+                <p style="margin:4px 0"><b>Rạp:</b> <span th:text="${booking.showtime.room.cinema.name} + ' - ' + ${booking.showtime.room.name}">Rạp</span></p>
+                <p style="margin:4px 0"><b>Suất chiếu:</b> <span th:text="${#temporals.format(booking.showtime.startTime, 'HH:mm dd/MM/yyyy')}">19:00</span></p>
+                <p style="margin:4px 0"><b>Ghế:</b> <span th:text="${booking.seatLabels}">A1</span></p>
+                <p style="margin:4px 0"><b>Tổng tiền:</b> <span th:text="${#numbers.formatDecimal(booking.totalAmount, 0, 'POINT', 0, 'COMMA')} + 'đ'">0đ</span></p>
+                <div style="text-align:center;margin:24px 0">
+                    <div style="font-size:13px;color:#6b7088">Mã đặt vé</div>
+                    <div style="font-size:26px;font-weight:bold;letter-spacing:4px" th:text="${booking.code}">CODE</div>
+                    <img src="cid:qr" alt="QR" width="200" height="200" style="margin-top:12px">
+                </div>
+                <p style="font-size:13px;color:#6b7088">Vui lòng có mặt trước giờ chiếu 15 phút và đưa mã QR cho nhân viên soát vé.
+                    Xem vé tại <a th:href="${baseUrl} + '/booking/' + ${booking.code}" th:text="${baseUrl} + '/booking/' + ${booking.code}">link</a></p>
+            </td></tr>
+        </table>
+    </td></tr>
+</table>
+</body>
+</html>

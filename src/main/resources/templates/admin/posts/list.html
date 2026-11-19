@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/admin :: layout(~{::title}, ~{::section}, ~{::scripts})}">
+<head><title>Tin tức · Quản trị BBCinema</title></head>
+<body>
+<section class="p-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h1 class="h4 mb-0">Tin tức và ưu đãi</h1>
+        <a class="btn btn-amber" href="/admin/posts/new"><i class="bi bi-plus-lg"></i> Viết bài</a>
+    </div>
+    <div class="panel table-responsive">
+        <table class="table align-middle mb-0">
+            <thead><tr><th></th><th>Tiêu đề</th><th>Loại</th><th>Ngày đăng</th><th>Hiển thị</th><th></th></tr></thead>
+            <tbody><tr th:each="p : ${posts}">
+                <td><img th:src="${p.thumbnailPath != null ? p.thumbnailPath : '/images/no-image.svg'}" alt="" style="width: 96px; border-radius: 6px"></td>
+                <td class="fw-semibold" th:text="${p.title}">Tiêu đề</td>
+                <td th:text="${p.type.label}">Tin</td>
+                <td class="small" th:text="${#temporals.format(p.publishedAt, 'dd/MM/yyyy')}">-</td>
+                <td><span class="badge" th:classappend="${p.published} ? 'text-bg-success' : 'text-bg-secondary'" th:text="${p.published ? 'Hiện' : 'Ẩn'}">-</span></td>
+                <td class="text-end text-nowrap"><a class="btn btn-sm btn-outline-navy" th:href="@{/admin/posts/{id}/edit(id=${p.id})}">Sửa</a>
+                    <form class="d-inline" method="post" th:action="@{/admin/posts/{id}/delete(id=${p.id})}"><button class="btn btn-sm btn-outline-danger" type="submit" onclick="return confirm('Xoá bài viết?')">Xoá</button></form></td>
+            </tr></tbody>
+        </table>
+    </div>
+</section>
+<th:block th:fragment="scripts"></th:block>
+</body>
+</html>

@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/admin :: layout(~{::title}, ~{::section}, ~{::scripts})}">
+<head><title>Tài khoản · Quản trị BBCinema</title></head>
+<body>
+<section class="p-4">
+    <h1 class="h4 mb-3">Tài khoản</h1>
+    <div class="panel">
+        <form class="row g-2 mb-3" method="get">
+            <div class="col-md-6"><input class="form-control" name="q" th:value="${q}" placeholder="Tìm email hoặc tên" aria-label="Tìm tài khoản"></div>
+            <div class="col-md-4"><select class="form-select" name="role" aria-label="Vai trò"><option value="">Mọi vai trò</option>
+                <option th:each="r : ${roles}" th:value="${r}" th:text="${r.label}" th:selected="${r == role}">-</option></select></div>
+            <div class="col-md-2 d-grid"><button class="btn btn-navy" type="submit">Lọc</button></div>
+        </form>
+        <div class="table-responsive">
+            <table class="table align-middle">
+                <thead><tr><th>Họ tên</th><th>Email</th><th>Điện thoại</th><th class="text-end">Điểm</th><th>Ngày tạo</th><th style="width: 330px">Vai trò · Trạng thái</th></tr></thead>
+                <tbody><tr th:each="u : ${page.content}">
+                    <td class="fw-semibold" th:text="${u.fullName}">Tên</td>
+                    <td class="small" th:text="${u.email}">email</td>
+                    <td class="small" th:text="${u.phone}">-</td>
+                    <td class="text-end tabular" th:text="${u.points}">0</td>
+                    <td class="small" th:text="${#temporals.format(u.createdAt, 'dd/MM/yyyy')}">-</td>
+                    <td>
+                        <form class="d-flex gap-2 align-items-center" method="post" th:action="@{/admin/users/{id}(id=${u.id})}">
+                            <select class="form-select form-select-sm" name="role" aria-label="Vai trò">
+                                <option th:each="r : ${roles}" th:value="${r}" th:text="${r.label}" th:selected="${r == u.role}">-</option></select>
+                            <div class="form-check form-switch m-0"><input class="form-check-input" type="checkbox" name="enabled" value="true" th:checked="${u.enabled}" th:id="'en' + ${u.id}">
+                                <label class="form-check-label small" th:for="'en' + ${u.id}">Mở</label></div>
+                            <button class="btn btn-sm btn-outline-navy" type="submit">Lưu</button>
+                        </form>
+                    </td>
+                </tr></tbody>
+            </table>
+        </div>
+        <div th:replace="~{fragments/common :: pager(${page}, ${'/admin/users?q=' + (q != null ? q : '') + '&role=' + (role != null ? role : '')})}"></div>
+    </div>
+</section>
+<th:block th:fragment="scripts"></th:block>
+</body>
+</html>

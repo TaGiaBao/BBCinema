@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/admin :: layout(~{::title}, ~{::section}, ~{::scripts})}">
+<head><title>Mã giảm giá · Quản trị BBCinema</title></head>
+<body>
+<section class="p-4">
+    <h1 class="h4 mb-3">Mã giảm giá</h1>
+    <div class="row g-4">
+        <div class="col-xl-8"><div class="panel table-responsive">
+            <table class="table align-middle mb-0">
+                <thead><tr><th>Mã</th><th>Giảm</th><th>Điều kiện</th><th>Thời gian</th><th class="text-end">Đã dùng</th><th>Trạng thái</th><th></th></tr></thead>
+                <tbody><tr th:each="p : ${promotions}">
+                    <td><span class="fw-bold font-monospace" th:text="${p.code}">CODE</span><div class="small text-muted" th:text="${p.description}">-</div></td>
+                    <td><span th:text="${p.discountPercent} + '%'">10%</span><div class="small text-muted" th:if="${p.maxDiscount != null}" th:text="'tối đa ' + ${@fmt.money(p.maxDiscount)}">-</div></td>
+                    <td class="small" th:text="${p.minOrder != null ? 'Đơn từ ' + @fmt.money(p.minOrder) : 'Mọi đơn'}">-</td>
+                    <td class="small" th:text="${#temporals.format(p.validFrom, 'dd/MM/yy')} + ' - ' + ${#temporals.format(p.validTo, 'dd/MM/yy')}">-</td>
+                    <td class="text-end tabular" th:text="${p.usedCount} + (${p.usageLimit != null} ? ' / ' + ${p.usageLimit} : '')">0</td>
+                    <td><span class="badge" th:classappend="${p.active and !today.isAfter(p.validTo)} ? 'text-bg-success' : 'text-bg-secondary'"
+                              th:text="${!p.active ? 'Tắt' : (today.isAfter(p.validTo) ? 'Hết hạn' : 'Đang chạy')}">-</span></td>
+                    <td class="text-end"><a class="btn btn-sm btn-outline-navy" th:href="@{/admin/promotions/{id}/edit(id=${p.id})}">Sửa</a></td>
+                </tr></tbody>
+            </table>
+        </div></div>
+        <div class="col-xl-4">
+            <form class="panel row g-2" method="post" action="/admin/promotions" th:object="${form}">
+                <h2 class="h6 col-12" th:text="*{id == null} ? 'Thêm mã giảm giá' : 'Sửa mã giảm giá'">Mã</h2>
+                <div class="col-12 alert alert-danger" th:if="${#fields.hasGlobalErrors()}" th:text="${#fields.globalErrors()[0]}">Lỗi</div>
+                <input type="hidden" th:field="*{id}">
+                <div class="col-6"><label class="form-label small" for="code">Mã</label><input class="form-control text-uppercase" id="code" th:field="*{code}" th:errorclass="is-invalid"><div class="invalid-feedback" th:errors="*{code}"></div></div>
+                <div class="col-6"><label class="form-label small" for="discountPercent">Giảm (%)</label><input class="form-control" type="number" id="discountPercent" th:field="*{discountPercent}" th:errorclass="is-invalid"><div class="invalid-feedback" th:errors="*{discountPercent}"></div></div>
+                <div class="col-12"><label class="form-label small" for="description">Mô tả</label><input class="form-control" id="description" th:field="*{description}"></div>
+                <div class="col-6"><label class="form-label small" for="maxDiscount">Giảm tối đa (đ)</label><input class="form-control" type="number" min="0" step="1000" id="maxDiscount" th:field="*{maxDiscount}"></div>
+                <div class="col-6"><label class="form-label small" for="minOrder">Đơn tối thiểu (đ)</label><input class="form-control" type="number" min="0" step="1000" id="minOrder" th:field="*{minOrder}"></div>
+                <div class="col-6"><label class="form-label small" for="validFrom">Từ ngày</label><input class="form-control" type="date" id="validFrom" th:field="*{validFrom}" th:errorclass="is-invalid"></div>
+                <div class="col-6"><label class="form-label small" for="validTo">Đến ngày</label><input class="form-control" type="date" id="validTo" th:field="*{validTo}" th:errorclass="is-invalid"></div>
+                <div class="col-6"><label class="form-label small" for="usageLimit">Số lượt tối đa</label><input class="form-control" type="number" min="1" id="usageLimit" th:field="*{usageLimit}" placeholder="Không giới hạn"></div>
+                <div class="col-6 d-flex align-items-end"><div class="form-check"><input class="form-check-input" type="checkbox" th:field="*{active}"><label class="form-check-label" th:for="${#ids.prev('active')}">Bật</label></div></div>
+                <div class="col-12"><button class="btn btn-amber" type="submit">Lưu mã</button> <a class="btn btn-link" href="/admin/promotions" th:if="*{id != null}">Thêm mới</a></div>
+            </form>
+        </div>
+    </div>
+</section>
+<th:block th:fragment="scripts"></th:block>
+</body>
+</html>

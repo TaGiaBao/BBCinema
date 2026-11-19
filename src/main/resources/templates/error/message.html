@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/main :: layout(~{::title}, ~{::main}, ~{::scripts})}">
+<head><title>Thông báo · BBCinema</title></head>
+<body>
+<main>
+    <div class="container py-5 text-center" style="max-width: 640px">
+        <div class="display-4 fw-bold text-warning" th:text="${status}">400</div>
+        <h1 class="h4 mt-2" th:text="${message}">Có lỗi xảy ra</h1>
+        <div class="mt-4 d-flex justify-content-center gap-2">
+            <a class="btn btn-outline-navy" href="javascript:history.back()">Quay lại</a>
+            <a class="btn btn-amber" href="/">Về trang chủ</a>
+        </div>
+    </div>
+</main>
+<th:block th:fragment="scripts"></th:block>
+</body>
+</html>

@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/admin :: layout(~{::title}, ~{::section}, ~{::scripts})}">
+<head><title>Phim · Quản trị BBCinema</title></head>
+<body>
+<section class="p-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h1 class="h4 mb-0">Phim</h1>
+        <a class="btn btn-amber" href="/admin/movies/new"><i class="bi bi-plus-lg"></i> Thêm phim</a>
+    </div>
+    <div class="row g-4">
+        <div class="col-xl-9">
+            <div class="panel">
+                <form class="row g-2 mb-3" method="get">
+                    <div class="col-md-6"><input class="form-control" name="q" th:value="${q}" placeholder="Tìm tên phim" aria-label="Tên phim"></div>
+                    <div class="col-md-4"><select class="form-select" name="status" aria-label="Trạng thái">
+                        <option value="">Tất cả</option>
+                        <option th:each="s : ${statuses}" th:value="${s}" th:text="${s.label}" th:selected="${s == status}">-</option></select></div>
+                    <div class="col-md-2 d-grid"><button class="btn btn-navy" type="submit">Lọc</button></div>
+                </form>
+                <div class="table-responsive">
+                    <table class="table align-middle">
+                        <thead><tr><th></th><th>Tên phim</th><th>Thể loại</th><th>Thời lượng</th><th>Phân loại</th><th>Trạng thái</th><th></th></tr></thead>
+                        <tbody><tr th:each="m : ${page.content}">
+                            <td><img class="thumb" th:src="${m.posterPath != null ? m.posterPath : '/images/no-image.svg'}" alt=""></td>
+                            <td><div class="fw-semibold" th:text="${m.title}">Phim</div>
+                                <div class="small text-muted" th:text="${m.releaseDate != null ? 'Khởi chiếu ' + #temporals.format(m.releaseDate, 'dd/MM/yyyy') : ''}">-</div></td>
+                            <td class="small" th:text="${m.genreNames}">-</td>
+                            <td th:text="${m.durationMinutes} + ' phút'">-</td>
+                            <td><span class="age-badge" th:classappend="${m.ageRating.name()}" th:text="${m.ageRating.name()}">P</span></td>
+                            <td th:text="${m.status.label}">-</td>
+                            <td class="text-end text-nowrap">
+                                <a class="btn btn-sm btn-outline-navy" th:href="@{/admin/movies/{id}/edit(id=${m.id})}">Sửa</a>
+                                <form class="d-inline" method="post" th:action="@{/admin/movies/{id}/delete(id=${m.id})}">
+                                    <button class="btn btn-sm btn-outline-danger" type="submit" onclick="return confirm('Xoá phim này?')">Xoá</button></form>
+                            </td>
+                        </tr></tbody>
+                    </table>
+                </div>
+                <div th:replace="~{fragments/common :: pager(${page}, ${'/admin/movies?q=' + (q != null ? q : '') + '&status=' + (status != null ? status : '')})}"></div>
+            </div>
+        </div>
+        <div class="col-xl-3">
+            <div class="panel">
+                <h2 class="h6">Thể loại</h2>
+                <form class="d-flex gap-2 mb-3" method="post" action="/admin/movies/genres">
+                    <input class="form-control form-control-sm" name="name" placeholder="Thể loại mới" aria-label="Thể loại mới" required>
+                    <button class="btn btn-sm btn-navy" type="submit">Thêm</button>
+                </form>
+                <ul class="list-group list-group-flush">
+                    <li class="list-group-item d-flex justify-content-between align-items-center px-0" th:each="g : ${genres}">
+                        <span th:text="${g.name}">Thể loại</span>
+                        <form method="post" th:action="@{/admin/movies/genres/{id}/delete(id=${g.id})}">
+                            <button class="btn btn-sm btn-link text-danger p-0" type="submit" onclick="return confirm('Xoá thể loại?')" aria-label="Xoá"><i class="bi bi-trash"></i></button></form>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</section>
+<th:block th:fragment="scripts"></th:block>
+</body>
+</html>

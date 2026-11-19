@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 600" width="400" height="600">
+<defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f4a259"/><stop offset="1" stop-color="#8c3b1b"/></linearGradient></defs>
+<rect width="400" height="600" fill="url(#g)"/>
+<circle cx="300" cy="100" r="50" fill="#fff1d0" opacity="0.8"/>
+<polygon points="200,120 260,260 140,260" fill="#6b2a12"/>
+<rect x="130" y="260" width="140" height="70" fill="#6b2a12"/>
+<rect x="185" y="285" width="30" height="45" fill="#2b0f05"/>
+<path d="M0 360 Q120 320 220 350 T400 340 V420 H0Z" fill="#c9733a"/>
+<rect x="0" y="420" width="400" height="180" fill="#8c3b1b" opacity="0.35"/>
+<text x="200" y="470" text-anchor="middle" font-family="'Be Vietnam Pro', 'Segoe UI', Arial, sans-serif" font-size="46" font-weight="800" letter-spacing="1" fill="#ffffff">NGÔI ĐỀN</text><text x="200" y="522" text-anchor="middle" font-family="'Be Vietnam Pro', 'Segoe UI', Arial, sans-serif" font-size="46" font-weight="800" letter-spacing="1" fill="#ffffff">CÁT</text>
+<text x="200" y="580" text-anchor="middle" font-family="'Be Vietnam Pro', 'Segoe UI', Arial, sans-serif" font-size="15" fill="#ffffff" opacity="0.85">Bản đồ cuối cùng của Chăm Pa</text>
+<rect x="320" y="18" width="62" height="30" rx="6" fill="#ffb400"/>
+<text x="351" y="39" text-anchor="middle" font-family="'Be Vietnam Pro', 'Segoe UI', Arial, sans-serif" font-size="16" font-weight="800" fill="#1b1f3b">T16</text>
+<text x="20" y="38" font-family="'Be Vietnam Pro', 'Segoe UI', Arial, sans-serif" font-size="14" font-weight="800" fill="#ffffff" opacity="0.8">BBCINEMA</text>
+</svg>

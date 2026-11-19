@@ -1,0 +1,46 @@
+# Starts MySQL and BBCinema together:  docker compose up --build
+# Then open http://localhost:8080
+services:
+  mysql:
+    image: mysql:8.4
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: bbcinema
+      TZ: Asia/Ho_Chi_Minh
+    command: ["--character-set-server=utf8mb4", "--collation-server=utf8mb4_unicode_ci"]
+    ports:
+      - "3307:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-proot"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  app:
+    build: .
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      SPRING_PROFILES_ACTIVE: mysql
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_USERNAME: root
+      DB_PASSWORD: root
+      APP_BASE_URL: http://localhost:8080
+      # Optional: fill these to send real ticket e-mails and use VNPay sandbox
+      MAIL_ENABLED: "false"
+      MAIL_USERNAME: ""
+      MAIL_PASSWORD: ""
+      VNPAY_TMN_CODE: ""
+      VNPAY_HASH_SECRET: ""
+    ports:
+      - "8080:8080"
+    volumes:
+      - uploads:/app/uploads
+
+volumes:
+  mysql-data:
+  uploads:

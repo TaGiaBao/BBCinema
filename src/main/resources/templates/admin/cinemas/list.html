@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/admin :: layout(~{::title}, ~{::section}, ~{::scripts})}">
+<head><title>Rạp và phòng · Quản trị BBCinema</title></head>
+<body>
+<section class="p-4">
+    <h1 class="h4 mb-3">Rạp và phòng chiếu</h1>
+    <div class="row g-4">
+        <div class="col-xl-7 d-grid gap-4 align-content-start">
+            <div class="panel">
+                <h2 class="h6">Danh sách rạp</h2>
+                <table class="table align-middle mb-0">
+                    <thead><tr><th>Tên rạp</th><th>Địa chỉ</th><th>Trạng thái</th><th></th></tr></thead>
+                    <tbody><tr th:each="c : ${allCinemas}">
+                        <td class="fw-semibold" th:text="${c.name}">Rạp</td>
+                        <td class="small" th:text="${c.address}">-</td>
+                        <td><span class="badge" th:classappend="${c.active} ? 'text-bg-success' : 'text-bg-secondary'" th:text="${c.active ? 'Hoạt động' : 'Tạm đóng'}">-</span></td>
+                        <td class="text-end"><a class="btn btn-sm btn-outline-navy" th:href="@{/admin/cinemas/{id}/edit(id=${c.id})}">Sửa</a></td>
+                    </tr></tbody>
+                </table>
+            </div>
+            <div class="panel">
+                <h2 class="h6">Phòng chiếu</h2>
+                <table class="table align-middle mb-0">
+                    <thead><tr><th>Rạp</th><th>Phòng</th><th class="text-end">Số ghế</th><th>Trạng thái</th><th></th></tr></thead>
+                    <tbody><tr th:each="r : ${rooms}">
+                        <td class="small" th:text="${r.cinema.name}">Rạp</td>
+                        <td class="fw-semibold" th:text="${r.name}">P1</td>
+                        <td class="text-end tabular" th:text="${r.activeSeatCount}">0</td>
+                        <td><span class="badge" th:classappend="${r.active} ? 'text-bg-success' : 'text-bg-secondary'" th:text="${r.active ? 'Hoạt động' : 'Tạm ngưng'}">-</span></td>
+                        <td class="text-end"><a class="btn btn-sm btn-outline-navy" th:href="@{/admin/cinemas/rooms/{id}(id=${r.id})}">Sơ đồ ghế</a></td>
+                    </tr></tbody>
+                </table>
+            </div>
+        </div>
+        <div class="col-xl-5 d-grid gap-4 align-content-start">
+            <form class="panel row g-2" method="post" action="/admin/cinemas/save" th:object="${cinemaForm}">
+                <h2 class="h6 col-12" th:text="*{id == null} ? 'Thêm rạp' : 'Sửa rạp'">Thêm rạp</h2>
+                <input type="hidden" th:field="*{id}">
+                <div class="col-12"><label class="form-label small" for="cname">Tên rạp</label>
+                    <input class="form-control" id="cname" th:field="*{name}" th:errorclass="is-invalid"><div class="invalid-feedback" th:errors="*{name}"></div></div>
+                <div class="col-12"><label class="form-label small" for="caddress">Địa chỉ</label>
+                    <input class="form-control" id="caddress" th:field="*{address}" th:errorclass="is-invalid"><div class="invalid-feedback" th:errors="*{address}"></div></div>
+                <div class="col-6"><label class="form-label small" for="cphone">Điện thoại</label><input class="form-control" id="cphone" th:field="*{phone}"></div>
+                <div class="col-6 d-flex align-items-end"><div class="form-check"><input class="form-check-input" type="checkbox" th:field="*{active}"><label class="form-check-label" th:for="${#ids.prev('active')}">Đang hoạt động</label></div></div>
+                <div class="col-12"><button class="btn btn-navy" type="submit">Lưu rạp</button>
+                    <a class="btn btn-link" href="/admin/cinemas" th:if="*{id != null}">Thêm rạp mới</a></div>
+            </form>
+            <form class="panel row g-2" method="post" action="/admin/cinemas/rooms" th:object="${roomForm}">
+                <h2 class="h6 col-12">Thêm phòng chiếu</h2>
+                <div class="col-12 alert alert-danger" th:if="${#fields.hasGlobalErrors()}" th:text="${#fields.globalErrors()[0]}">Lỗi</div>
+                <div class="col-6"><label class="form-label small" for="rcinema">Rạp</label>
+                    <select class="form-select" id="rcinema" th:field="*{cinemaId}" th:errorclass="is-invalid"><option th:each="c : ${allCinemas}" th:value="${c.id}" th:text="${c.name}">Rạp</option></select></div>
+                <div class="col-6"><label class="form-label small" for="rname">Tên phòng</label>
+                    <input class="form-control" id="rname" th:field="*{name}" th:errorclass="is-invalid" placeholder="Phòng 4"><div class="invalid-feedback" th:errors="*{name}"></div></div>
+                <div class="col-6"><label class="form-label small" for="rrows">Số hàng</label>
+                    <input class="form-control" id="rrows" type="number" th:field="*{rowCount}" th:errorclass="is-invalid"><div class="invalid-feedback" th:errors="*{rowCount}"></div></div>
+                <div class="col-6"><label class="form-label small" for="rseats">Ghế mỗi hàng</label>
+                    <input class="form-control" id="rseats" type="number" th:field="*{seatsPerRow}" th:errorclass="is-invalid"><div class="invalid-feedback" th:errors="*{seatsPerRow}"></div></div>
+                <div class="col-6"><label class="form-label small" for="rvip">Hàng VIP</label>
+                    <input class="form-control" id="rvip" th:field="*{vipRows}" th:errorclass="is-invalid" placeholder="E,F,G"><div class="invalid-feedback" th:errors="*{vipRows}"></div></div>
+                <div class="col-6"><label class="form-label small" for="rcouple">Hàng ghế đôi</label>
+                    <input class="form-control" id="rcouple" th:field="*{coupleRows}" th:errorclass="is-invalid" placeholder="H"><div class="invalid-feedback" th:errors="*{coupleRows}"></div></div>
+                <div class="col-12 small text-muted">Hàng ghế đôi có số ghế bằng một nửa vì mỗi ghế rộng gấp đôi. Sau khi tạo, bạn có thể bấm vào từng ghế để đổi loại hoặc biến thành lối đi.</div>
+                <div class="col-12"><button class="btn btn-amber" type="submit">Tạo phòng và sinh ghế</button></div>
+            </form>
+        </div>
+    </div>
+</section>
+<th:block th:fragment="scripts"></th:block>
+</body>
+</html>

@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      th:fragment="layout(title, content, scripts)">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="_csrf" th:if="${_csrf != null}" th:content="${_csrf.token}">
+    <meta name="_csrf_header" th:if="${_csrf != null}" th:content="${_csrf.headerName}">
+    <title th:replace="${title}">BBCinema</title>
+    <link rel="icon" href="/images/favicon.svg" type="image/svg+xml">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap">
+    <link rel="stylesheet" href="/webjars/bootstrap/5.3.3/css/bootstrap.min.css">
+    <link rel="stylesheet" href="/webjars/bootstrap-icons/1.11.3/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="/css/app.css">
+</head>
+<body th:attr="data-cinema-id=${currentCinema != null ? currentCinema.id : ''},data-cinema-name=${currentCinema != null ? currentCinema.name : ''}">
+
+<div class="bb-topbar d-none d-md-block">
+    <div class="container d-flex justify-content-between py-1">
+        <span><i class="bi bi-telephone"></i> Hotline: 1900 6868 · 8:00 - 23:00 mỗi ngày</span>
+        <span class="d-flex gap-3">
+            <a href="/news?type=PROMOTION"><i class="bi bi-gift"></i> Ưu đãi</a>
+            <a href="/prices"><i class="bi bi-tags"></i> Giá vé</a>
+            <a sec:authorize="hasAnyRole('STAFF','ADMIN')" href="/staff"><i class="bi bi-shop"></i> Quầy vé</a>
+            <a sec:authorize="hasRole('ADMIN')" href="/admin"><i class="bi bi-speedometer2"></i> Quản trị</a>
+        </span>
+    </div>
+</div>
+
+<header class="bb-header">
+    <nav class="navbar navbar-expand-lg navbar-dark container py-0">
+        <a class="bb-logo me-3 py-2" href="/" aria-label="BBCinema trang chủ">
+            <span class="mark">BB</span><span class="word">BB<span>Cinema</span></span>
+        </a>
+        <div class="dropdown cinema-picker me-auto me-lg-3" th:if="${!#lists.isEmpty(cinemas)}">
+            <button class="btn btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                <i class="bi bi-geo-alt-fill text-warning"></i>
+                <span th:text="${currentCinema != null ? currentCinema.name : 'Chọn rạp'}">Chọn rạp</span>
+            </button>
+            <ul class="dropdown-menu">
+                <li th:each="c : ${cinemas}">
+                    <a class="dropdown-item" th:classappend="${currentCinema != null && c.id == currentCinema.id} ? 'active'"
+                       th:href="@{/select-cinema(id=${c.id},redirect=${currentPath})}" th:text="${c.name}">Rạp</a>
+                </li>
+            </ul>
+        </div>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNav"
+                aria-controls="mainNav" aria-expanded="false" aria-label="Mở menu">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="mainNav">
+            <ul class="navbar-nav me-auto">
+                <li class="nav-item"><a class="nav-link" th:classappend="${#strings.startsWith(currentPath,'/schedule')} ? 'active'" href="/schedule">Lịch chiếu theo rạp</a></li>
+                <li class="nav-item"><a class="nav-link" th:classappend="${#strings.startsWith(currentPath,'/movies')} ? 'active'" href="/movies">Phim</a></li>
+                <li class="nav-item"><a class="nav-link" th:classappend="${#strings.startsWith(currentPath,'/cinemas')} ? 'active'" href="/cinemas">Rạp</a></li>
+                <li class="nav-item"><a class="nav-link" th:classappend="${#strings.startsWith(currentPath,'/prices')} ? 'active'" href="/prices">Giá vé</a></li>
+                <li class="nav-item"><a class="nav-link" th:classappend="${#strings.startsWith(currentPath,'/news')} ? 'active'" href="/news">Tin mới và ưu đãi</a></li>
+            </ul>
+            <div class="d-flex align-items-center gap-2 py-2" sec:authorize="!isAuthenticated()">
+                <a class="btn btn-sm btn-outline-light" href="/login">Đăng nhập</a>
+                <a class="btn btn-sm btn-amber" href="/register">Đăng ký</a>
+            </div>
+            <div class="dropdown py-2" sec:authorize="isAuthenticated()">
+                <button class="btn btn-sm btn-amber dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="bi bi-person-circle"></i> <span th:text="${currentUser.fullName}">Tên</span>
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end">
+                    <li><a class="dropdown-item" href="/member"><i class="bi bi-person"></i> Thông tin tài khoản</a></li>
+                    <li><a class="dropdown-item" href="/member/bookings"><i class="bi bi-ticket-perforated"></i> Vé của tôi</a></li>
+                    <li><a class="dropdown-item" href="/member/points"><i class="bi bi-star"></i> Điểm thưởng</a></li>
+                    <li sec:authorize="hasAnyRole('STAFF','ADMIN')"><a class="dropdown-item" href="/staff"><i class="bi bi-shop"></i> Quầy vé</a></li>
+                    <li sec:authorize="hasRole('ADMIN')"><a class="dropdown-item" href="/admin"><i class="bi bi-speedometer2"></i> Trang quản trị</a></li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li>
+                        <form th:action="@{/logout}" method="post">
+                            <button class="dropdown-item" type="submit"><i class="bi bi-box-arrow-right"></i> Đăng xuất</button>
+                        </form>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+</header>
+
+<div th:replace="~{fragments/common :: flash}"></div>
+
+<main th:replace="${content}">Nội dung</main>
+
+<footer class="bb-footer mt-5 pt-5 pb-4">
+    <div class="container">
+        <div class="row g-4">
+            <div class="col-md-4">
+                <a class="bb-logo mb-3" href="/"><span class="mark">BB</span><span class="word">BB<span>Cinema</span></span></a>
+                <p class="small mb-0">Hệ thống rạp chiếu phim BBCinema. Đồ án môn Kỹ năng lập trình nâng cao, xây dựng bằng Java Spring Boot.</p>
+            </div>
+            <div class="col-6 col-md-2">
+                <h6>Khám phá</h6>
+                <ul class="list-unstyled small d-grid gap-1">
+                    <li><a href="/movies?status=NOW_SHOWING">Phim đang chiếu</a></li>
+                    <li><a href="/movies?status=COMING_SOON">Phim sắp chiếu</a></li>
+                    <li><a href="/schedule">Lịch chiếu</a></li>
+                    <li><a href="/prices">Giá vé</a></li>
+                </ul>
+            </div>
+            <div class="col-6 col-md-2">
+                <h6>Thành viên</h6>
+                <ul class="list-unstyled small d-grid gap-1">
+                    <li><a href="/member">Tài khoản</a></li>
+                    <li><a href="/member/bookings">Vé của tôi</a></li>
+                    <li><a href="/member/points">Điểm thưởng</a></li>
+                    <li><a href="/news?type=PROMOTION">Ưu đãi</a></li>
+                </ul>
+            </div>
+            <div class="col-md-4">
+                <h6>Hệ thống rạp</h6>
+                <ul class="list-unstyled small d-grid gap-2">
+                    <li th:each="c : ${cinemas}"><strong class="text-white" th:text="${c.name}">Rạp</strong><br>
+                        <span th:text="${c.address}">Địa chỉ</span> · <span th:text="${c.phone}">SĐT</span></li>
+                </ul>
+            </div>
+        </div>
+        <hr class="border-secondary">
+        <div class="small d-flex flex-wrap justify-content-between gap-2">
+            <span>© 2026 BBCinema</span>
+            <span><a href="/swagger-ui.html">Tài liệu API</a></span>
+        </div>
+    </div>
+</footer>
+
+<div class="modal fade" id="showtimeModal" tabindex="-1" aria-labelledby="showtimeModalTitle" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="showtimeModalTitle">Lịch chiếu · <span data-role="title"></span></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
+            </div>
+            <div class="modal-body">
+                <div class="date-strip mb-3" data-role="dates"></div>
+                <div data-role="times"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="/webjars/bootstrap/5.3.3/js/bootstrap.bundle.min.js"></script>
+<script src="/js/app.js"></script>
+<th:block th:replace="${scripts}"></th:block>
+</body>
+</html>

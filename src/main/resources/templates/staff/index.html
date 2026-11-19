@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/admin :: layout(~{::title}, ~{::section}, ~{::scripts})}">
+<head><title>Bán vé tại quầy · BBCinema</title></head>
+<body>
+<section class="p-4">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+        <h1 class="h4 mb-0">Bán vé tại quầy · <span th:text="${currentCinema != null ? currentCinema.name : ''}">Rạp</span></h1>
+        <form class="d-flex gap-2" method="get" action="/staff/checkin">
+            <input class="form-control text-uppercase" name="code" placeholder="Mã vé cần soát" aria-label="Mã vé">
+            <button class="btn btn-navy" type="submit"><i class="bi bi-qr-code-scan"></i> Soát vé</button>
+        </form>
+    </div>
+    <div class="date-strip mb-4">
+        <a th:each="d : ${dates}" th:href="@{/staff(date=${d})}" th:classappend="${d == selectedDate} ? 'active'">
+            <span class="day" th:text="${#temporals.format(d, 'dd')}">01</span>
+            <span class="dow" th:text="${@fmt.relativeDay(d, today)}">Hôm nay</span>
+        </a>
+    </div>
+    <p class="text-muted" th:if="${#lists.isEmpty(schedule)}">Không có suất chiếu.</p>
+    <div class="d-grid gap-3">
+        <div class="panel" th:each="item : ${schedule}">
+            <div class="d-flex align-items-center gap-2 mb-2">
+                <span class="age-badge" th:classappend="${item.movie.ageRating.name()}" th:text="${item.movie.ageRating.name()}">P</span>
+                <strong th:text="${item.movie.title}">Phim</strong>
+                <span class="small text-muted" th:text="${item.movie.durationMinutes} + ' phút'">120</span>
+            </div>
+            <div class="d-flex flex-wrap gap-2">
+                <a th:each="s : ${item.showtimes}" class="time-btn" th:href="@{/staff/sell/{id}(id=${s.id})}">
+                    <span th:text="${#temporals.format(s.startTime, 'HH:mm')}">19:00</span>
+                    <small th:text="${s.format.label} + ' · ' + ${s.room.name}">2D</small>
+                </a>
+            </div>
+        </div>
+    </div>
+</section>
+<th:block th:fragment="scripts"></th:block>
+</body>
+</html>

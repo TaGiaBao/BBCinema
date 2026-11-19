@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 600" width="400" height="600">
+<defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#4cc9f0"/><stop offset="1" stop-color="#4361ee"/></linearGradient></defs>
+<rect width="400" height="600" fill="url(#g)"/>
+<g transform="translate(80,300) scale(1.0)"><ellipse cx="0" cy="0" rx="34" ry="40" fill="#1b1f3b"/><circle cx="0" cy="-48" r="26" fill="#1b1f3b"/><polygon points="-22,-62 -14,-88 -4,-68" fill="#1b1f3b"/><polygon points="22,-62 14,-88 4,-68" fill="#1b1f3b"/><circle cx="-9" cy="-50" r="5" fill="#ffd60a"/><circle cx="9" cy="-50" r="5" fill="#ffd60a"/></g>
+<g transform="translate(160,300) scale(1.2)"><ellipse cx="0" cy="0" rx="34" ry="40" fill="#1b1f3b"/><circle cx="0" cy="-48" r="26" fill="#1b1f3b"/><polygon points="-22,-62 -14,-88 -4,-68" fill="#1b1f3b"/><polygon points="22,-62 14,-88 4,-68" fill="#1b1f3b"/><circle cx="-9" cy="-50" r="5" fill="#ffd60a"/><circle cx="9" cy="-50" r="5" fill="#ffd60a"/></g>
+<g transform="translate(250,300) scale(1.1)"><ellipse cx="0" cy="0" rx="34" ry="40" fill="#1b1f3b"/><circle cx="0" cy="-48" r="26" fill="#1b1f3b"/><polygon points="-22,-62 -14,-88 -4,-68" fill="#1b1f3b"/><polygon points="22,-62 14,-88 4,-68" fill="#1b1f3b"/><circle cx="-9" cy="-50" r="5" fill="#ffd60a"/><circle cx="9" cy="-50" r="5" fill="#ffd60a"/></g>
+<g transform="translate(330,300) scale(0.9)"><ellipse cx="0" cy="0" rx="34" ry="40" fill="#1b1f3b"/><circle cx="0" cy="-48" r="26" fill="#1b1f3b"/><polygon points="-22,-62 -14,-88 -4,-68" fill="#1b1f3b"/><polygon points="22,-62 14,-88 4,-68" fill="#1b1f3b"/><circle cx="-9" cy="-50" r="5" fill="#ffd60a"/><circle cx="9" cy="-50" r="5" fill="#ffd60a"/></g>
+<circle cx="320" cy="90" r="40" fill="#ffd60a" opacity="0.9"/>
+<rect x="0" y="420" width="400" height="180" fill="#4361ee" opacity="0.35"/>
+<text x="200" y="470" text-anchor="middle" font-family="'Be Vietnam Pro', 'Segoe UI', Arial, sans-serif" font-size="46" font-weight="800" letter-spacing="1" fill="#ffffff">BIỆT ĐỘI</text><text x="200" y="522" text-anchor="middle" font-family="'Be Vietnam Pro', 'Segoe UI', Arial, sans-serif" font-size="46" font-weight="800" letter-spacing="1" fill="#ffffff">MÈO HOANG</text>
+<text x="200" y="580" text-anchor="middle" font-family="'Be Vietnam Pro', 'Segoe UI', Arial, sans-serif" font-size="15" fill="#ffffff" opacity="0.85">Nhỏ mà có võ</text>
+<rect x="320" y="18" width="62" height="30" rx="6" fill="#ffb400"/>
+<text x="351" y="39" text-anchor="middle" font-family="'Be Vietnam Pro', 'Segoe UI', Arial, sans-serif" font-size="16" font-weight="800" fill="#1b1f3b">P</text>
+<text x="20" y="38" font-family="'Be Vietnam Pro', 'Segoe UI', Arial, sans-serif" font-size="14" font-weight="800" fill="#ffffff" opacity="0.8">BBCINEMA</text>
+</svg>

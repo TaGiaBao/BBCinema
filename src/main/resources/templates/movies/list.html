@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/main :: layout(~{::title}, ~{::main}, ~{::scripts})}">
+<head><title>Phim · BBCinema</title></head>
+<body>
+<main>
+    <div class="page-head"><div class="container"><h1 class="h3 mb-0">Phim</h1></div></div>
+    <div class="container mt-4">
+        <form class="row g-2 mb-4" method="get" action="/movies">
+            <div class="col-md-5"><input class="form-control" name="q" th:value="${q}" placeholder="Tìm theo tên phim" aria-label="Tên phim"></div>
+            <div class="col-6 col-md-3">
+                <select class="form-select" name="status" aria-label="Trạng thái">
+                    <option value="">Tất cả trạng thái</option>
+                    <option th:each="s : ${statuses}" th:value="${s}" th:text="${s.label}" th:selected="${s == status}">Trạng thái</option>
+                </select>
+            </div>
+            <div class="col-6 col-md-2">
+                <select class="form-select" name="genre" aria-label="Thể loại">
+                    <option value="">Mọi thể loại</option>
+                    <option th:each="g : ${genres}" th:value="${g.id}" th:text="${g.name}" th:selected="${g.id == genre}">Thể loại</option>
+                </select>
+            </div>
+            <div class="col-md-2 d-grid"><button class="btn btn-navy" type="submit"><i class="bi bi-search"></i> Tìm</button></div>
+        </form>
+        <div class="row row-cols-2 row-cols-md-3 row-cols-lg-4 g-4">
+            <div class="col" th:each="m : ${page.content}"><div th:replace="~{fragments/common :: movieCard(${m})}"></div></div>
+        </div>
+        <p class="text-muted" th:if="${page.empty}">Không tìm thấy phim phù hợp.</p>
+        <div th:replace="~{fragments/common :: pager(${page}, ${'/movies?q=' + (q != null ? q : '') + '&status=' + (status != null ? status : '') + '&genre=' + (genre != null ? genre : '')})}"></div>
+    </div>
+</main>
+<th:block th:fragment="scripts"></th:block>
+</body>
+</html>

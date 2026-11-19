@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 240" width="400" height="240">
+<rect width="400" height="240" rx="16" fill="#fff6e0"/>
+<g transform="translate(165.0,70)"><polygon points="0,30 60,30 52,130 8,130" fill="#d62828"/><rect x="12" y="30" width="8" height="100" fill="#fff" opacity="0.8"/><rect x="36" y="30" width="8" height="100" fill="#fff" opacity="0.8"/><circle cx="8" cy="24" r="10" fill="#fff4d6"/><circle cx="19" cy="16" r="10" fill="#fff4d6"/><circle cx="30" cy="24" r="10" fill="#fff4d6"/><circle cx="41" cy="16" r="10" fill="#fff4d6"/><circle cx="52" cy="24" r="10" fill="#fff4d6"/></g>
+<text x="200" y="225" text-anchor="middle" font-family="'Be Vietnam Pro', 'Segoe UI', Arial, sans-serif" font-size="18" font-weight="800" fill="#1b1f3b">BẮP NGỌT</text>
+</svg>

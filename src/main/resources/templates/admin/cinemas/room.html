@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/admin :: layout(~{::title}, ~{::section}, ~{::scripts})}">
+<head><title>Sơ đồ ghế · Quản trị BBCinema</title></head>
+<body>
+<section class="p-4">
+    <a href="/admin/cinemas" class="small"><i class="bi bi-arrow-left"></i> Rạp và phòng</a>
+    <h1 class="h4 mt-2" th:text="${room.cinema.name} + ' · ' + ${room.name}">Phòng</h1>
+    <form class="d-flex flex-wrap gap-2 align-items-center mb-3" method="post" th:action="@{/admin/cinemas/rooms/{id}(id=${room.id})}">
+        <input class="form-control" style="max-width: 240px" name="name" th:value="${room.name}" aria-label="Tên phòng" required>
+        <div class="form-check"><input class="form-check-input" type="checkbox" name="active" value="true" id="roomActive" th:checked="${room.active}"><label class="form-check-label" for="roomActive">Đang hoạt động</label></div>
+        <button class="btn btn-sm btn-navy" type="submit">Lưu</button>
+    </form>
+    <div class="alert alert-info small" th:if="${hasShowtimes}">Phòng đã có suất chiếu. Thay đổi sơ đồ ghế chỉ áp dụng cho các suất chiếu tạo sau.</div>
+    <div class="panel">
+        <p class="small text-muted">Bấm vào ghế để đổi lần lượt: Thường → VIP → Đôi → Lối đi → Thường. Thay đổi được lưu ngay.</p>
+        <div class="screen"></div>
+        <div class="screen-label">MÀN HÌNH</div>
+        <div class="seat-map-wrap">
+            <div class="seat-map" id="seatEditor" th:attr="data-url=@{/admin/cinemas/rooms/{id}/seats(id=${room.id})}">
+                <div class="seat-row" th:each="row : ${rows}">
+                    <span class="row-label" th:text="${row.key}">A</span>
+                    <button type="button" th:each="s : ${row.value}" class="seat" th:classappend="${s.type.name()} + ' ' + (${s.active} ? '' : 'inactive-seat')"
+                            th:attr="data-seat-id=${s.id},data-type=${s.type.name()},data-active=${s.active},data-label=${s.label}" th:text="${s.number}">1</button>
+                    <span class="row-label" th:text="${row.key}">A</span>
+                </div>
+            </div>
+        </div>
+        <div class="seat-legend mt-3">
+            <span><span class="seat STANDARD"></span>Thường</span><span><span class="seat VIP"></span>VIP</span>
+            <span><span class="seat COUPLE"></span>Đôi</span><span><span class="seat STANDARD inactive-seat"></span>Lối đi / không bán</span>
+        </div>
+        <p class="small text-success mt-2 mb-0" id="editorStatus" role="status"></p>
+    </div>
+</section>
+<th:block th:fragment="scripts"><script src="/js/seat-editor.js"></script></th:block>
+</body>
+</html>

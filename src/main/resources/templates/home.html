@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/main :: layout(~{::title}, ~{::main}, ~{::scripts})}">
+<head><title>BBCinema · Đặt vé xem phim</title></head>
+<body>
+<main>
+    <div id="bannerCarousel" class="carousel slide banner-carousel" data-bs-ride="carousel" th:if="${!#lists.isEmpty(banners)}">
+        <div class="carousel-indicators">
+            <button type="button" th:each="b, s : ${banners}" data-bs-target="#bannerCarousel" th:attr="data-bs-slide-to=${s.index},aria-label=${b.title}"
+                    th:classappend="${s.first} ? 'active'"></button>
+        </div>
+        <div class="carousel-inner">
+            <div class="carousel-item" th:each="b, s : ${banners}" th:classappend="${s.first} ? 'active'">
+                <a th:href="${b.link != null ? b.link : '#'}"><img th:src="${b.imagePath}" th:alt="${b.title}"></a>
+            </div>
+        </div>
+        <button class="carousel-control-prev" type="button" data-bs-target="#bannerCarousel" data-bs-slide="prev">
+            <span class="carousel-control-prev-icon" aria-hidden="true"></span><span class="visually-hidden">Trước</span>
+        </button>
+        <button class="carousel-control-next" type="button" data-bs-target="#bannerCarousel" data-bs-slide="next">
+            <span class="carousel-control-next-icon" aria-hidden="true"></span><span class="visually-hidden">Sau</span>
+        </button>
+    </div>
+
+    <section class="container mt-5">
+        <ul class="nav section-tabs mb-4" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-coming" type="button" role="tab">Phim sắp chiếu</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-now" type="button" role="tab">Phim đang chiếu</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-special" type="button" role="tab">Suất chiếu đặc biệt</button>
+            </li>
+        </ul>
+        <div class="tab-content">
+            <div class="tab-pane fade" id="tab-coming" role="tabpanel">
+                <div class="row row-cols-2 row-cols-md-3 row-cols-lg-4 g-4">
+                    <div class="col" th:each="m : ${comingSoon}"><div th:replace="~{fragments/common :: movieCard(${m})}"></div></div>
+                </div>
+                <p class="text-muted" th:if="${#lists.isEmpty(comingSoon)}">Chưa có phim sắp chiếu.</p>
+            </div>
+            <div class="tab-pane fade show active" id="tab-now" role="tabpanel">
+                <div class="row row-cols-2 row-cols-md-3 row-cols-lg-4 g-4">
+                    <div class="col" th:each="m : ${nowShowing}"><div th:replace="~{fragments/common :: movieCard(${m})}"></div></div>
+                </div>
+                <p class="text-muted" th:if="${#lists.isEmpty(nowShowing)}">Chưa có phim đang chiếu.</p>
+            </div>
+            <div class="tab-pane fade" id="tab-special" role="tabpanel">
+                <div class="row row-cols-2 row-cols-md-3 row-cols-lg-4 g-4">
+                    <div class="col" th:each="m : ${special}"><div th:replace="~{fragments/common :: movieCard(${m})}"></div></div>
+                </div>
+                <p class="text-muted" th:if="${#lists.isEmpty(special)}">Rạp này chưa có suất chiếu đặc biệt.</p>
+            </div>
+        </div>
+    </section>
+
+    <section class="container mt-5" th:if="${!#lists.isEmpty(posts)}">
+        <div class="d-flex justify-content-between align-items-end mb-3">
+            <h2 class="h4 mb-0">Tin mới và ưu đãi</h2>
+            <a href="/news" class="fw-semibold">Xem tất cả <i class="bi bi-arrow-right"></i></a>
+        </div>
+        <div class="row row-cols-1 row-cols-sm-2 row-cols-lg-4 g-4">
+            <div class="col" th:each="p : ${posts}">
+                <a class="card post-card h-100 border-0 shadow-sm text-decoration-none" th:href="@{/news/{slug}(slug=${p.slug})}">
+                    <img class="card-img-top" th:src="${p.thumbnailPath != null ? p.thumbnailPath : '/images/no-image.svg'}" th:alt="${p.title}">
+                    <div class="card-body">
+                        <span class="badge text-bg-warning mb-2" th:text="${p.type.label}">Ưu đãi</span>
+                        <h3 class="h6 text-dark" th:text="${p.title}">Tiêu đề</h3>
+                    </div>
+                </a>
+            </div>
+        </div>
+    </section>
+</main>
+<th:block th:fragment="scripts"></th:block>
+</body>
+</html>

@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/admin :: layout(~{::title}, ~{::section}, ~{::scripts})}">
+<head><title>Đơn đặt vé · Quản trị BBCinema</title></head>
+<body>
+<section class="p-4">
+    <h1 class="h4 mb-3">Đơn đặt vé</h1>
+    <div class="panel">
+        <form class="row g-2 mb-3" method="get">
+            <div class="col-md-6"><input class="form-control" name="q" th:value="${q}" placeholder="Mã vé hoặc tên phim" aria-label="Tìm đơn"></div>
+            <div class="col-md-4"><select class="form-select" name="status" aria-label="Trạng thái"><option value="">Mọi trạng thái</option>
+                <option th:each="s : ${statuses}" th:value="${s}" th:text="${s.label}" th:selected="${s == status}">-</option></select></div>
+            <div class="col-md-2 d-grid"><button class="btn btn-navy" type="submit">Lọc</button></div>
+        </form>
+        <div class="table-responsive">
+            <table class="table table-sm align-middle">
+                <thead><tr><th>Mã</th><th>Khách</th><th>Phim · Suất</th><th>Ghế</th><th>Kênh</th><th class="text-end">Tổng</th><th>Trạng thái</th><th></th></tr></thead>
+                <tbody><tr th:each="b : ${page.content}">
+                    <td class="fw-bold font-monospace" th:text="${b.code}">CODE</td>
+                    <td class="small" th:text="${b.displayName}">Tên</td>
+                    <td class="small"><span th:text="${b.showtime.movie.title}">Phim</span><br><span class="text-muted" th:text="${#temporals.format(b.showtime.startTime, 'HH:mm dd/MM')} + ' · ' + ${b.showtime.room.cinema.name}">-</span></td>
+                    <td class="small" th:text="${b.seatLabels}">A1</td>
+                    <td class="small" th:text="${b.channel.label}">Online</td>
+                    <td class="text-end tabular" th:text="${@fmt.money(b.totalAmount)}">0đ</td>
+                    <td><span class="status-pill" th:classappend="'status-' + ${b.status.name()}" th:text="${b.status.label}">-</span></td>
+                    <td class="text-end"><a class="btn btn-sm btn-outline-navy" th:href="@{/booking/{code}(code=${b.code})}">Xem</a></td>
+                </tr></tbody>
+            </table>
+        </div>
+        <p class="text-muted small" th:if="${page.empty}">Không có đơn nào.</p>
+        <div th:replace="~{fragments/common :: pager(${page}, ${'/admin/bookings?q=' + (q != null ? q : '') + '&status=' + (status != null ? status : '')})}"></div>
+    </div>
+</section>
+<th:block th:fragment="scripts"></th:block>
+</body>
+</html>

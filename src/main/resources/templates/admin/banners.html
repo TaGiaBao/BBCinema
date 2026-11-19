@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/admin :: layout(~{::title}, ~{::section}, ~{::scripts})}">
+<head><title>Banner · Quản trị BBCinema</title></head>
+<body>
+<section class="p-4">
+    <h1 class="h4 mb-3">Banner trang chủ</h1>
+    <div class="row g-4">
+        <div class="col-xl-8"><div class="panel table-responsive">
+            <table class="table align-middle mb-0">
+                <thead><tr><th></th><th>Tiêu đề</th><th>Liên kết</th><th>Thứ tự</th><th>Hiển thị</th><th></th></tr></thead>
+                <tbody><tr th:each="b : ${banners}">
+                    <td><img th:src="${b.imagePath}" alt="" style="width: 160px; border-radius: 6px"></td>
+                    <td class="fw-semibold" th:text="${b.title}">-</td>
+                    <td class="small" th:text="${b.link}">-</td>
+                    <td th:text="${b.sortOrder}">1</td>
+                    <td><span class="badge" th:classappend="${b.active} ? 'text-bg-success' : 'text-bg-secondary'" th:text="${b.active ? 'Hiện' : 'Ẩn'}">-</span></td>
+                    <td class="text-end text-nowrap"><a class="btn btn-sm btn-outline-navy" th:href="@{/admin/banners/{id}/edit(id=${b.id})}">Sửa</a>
+                        <form class="d-inline" method="post" th:action="@{/admin/banners/{id}/delete(id=${b.id})}"><button class="btn btn-sm btn-outline-danger" type="submit" onclick="return confirm('Xoá banner?')">Xoá</button></form></td>
+                </tr></tbody>
+            </table>
+        </div></div>
+        <div class="col-xl-4">
+            <form class="panel row g-2" method="post" action="/admin/banners" enctype="multipart/form-data" th:object="${form}">
+                <h2 class="h6 col-12" th:text="*{id == null} ? 'Thêm banner' : 'Sửa banner'">Banner</h2>
+                <div class="col-12 alert alert-danger" th:if="${#fields.hasGlobalErrors()}" th:text="${#fields.globalErrors()[0]}">Lỗi</div>
+                <input type="hidden" th:field="*{id}"><input type="hidden" th:field="*{imagePath}">
+                <div class="col-12"><label class="form-label small" for="btitle">Tiêu đề</label><input class="form-control" id="btitle" th:field="*{title}" th:errorclass="is-invalid"><div class="invalid-feedback" th:errors="*{title}"></div></div>
+                <div class="col-12"><label class="form-label small" for="blink">Liên kết khi bấm</label><input class="form-control" id="blink" th:field="*{link}" placeholder="/movies/ten-phim"></div>
+                <div class="col-6"><label class="form-label small" for="bsort">Thứ tự</label><input class="form-control" type="number" id="bsort" th:field="*{sortOrder}"></div>
+                <div class="col-6 d-flex align-items-end"><div class="form-check"><input class="form-check-input" type="checkbox" th:field="*{active}"><label class="form-check-label" th:for="${#ids.prev('active')}">Hiển thị</label></div></div>
+                <div class="col-12"><label class="form-label small" for="bimage">Ảnh (tỉ lệ 1200 × 420)</label><input class="form-control" type="file" id="bimage" name="image" accept="image/*"></div>
+                <div class="col-12"><button class="btn btn-amber" type="submit">Lưu banner</button> <a class="btn btn-link" href="/admin/banners" th:if="*{id != null}">Thêm mới</a></div>
+            </form>
+        </div>
+    </div>
+</section>
+<th:block th:fragment="scripts"></th:block>
+</body>
+</html>

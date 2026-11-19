@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/admin :: layout(~{::title}, ~{::section}, ~{::scripts})}">
+<head><title>Suất chiếu · Quản trị BBCinema</title></head>
+<body>
+<section class="p-4">
+    <h1 class="h4 mb-3">Suất chiếu</h1>
+    <div class="row g-4">
+        <div class="col-xl-8">
+            <div class="panel">
+                <form class="row g-2 mb-3" method="get">
+                    <div class="col-md-3"><select class="form-select form-select-sm" name="cinemaId" aria-label="Rạp"><option value="">Mọi rạp</option>
+                        <option th:each="c : ${allCinemas}" th:value="${c.id}" th:text="${c.name}" th:selected="${c.id == cinemaId}">Rạp</option></select></div>
+                    <div class="col-md-3"><select class="form-select form-select-sm" name="movieId" aria-label="Phim"><option value="">Mọi phim</option>
+                        <option th:each="m : ${movies}" th:value="${m.id}" th:text="${m.title}" th:selected="${m.id == movieId}">Phim</option></select></div>
+                    <div class="col-md-2"><input class="form-control form-control-sm" type="date" name="from" th:value="${from}" aria-label="Từ ngày"></div>
+                    <div class="col-md-2"><input class="form-control form-control-sm" type="date" name="to" th:value="${to}" aria-label="Đến ngày"></div>
+                    <div class="col-md-2 d-grid"><button class="btn btn-sm btn-navy" type="submit">Lọc</button></div>
+                </form>
+                <div class="table-responsive">
+                    <table class="table table-sm align-middle">
+                        <thead><tr><th>Bắt đầu</th><th>Phim</th><th>Rạp · Phòng</th><th>Định dạng</th><th></th></tr></thead>
+                        <tbody><tr th:each="s : ${page.content}" th:classappend="${s.cancelled} ? 'text-decoration-line-through text-muted'">
+                            <td class="tabular" th:text="${#temporals.format(s.startTime, 'HH:mm dd/MM')} + ' - ' + ${#temporals.format(s.endTime, 'HH:mm')}">-</td>
+                            <td th:text="${s.movie.title}">Phim</td>
+                            <td class="small" th:text="${s.room.cinema.name} + ' · ' + ${s.room.name}">-</td>
+                            <td><span th:text="${s.format.label}">2D</span> <span class="badge text-bg-info" th:if="${s.special}">Đặc biệt</span></td>
+                            <td class="text-end">
+                                <form method="post" th:action="@{/admin/showtimes/{id}/cancel(id=${s.id})}" th:unless="${s.cancelled}">
+                                    <button class="btn btn-sm btn-outline-danger" type="submit" onclick="return confirm('Huỷ suất chiếu này?')">Huỷ</button></form>
+                            </td>
+                        </tr></tbody>
+                    </table>
+                </div>
+                <p class="text-muted small" th:if="${page.empty}">Không có suất chiếu.</p>
+                <div th:replace="~{fragments/common :: pager(${page}, ${'/admin/showtimes?cinemaId=' + (cinemaId != null ? cinemaId : '') + '&movieId=' + (movieId != null ? movieId : '') + '&from=' + from + '&to=' + to})}"></div>
+            </div>
+        </div>
+        <div class="col-xl-4">
+            <form class="panel row g-2" method="post" action="/admin/showtimes" th:object="${form}">
+                <h2 class="h6 col-12">Tạo suất chiếu</h2>
+                <div class="col-12"><label class="form-label small" for="movieId">Phim</label>
+                    <select class="form-select" id="movieId" th:field="*{movieId}"><option th:each="m : ${movies}" th:value="${m.id}" th:text="${m.title} + ' (' + ${m.durationMinutes} + ' phút)'">Phim</option></select></div>
+                <div class="col-12"><label class="form-label small" for="roomId">Phòng</label>
+                    <select class="form-select" id="roomId" th:field="*{roomId}"><option th:each="r : ${rooms}" th:value="${r.id}" th:text="${r.cinema.name} + ' · ' + ${r.name}">P1</option></select></div>
+                <div class="col-6"><label class="form-label small" for="fromDate">Từ ngày</label><input class="form-control" type="date" id="fromDate" th:field="*{fromDate}"></div>
+                <div class="col-6"><label class="form-label small" for="toDate">Đến ngày</label><input class="form-control" type="date" id="toDate" th:field="*{toDate}"></div>
+                <div class="col-12"><label class="form-label small" for="times">Giờ chiếu (cách nhau bởi dấu phẩy)</label>
+                    <input class="form-control" id="times" th:field="*{times}" placeholder="09:30, 13:00, 19:45"></div>
+                <div class="col-6"><label class="form-label small" for="format">Định dạng</label>
+                    <select class="form-select" id="format" th:field="*{format}"><option th:each="f : ${formats}" th:value="${f}" th:text="${f.label}">2D</option></select></div>
+                <div class="col-6 d-flex align-items-end"><div class="form-check"><input class="form-check-input" type="checkbox" th:field="*{special}"><label class="form-check-label" th:for="${#ids.prev('special')}">Suất đặc biệt</label></div></div>
+                <div class="col-12 small text-muted">Hệ thống tự tính giờ kết thúc (thời lượng + 15 phút dọn phòng), chặn trùng giờ trong cùng phòng và lấy giá từ bảng giá vé.</div>
+                <div class="col-12"><button class="btn btn-amber" type="submit">Tạo suất chiếu</button></div>
+            </form>
+        </div>
+    </div>
+</section>
+<th:block th:fragment="scripts"></th:block>
+</body>
+</html>
