@@ -62,9 +62,12 @@ public class ShowtimeService {
     }
 
     /** The next seven days, used by the date strip on booking pages. */
+    /** Customers can see and book showtimes this many days ahead, today included. */
+    public static final int BOOKING_WINDOW_DAYS = 14;
+
     public List<LocalDate> upcomingDates() {
         LocalDate today = LocalDate.now(clock);
-        return java.util.stream.IntStream.range(0, 7).mapToObj(today::plusDays).toList();
+        return java.util.stream.IntStream.range(0, BOOKING_WINDOW_DAYS).mapToObj(today::plusDays).toList();
     }
 
     public SeatMap seatMap(Long showtimeId) {

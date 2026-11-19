@@ -9,6 +9,16 @@
     return token && header ? { [header.content]: token.content } : {};
   };
 
+  /** Scrolls each date strip so the chosen day is visible (it may be off-screen on a phone). */
+  function revealActiveDate(strip) {
+    const active = strip.querySelector('.active');
+    if (active && strip.scrollWidth > strip.clientWidth) {
+      strip.scrollLeft = active.offsetLeft - strip.offsetLeft - (strip.clientWidth - active.offsetWidth) / 2;
+    }
+  }
+  window.bbRevealActiveDate = revealActiveDate;
+  document.querySelectorAll('.date-strip').forEach(revealActiveDate);
+
   const pad = (n) => String(n).padStart(2, '0');
   const isoDate = (d) => d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
   const dayNames = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
@@ -28,7 +38,8 @@
   function renderDates(selected) {
     datesEl.innerHTML = '';
     const today = new Date();
-    for (let i = 0; i < 7; i++) {
+    const days = Number(modalEl.dataset.bookingDays) || 14;
+    for (let i = 0; i < days; i++) {
       const d = new Date(today.getFullYear(), today.getMonth(), today.getDate() + i);
       const btn = document.createElement('button');
       btn.type = 'button';
@@ -38,7 +49,10 @@
       btn.addEventListener('click', () => load(isoDate(d)));
       datesEl.appendChild(btn);
     }
+    revealActiveDate(datesEl);
   }
+  // The strip has no width until the popup is visible, so centre the chosen day again then.
+  modalEl.addEventListener('shown.bs.modal', () => revealActiveDate(datesEl));
 
   function load(date) {
     renderDates(date);

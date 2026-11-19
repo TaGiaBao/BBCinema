@@ -19,6 +19,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.List;
@@ -156,7 +157,12 @@ class ShowtimeServiceTest {
     }
 
     @Test
-    void upcomingDatesStartToday() {
-        assertThat(service.upcomingDates()).hasSize(7).first().isEqualTo(TestFixtures.NOW.toLocalDate());
+    void upcomingDatesCoverTwoWeeksFromToday() {
+        List<LocalDate> dates = service.upcomingDates();
+        LocalDate today = TestFixtures.NOW.toLocalDate();
+
+        assertThat(dates).hasSize(14);
+        assertThat(dates.get(0)).isEqualTo(today);
+        assertThat(dates.get(13)).isEqualTo(today.plusDays(13));
     }
 }

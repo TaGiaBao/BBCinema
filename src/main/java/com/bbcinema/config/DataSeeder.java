@@ -316,7 +316,7 @@ public class DataSeeder implements ApplicationRunner {
     }
 
     /**
-     * Makes sure every active room has showtimes for today and the next six days. Movies now
+     * Makes sure every active room has showtimes for the whole booking window (today and the next 13 days). Movies now
      * showing rotate through the rooms from morning until the last show starting before 22:30.
      */
     public void ensureUpcomingShowtimes() {
@@ -327,7 +327,7 @@ public class DataSeeder implements ApplicationRunner {
         LocalDateTime now = LocalDateTime.now(clock);
         List<Room> rooms = roomRepository.findAllWithCinema().stream().filter(Room::isActive).toList();
         int created = 0;
-        for (int d = 0; d < 7; d++) {
+        for (int d = 0; d < ShowtimeService.BOOKING_WINDOW_DAYS; d++) {
             LocalDate date = now.toLocalDate().plusDays(d);
             for (int r = 0; r < rooms.size(); r++) {
                 Room room = rooms.get(r);

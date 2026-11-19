@@ -88,7 +88,10 @@ h1, h2, h3, h4, h5 { font-weight: 800; letter-spacing: -0.01em; }
 .age-badge.P { background: #2bb673; color: #fff; }
 
 /* ---------- date strip & showtimes ---------- */
-.date-strip { display: flex; gap: .5rem; overflow-x: auto; padding-bottom: .25rem; }
+/* 14 days do not fit on a phone: the strip scrolls sideways with snapping. */
+.date-strip { display: flex; gap: .5rem; overflow-x: auto; padding-bottom: .35rem; max-width: 100%;
+  scroll-snap-type: x proximity; -webkit-overflow-scrolling: touch; overscroll-behavior-x: contain; scrollbar-width: thin; }
+.date-strip > * { scroll-snap-align: start; }
 .date-strip a, .date-strip button { flex: 0 0 auto; min-width: 84px; text-align: center; border: 1px solid var(--bb-line); background: #fff;
   border-radius: 10px; padding: .45rem .6rem; color: var(--bb-text); text-decoration: none; line-height: 1.2; }
 .date-strip .day { font-size: 1.35rem; font-weight: 800; display: block; }

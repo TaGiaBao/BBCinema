@@ -10,6 +10,7 @@ import jakarta.servlet.http.Cookie;
 import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockMultipartFile;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -204,5 +205,17 @@ class WebPagesIntegrationTest extends IntegrationTestBase {
         mvc.perform(get("/prices"))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("Ghế đôi (dành cho hai người) có giá bằng 2 ghế VIP")));
+    }
+
+    @Test
+    void dateStripsCoverTwoWeeks() throws Exception {
+        LocalDate lastDay = LocalDate.now().plusDays(13);
+        mvc.perform(get("/schedule"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("/schedule?date=" + lastDay)))
+                .andExpect(content().string(containsString("data-booking-days=\"14\"")));
+        mvc.perform(get("/staff").cookie(authCookie(account(Role.STAFF))))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("date=" + lastDay)));
     }
 }

@@ -73,7 +73,7 @@ Mở **http://localhost:8080**.
 Lần chạy đầu, ứng dụng tự tạo dữ liệu mẫu:
 - 10 phim (tên và poster tự tạo cho đồ án)
 - 2 rạp, 6 phòng
-- Suất chiếu cho 7 ngày tới, mỗi đêm tự thêm ngày mới
+- Suất chiếu cho 14 ngày tới, mỗi đêm tự thêm ngày mới
 - Bảng giá, combo, mã giảm giá, tin tức, banner
 - Khoảng 28 đơn đã thanh toán để biểu đồ có dữ liệu
 

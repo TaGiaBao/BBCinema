@@ -3,6 +3,7 @@ package com.bbcinema.web;
 import com.bbcinema.entity.Cinema;
 import com.bbcinema.security.AppUserPrincipal;
 import com.bbcinema.service.CinemaService;
+import com.bbcinema.service.ShowtimeService;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -34,6 +35,12 @@ public class GlobalModelAdvice {
     @ModelAttribute("currentUser")
     public AppUserPrincipal currentUser(@AuthenticationPrincipal AppUserPrincipal principal) {
         return principal;
+    }
+
+    /** Number of days shown in the date strips, also read by the "Mua vé" popup script. */
+    @ModelAttribute("bookingDays")
+    public int bookingDays() {
+        return ShowtimeService.BOOKING_WINDOW_DAYS;
     }
 
     @ModelAttribute("currentPath")

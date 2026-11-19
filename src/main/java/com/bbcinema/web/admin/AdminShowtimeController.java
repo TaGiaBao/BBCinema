@@ -47,7 +47,7 @@ public class AdminShowtimeController {
                        @RequestParam(defaultValue = "0") int page,
                        Model model) {
         LocalDate start = from == null ? LocalDate.now(clock) : from;
-        LocalDate end = to == null ? start.plusDays(6) : to;
+        LocalDate end = to == null ? start.plusDays(ShowtimeService.BOOKING_WINDOW_DAYS - 1) : to;
         model.addAttribute("page", showtimeService.search(cinemaId, movieId, start, end, PageRequest.of(Math.max(page, 0), 20)));
         model.addAttribute("cinemaId", cinemaId);
         model.addAttribute("movieId", movieId);
