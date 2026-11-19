@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/admin :: layout(~{::title}, ~{::section}, ~{::scripts})}">
+<head><title>Tạo lịch chiếu tự động · Quản trị BBCinema</title></head>
+<body>
+<section class="p-4">
+    <a href="/admin/showtimes" class="small"><i class="bi bi-arrow-left"></i> Suất chiếu</a>
+    <h1 class="h4 mt-2">Tạo lịch chiếu tự động</h1>
+    <p class="text-muted small mb-3" style="max-width: 900px">
+        Hệ thống lấp đầy từng phòng từ giờ mở cửa: mỗi khi phòng trống, phim có điểm cao nhất cho khung giờ đó được xếp vào,
+        rồi chờ dọn phòng và xếp suất tiếp theo. Điểm tính từ 5 yếu tố: <strong>ngày trong tuần</strong> (cuối tuần đông hơn),
+        <strong>thời lượng phim</strong> (phải kết thúc trước giờ đóng cửa), <strong>giờ vàng</strong> (phim hay ưu tiên buổi tối),
+        <strong>đánh giá</strong> của khán giả và phim mới ra, <strong>thể loại</strong> (hoạt hình, gia đình ban ngày; kinh dị buổi tối;
+        T18 không chiếu buổi sáng). Phim lặp lại nhiều trong ngày bị trừ điểm để lịch đa dạng. Suất chiếu đã có được giữ nguyên.
+    </p>
+    <div class="alert alert-danger" th:if="${error != null}" th:text="${error}">Lỗi</div>
+
+    <form method="post" th:action="@{/admin/showtimes/auto}" class="panel mb-4" id="autoForm">
+        <div class="row g-3">
+            <div class="col-md-4"><label class="form-label small" for="cinemaId">Rạp</label>
+                <select class="form-select" id="cinemaId" name="cinemaId" required>
+                    <option th:each="c : ${allCinemas}" th:value="${c.id}" th:text="${c.name}" th:selected="${c.id == req.cinemaId}">Rạp</option>
+                </select></div>
+            <div class="col-6 col-md-2"><label class="form-label small" for="from">Từ ngày</label>
+                <input class="form-control" type="date" id="from" name="from" th:value="${req.from}" required></div>
+            <div class="col-6 col-md-2"><label class="form-label small" for="to">Đến ngày</label>
+                <input class="form-control" type="date" id="to" name="to" th:value="${req.to}" required></div>
+            <div class="col-6 col-md-2"><label class="form-label small" for="open">Mở cửa</label>
+                <input class="form-control" type="time" id="open" name="open" th:value="${req.open}" required></div>
+            <div class="col-6 col-md-2"><label class="form-label small" for="lastStart">Suất cuối trước</label>
+                <input class="form-control" type="time" id="lastStart" name="lastStart" th:value="${req.lastStart}" required></div>
+            <div class="col-6 col-md-2"><label class="form-label small" for="goldenFrom">Giờ vàng từ</label>
+                <input class="form-control" type="time" id="goldenFrom" name="goldenFrom" th:value="${req.goldenFrom}" required></div>
+            <div class="col-6 col-md-2"><label class="form-label small" for="goldenTo">đến</label>
+                <input class="form-control" type="time" id="goldenTo" name="goldenTo" th:value="${req.goldenTo}" required></div>
+            <div class="col-12">
+                <div class="d-flex justify-content-between align-items-center">
+                    <span class="form-label small mb-1">Phim được xếp lịch</span>
+                    <span class="small">
+                        <button type="button" class="btn btn-link btn-sm p-0" onclick="document.querySelectorAll('#autoForm [name=movieIds]').forEach(c => c.checked = true)">Chọn tất cả</button> ·
+                        <button type="button" class="btn btn-link btn-sm p-0" onclick="document.querySelectorAll('#autoForm [name=movieIds]').forEach(c => c.checked = false)">Bỏ chọn</button>
+                    </span>
+                </div>
+                <div class="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-1">
+                    <div class="col" th:each="m : ${movies}">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="movieIds" th:value="${m.id}" th:id="'m' + ${m.id}"
+                                   th:checked="${req.movieIds.contains(m.id)}">
+                            <label class="form-check-label small" th:for="'m' + ${m.id}">
+                                <span th:text="${m.title}">Phim</span>
+                                <span class="text-muted" th:text="' · ' + ${m.durationMinutes} + ' phút · ' + ${m.ageRating.name()}">· 120 phút</span>
+                                <span class="text-warning" th:if="${m.ratingCount > 0}" th:text="' ★ ' + ${m.ratingAverage}">★ 4.5</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-12 d-flex gap-2">
+                <button class="btn btn-navy" type="submit"><i class="bi bi-magic"></i> Tạo lịch đề xuất</button>
+                <button class="btn btn-amber" type="submit" th:if="${plan != null and !#lists.isEmpty(plan)}"
+                        th:formaction="@{/admin/showtimes/auto/save}"
+                        th:text="'Lưu ' + ${#lists.size(plan)} + ' suất chiếu'">Lưu</button>
+            </div>
+        </div>
+    </form>
+
+    <div class="panel" th:if="${plan != null}">
+        <h2 class="h6">Lịch đề xuất <span class="text-muted" th:text="'(' + ${#lists.size(plan)} + ' suất)'">(0)</span></h2>
+        <p class="text-muted small mb-3" th:if="${#lists.isEmpty(plan)}">Không còn khung giờ trống nào phù hợp trong khoảng đã chọn.</p>
+        <div class="auto-plan" th:unless="${#lists.isEmpty(plan)}">
+            <div class="auto-day" th:each="d : ${days}">
+                <h3 class="h6" th:text="${@fmt.dayName(d)} + ' ' + ${#temporals.format(d, 'dd/MM')}">T2 01/01</h3>
+                <div class="auto-room" th:each="room : ${roomNames}">
+                    <div class="small fw-bold text-muted mb-1" th:text="${room}">Phòng</div>
+                    <th:block th:each="p : ${plan}" th:if="${p.start.toLocalDate() == d and p.room.name == room}">
+                        <div class="auto-slot" th:classappend="${p.golden} ? 'golden'">
+                            <span class="tabular" th:text="${#temporals.format(p.start, 'HH:mm')} + '–' + ${#temporals.format(p.end.minusMinutes(15), 'HH:mm')}">08:00</span>
+                            <span class="title" th:text="${p.movie.title}">Phim</span>
+                            <span class="small text-muted" th:text="${p.format.label} + ' · điểm ' + ${#numbers.formatDecimal(p.score, 1, 2, 'COMMA')}">2D</span>
+                        </div>
+                    </th:block>
+                </div>
+            </div>
+        </div>
+        <p class="small text-muted mt-2 mb-0"><span class="auto-slot golden d-inline-block px-2">Giờ vàng</span> suất nằm trong khung giờ vàng.</p>
+    </div>
+</section>
+<th:block th:fragment="scripts"></th:block>
+</body>
+</html>

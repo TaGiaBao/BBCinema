@@ -7,6 +7,7 @@ import com.bbcinema.exception.BusinessException;
 import com.bbcinema.service.CinemaService;
 import com.bbcinema.service.MovieService;
 import com.bbcinema.service.RoomService;
+import com.bbcinema.service.AutoScheduleService;
 import com.bbcinema.service.ShowtimeService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -33,6 +34,7 @@ public class AdminShowtimeController {
     private final RoomService roomService;
     private final CinemaService cinemaService;
     private final Clock clock;
+    private final AutoScheduleService autoScheduleService;
 
     @ModelAttribute("menu")
     public String menu() {
@@ -100,5 +102,79 @@ public class AdminShowtimeController {
         List<com.bbcinema.entity.Movie> movies = new ArrayList<>(movieService.findByStatus(MovieStatus.NOW_SHOWING));
         movies.addAll(movieService.findByStatus(MovieStatus.COMING_SOON));
         return movies;
+    }
+
+    // ---------- automatic schedule
+
+    @GetMapping("/auto")
+    public String autoPage(Model model) {
+        LocalDate tomorrow = LocalDate.now(clock).plusDays(1);
+        List<Long> nowShowing = activeMovies().stream()
+                .filter(m -> m.getStatus() == com.bbcinema.entity.enums.MovieStatus.NOW_SHOWING)
+                .map(com.bbcinema.entity.Movie::getId).toList();
+        Long firstCinema = cinemaService.findActive().stream().findFirst().map(com.bbcinema.entity.Cinema::getId).orElse(null);
+        return autoForm(model, new AutoScheduleService.Request(firstCinema, tomorrow, tomorrow.plusDays(2),
+                java.time.LocalTime.of(8, 0), java.time.LocalTime.of(22, 30),
+                java.time.LocalTime.of(18, 0), java.time.LocalTime.of(22, 0), nowShowing), null);
+    }
+
+    /** Works out a proposal and shows it; nothing is saved yet. */
+    @PostMapping("/auto")
+    public String autoPreview(@ModelAttribute AutoScheduleForm form, Model model) {
+        AutoScheduleService.Request request = form.toRequest();
+        try {
+            return autoForm(model, request, autoScheduleService.plan(request));
+        } catch (com.bbcinema.exception.BusinessException e) {
+            model.addAttribute("error", e.getMessage());
+            return autoForm(model, request, null);
+        }
+    }
+
+    @PostMapping("/auto/save")
+    public String autoSave(@ModelAttribute AutoScheduleForm form, RedirectAttributes redirect) {
+        try {
+            int created = autoScheduleService.save(form.toRequest());
+            redirect.addFlashAttribute("success", "Đã tạo " + created + " suất chiếu theo lịch đề xuất");
+        } catch (com.bbcinema.exception.BusinessException e) {
+            redirect.addFlashAttribute("error", e.getMessage());
+        }
+        return "redirect:/admin/showtimes?cinemaId=" + form.getCinemaId();
+    }
+
+    private String autoForm(Model model, AutoScheduleService.Request request, List<AutoScheduleService.Planned> plan) {
+        model.addAttribute("req", request);
+        model.addAttribute("allCinemas", cinemaService.findActive());
+        model.addAttribute("movies", activeMovies().stream()
+                .filter(m -> m.getStatus() != com.bbcinema.entity.enums.MovieStatus.ENDED).toList());
+        if (plan != null) {
+            model.addAttribute("plan", plan);
+            model.addAttribute("days", plan.stream().map(p -> p.start().toLocalDate()).distinct().sorted().toList());
+            model.addAttribute("roomNames", plan.stream().map(p -> p.room().getName()).distinct().sorted().toList());
+        }
+        return "admin/showtimes/auto";
+    }
+
+    /** Form fields of the automatic schedule page. */
+    @lombok.Data
+    public static class AutoScheduleForm {
+        private Long cinemaId;
+        @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
+        private LocalDate from;
+        @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
+        private LocalDate to;
+        @DateTimeFormat(pattern = "HH:mm")
+        private java.time.LocalTime open;
+        @DateTimeFormat(pattern = "HH:mm")
+        private java.time.LocalTime lastStart;
+        @DateTimeFormat(pattern = "HH:mm")
+        private java.time.LocalTime goldenFrom;
+        @DateTimeFormat(pattern = "HH:mm")
+        private java.time.LocalTime goldenTo;
+        private List<Long> movieIds = new java.util.ArrayList<>();
+
+        AutoScheduleService.Request toRequest() {
+            return new AutoScheduleService.Request(cinemaId, from, to, open, lastStart, goldenFrom, goldenTo,
+                    movieIds == null ? List.of() : movieIds);
+        }
     }
 }
