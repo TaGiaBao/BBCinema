@@ -10,5 +10,5 @@ if exist data (
         exit /b 1
     )
 )
-echo Khoi dong BBCinema voi du lieu mau moi: http://localhost:8080
-call mvnw.cmd spring-boot:run -Dspring-boot.run.profiles=h2
+echo Khoi dong BBCinema voi du lieu mau moi...
+call "%~dp0..un.bat"

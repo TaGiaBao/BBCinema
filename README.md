@@ -46,7 +46,8 @@ Cách 1 và 2 cần **JDK 21**; Maven đã có sẵn trong project (`mvnw`), kh�
 ./mvnw spring-boot:run -Dspring-boot.run.profiles=h2
 ```
 
-Trên Windows dùng `mvnw.cmd` thay cho `./mvnw`. Dữ liệu lưu trong thư mục `data/`.
+Trên Windows dùng `mvnw.cmd` thay cho `./mvnw`, hoặc **bấm đúp `run.bat`**: tự khởi động và mở trình duyệt khi
+ứng dụng sẵn sàng. Dữ liệu lưu trong thư mục `data/`.
 
 Ở cách này có **hộp thư demo** tại `/demo/mailbox`: xem email vé và email đặt lại mật khẩu mà không cần
 tài khoản email. Muốn làm sạch dữ liệu trước buổi demo: tắt ứng dụng rồi chạy `scripts\reset-demo.cmd`.
