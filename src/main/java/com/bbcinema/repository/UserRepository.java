@@ -21,6 +21,29 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     long countByRole(Role role);
 
+    boolean existsByMemberCode(String memberCode);
+
+    Optional<User> findByMemberCode(String memberCode);
+
+    java.util.List<User> findByPhoneAndRole(String phone, Role role);
+
+    /** Members created before member codes existed that still need one. */
+    @Query("select u.id from User u where u.role = :role and u.memberCode is null order by u.id")
+    java.util.List<Long> findIdsByRoleWithoutMemberCode(@org.springframework.data.repository.query.Param("role") Role role);
+
+    @Query("select u.memberCode from User u where u.id = :id")
+    String findMemberCodeById(@org.springframework.data.repository.query.Param("id") Long id);
+
+    /**
+     * Gives an account its member code only if it still has none: a targeted update, so it never overwrites other
+     * columns of a user someone else is changing. Returns the number of rows changed (0 = already had a code).
+     */
+    @org.springframework.data.jpa.repository.Modifying
+    @org.springframework.transaction.annotation.Transactional
+    @Query("update User u set u.memberCode = :code where u.id = :id and u.memberCode is null")
+    int setMemberCodeIfMissing(@org.springframework.data.repository.query.Param("id") Long id,
+                               @org.springframework.data.repository.query.Param("code") String code);
+
     @Query("""
             select u from User u
             where (:keyword is null or lower(u.email) like lower(concat('%', :keyword, '%'))

@@ -28,6 +28,8 @@ public class MemberController {
     private final BookingService bookingService;
     private final PointService pointService;
     private final com.bbcinema.service.MembershipService membershipService;
+    private final com.bbcinema.service.MemberCodeService memberCodeService;
+    private final com.bbcinema.service.QrCodeService qrCodeService;
 
     @GetMapping
     public String profile(@AuthenticationPrincipal AppUserPrincipal principal, Model model) {
@@ -36,6 +38,22 @@ public class MemberController {
         model.addAttribute("profileForm", userService.toProfileForm(user));
         model.addAttribute("passwordForm", new PasswordForm());
         return "member/profile";
+    }
+
+    /**
+     * The member's own QR code for the counter. It holds only the member code (no link, no token) and is built
+     * from the signed-in account, so nobody can ask for another member's code. Internal accounts have none.
+     */
+    @GetMapping(value = "/qr.png", produces = org.springframework.http.MediaType.IMAGE_PNG_VALUE)
+    @ResponseBody
+    public org.springframework.http.ResponseEntity<byte[]> memberQr(@AuthenticationPrincipal AppUserPrincipal principal) {
+        String code = memberCodeService.ensureCode(principal.getId());
+        if (code == null) {
+            return org.springframework.http.ResponseEntity.notFound().build();
+        }
+        return org.springframework.http.ResponseEntity.ok()
+                .cacheControl(org.springframework.http.CacheControl.noStore().cachePrivate())
+                .body(qrCodeService.png(code, 240));
     }
 
     @PostMapping("/profile")
@@ -92,6 +110,14 @@ public class MemberController {
     }
 
     private void addCommon(Model model, User user, String tab) {
+        if ("profile".equals(tab)) {
+            // Members who joined before member codes existed get theirs the first time they open this page.
+            String code = memberCodeService.ensureCode(user.getId());
+            if (code != null && user.getMemberCode() == null) {
+                user.setMemberCode(code); // same value as the row now holds, should this copy be saved later
+            }
+            model.addAttribute("memberCode", code);
+        }
         model.addAttribute("user", user);
         model.addAttribute("tab", tab);
         model.addAttribute("membership", membershipService.status(user));

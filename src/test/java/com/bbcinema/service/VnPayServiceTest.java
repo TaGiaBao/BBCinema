@@ -58,7 +58,7 @@ class VnPayServiceTest {
 
     @Test
     void paymentUrlIsSignedAndHasAmountTimes100() {
-        when(bookingService.getForViewer("ABCD2345", 1L, Role.USER)).thenReturn(pending());
+        when(bookingService.getForOwnerChange("ABCD2345", 1L, Role.USER)).thenReturn(pending());
 
         String url = service().createPaymentUrl("ABCD2345", 1L, "1.2.3.4");
 

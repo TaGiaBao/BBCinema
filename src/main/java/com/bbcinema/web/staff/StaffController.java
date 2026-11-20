@@ -38,6 +38,7 @@ public class StaffController {
     private final com.bbcinema.service.BankTransferService bankTransferService;
     private final com.bbcinema.service.ShiftService shiftService;
     private final com.bbcinema.service.TicketPrintService ticketPrintService;
+    private final com.bbcinema.service.MemberCodeService memberCodeService;
     private final Clock clock;
 
     /** Shown when another action (refund, payment...) changed the booking between loading and saving it. */
@@ -88,6 +89,7 @@ public class StaffController {
                        RedirectAttributes redirect) {
         if (binding.hasErrors()) {
             redirect.addFlashAttribute("error", binding.getAllErrors().get(0).getDefaultMessage());
+            keepMember(form, redirect);
             return "redirect:/staff/sell/" + showtimeId;
         }
         try {
@@ -100,7 +102,43 @@ public class StaffController {
             return "redirect:/staff/tickets/" + booking.getCode();
         } catch (BusinessException e) {
             redirect.addFlashAttribute("error", e.getMessage());
+            keepMember(form, redirect);
             return "redirect:/staff/sell/" + showtimeId;
+        }
+    }
+
+    /**
+     * After a failed sale the page loads again: give it back the member staff had attached (and whether they had
+     * confirmed the name), so the next try is not charged at full price by mistake. The page looks the code up
+     * again, so nothing here is trusted.
+     */
+    private static void keepMember(CounterSaleForm form, RedirectAttributes redirect) {
+        if (form.getMemberCode() == null || form.getMemberCode().isBlank()) {
+            return;
+        }
+        redirect.addFlashAttribute("keptMemberCode", form.getMemberCode().trim());
+        redirect.addFlashAttribute("keptMemberConfirmed", form.isMemberConfirmed());
+        redirect.addFlashAttribute("keptMemberMatchedBy",
+                "PHONE".equals(form.getMemberMatchedBy()) ? "PHONE" : "CODE");
+    }
+
+    /**
+     * "Khách thành viên" panel of the sell page: finds a member by member code (typed or scanned) or phone number.
+     * POST, so the phone number stays out of URLs and access logs; the reply holds only what staff need.
+     */
+    @PostMapping(value = "/members/lookup", produces = org.springframework.http.MediaType.APPLICATION_JSON_VALUE)
+    @ResponseBody
+    public org.springframework.http.ResponseEntity<?> lookupMember(@RequestParam(name = "q", required = false) String query,
+                                                                   @RequestParam(required = false) Long showtimeId) {
+        try {
+            // The age that matters is the age on the day of the film, not today.
+            LocalDate onDate = showtimeId == null ? null : showtimeService.getDetailed(showtimeId).getStartTime().toLocalDate();
+            return org.springframework.http.ResponseEntity.ok(memberCodeService.lookupForCounter(query, onDate));
+        } catch (NotFoundException e) {
+            return org.springframework.http.ResponseEntity.status(org.springframework.http.HttpStatus.NOT_FOUND)
+                    .body(Map.of("message", e.getMessage()));
+        } catch (BusinessException e) {
+            return org.springframework.http.ResponseEntity.unprocessableEntity().body(Map.of("message", e.getMessage()));
         }
     }
 

@@ -54,7 +54,8 @@ class BookingServiceTest {
         service = new BookingService(bookingRepository, showtimeSeatRepository, paymentRepository,
                 mock(com.bbcinema.repository.CounterShiftRepository.class), mock(InventoryService.class), showtimeService,
                 userService, comboService, promotionService, pointService,
-                new MembershipService(bookingRepository, TestFixtures.properties(), TestFixtures.clock()), eventPublisher,
+                new MembershipService(bookingRepository, TestFixtures.properties(), TestFixtures.clock()),
+                mock(MemberCodeService.class), eventPublisher,
                 TestFixtures.properties(), TestFixtures.clock());
         user = TestFixtures.user(1, LocalDate.of(2000, 1, 1));
         showtime = TestFixtures.showtime(10, TestFixtures.movie(1, 120, AgeRating.T16), TestFixtures.room(1),
@@ -226,8 +227,28 @@ class BookingServiceTest {
         showtime.setStartTime(TestFixtures.NOW.plusMinutes(90));
         when(bookingRepository.findDetailedByCode("TESTCODE")).thenReturn(Optional.of(b));
 
-        assertThat(service.canCancel(b)).isFalse();
+        assertThat(service.canCancel(b, Role.USER)).isFalse();
         assertThatThrownBy(() -> service.cancel("TESTCODE", 1L, Role.USER)).hasMessageContaining("2 tiếng");
+    }
+
+    @Test
+    void memberCanOnlyViewACounterBooking() {
+        Booking b = pendingBooking();
+        b.setChannel(com.bbcinema.entity.enums.SalesChannel.COUNTER);
+        when(bookingRepository.findDetailedByCode("TESTCODE")).thenReturn(Optional.of(b));
+
+        assertThat(service.getForViewer("TESTCODE", 1L, Role.USER)).isSameAs(b);
+        assertThat(service.canCancel(b, Role.USER)).isFalse();
+        assertThat(service.canCancel(b, Role.ADMIN)).isTrue();
+        assertThatThrownBy(() -> service.getForOwnerChange("TESTCODE", 1L, Role.USER))
+                .hasMessage(BookingService.COUNTER_ONLY);
+        assertThatThrownBy(() -> service.cancel("TESTCODE", 1L, Role.USER)).hasMessage(BookingService.COUNTER_ONLY);
+        assertThatThrownBy(() -> service.payWithMock("TESTCODE", 1L)).hasMessage(BookingService.COUNTER_ONLY);
+        assertThatThrownBy(() -> service.updateCombos("TESTCODE", 1L, java.util.Map.of())).hasMessage(BookingService.COUNTER_ONLY);
+        assertThatThrownBy(() -> service.startBankTransfer("TESTCODE", 1L, Role.USER)).hasMessage(BookingService.COUNTER_ONLY);
+        assertThat(b.isPending()).isTrue();
+        // Counter staff still handle it.
+        assertThat(service.getForOwnerChange("TESTCODE", 99L, Role.STAFF)).isSameAs(b);
     }
 
     @Test

@@ -74,9 +74,10 @@ public class BookingController {
     // ---------- step 2: combos
 
     @GetMapping("/{code}/combos")
-    public String combos(@PathVariable String code, @AuthenticationPrincipal AppUserPrincipal user, Model model) {
-        Booking booking = bookingService.getForViewer(code, user.getId(), Role.USER);
-        if (!booking.isPending()) {
+    public String combos(@PathVariable String code, @AuthenticationPrincipal AppUserPrincipal user, Model model,
+                         RedirectAttributes redirect) {
+        Booking booking = changeableOrNull(code, user, redirect);
+        if (booking == null || !booking.isPending()) {
             return "redirect:/booking/" + code;
         }
         Map<Long, Integer> selected = new HashMap<>();
@@ -119,9 +120,10 @@ public class BookingController {
     // ---------- step 3: checkout
 
     @GetMapping("/{code}/checkout")
-    public String checkout(@PathVariable String code, @AuthenticationPrincipal AppUserPrincipal user, Model model) {
-        Booking booking = bookingService.getForViewer(code, user.getId(), Role.USER);
-        if (!booking.isPending()) {
+    public String checkout(@PathVariable String code, @AuthenticationPrincipal AppUserPrincipal user, Model model,
+                           RedirectAttributes redirect) {
+        Booking booking = changeableOrNull(code, user, redirect);
+        if (booking == null || !booking.isPending()) {
             return "redirect:/booking/" + code;
         }
         model.addAttribute("booking", booking);
@@ -201,7 +203,7 @@ public class BookingController {
     public String ticket(@PathVariable String code, @AuthenticationPrincipal AppUserPrincipal user, Model model) {
         Booking booking = bookingService.getForViewer(code, user.getId(), user.getRole());
         model.addAttribute("booking", booking);
-        model.addAttribute("canCancel", bookingService.canCancel(booking));
+        model.addAttribute("canCancel", bookingService.canCancel(booking, user.getRole()));
         model.addAttribute("cancelDeadline", bookingService.cancelDeadline(booking));
         model.addAttribute("payments", bookingService.payments(booking.getId()));
         if (booking.isPaid()) {
@@ -226,9 +228,10 @@ public class BookingController {
     // ---------- bank transfer by VietQR
 
     @GetMapping("/{code}/bank-transfer")
-    public String bankTransfer(@PathVariable String code, @AuthenticationPrincipal AppUserPrincipal user, Model model) {
-        Booking booking = bookingService.getForViewer(code, user.getId(), Role.USER);
-        if (!booking.isPending()) {
+    public String bankTransfer(@PathVariable String code, @AuthenticationPrincipal AppUserPrincipal user, Model model,
+                               RedirectAttributes redirect) {
+        Booking booking = changeableOrNull(code, user, redirect);
+        if (booking == null || !booking.isPending()) {
             return "redirect:/booking/" + code;
         }
         model.addAttribute("booking", booking);
@@ -241,7 +244,7 @@ public class BookingController {
     @GetMapping(value = "/{code}/bank-qr.png", produces = MediaType.IMAGE_PNG_VALUE)
     @ResponseBody
     public ResponseEntity<byte[]> bankQr(@PathVariable String code, @AuthenticationPrincipal AppUserPrincipal user) {
-        Booking booking = bookingService.getForViewer(code, user.getId(), Role.USER);
+        Booking booking = bookingService.getForOwnerChange(code, user.getId(), Role.USER);
         return ResponseEntity.ok().cacheControl(CacheControl.noStore()).contentType(MediaType.IMAGE_PNG)
                 .body(bankTransferService.qrPng(booking));
     }
@@ -257,14 +260,27 @@ public class BookingController {
     @PostMapping("/{code}/bank-transfer/demo-confirm")
     public String demoConfirm(@PathVariable String code, @AuthenticationPrincipal AppUserPrincipal user,
                               RedirectAttributes redirect) {
-        bookingService.getForViewer(code, user.getId(), Role.USER);
         try {
+            bookingService.getForOwnerChange(code, user.getId(), Role.USER);
             bankTransferService.demoConfirm(code);
             redirect.addFlashAttribute("success", "Thanh toán thành công! Chúc bạn xem phim vui vẻ.");
             return "redirect:/booking/" + code;
         } catch (BusinessException e) {
             redirect.addFlashAttribute("error", e.getMessage());
             return "redirect:/booking/" + code + "/bank-transfer";
+        }
+    }
+
+    /**
+     * The booking when the member may still change it online, else null with the reason flashed (the caller then
+     * goes back to the ticket). A ticket bought at the counter is view-only for its member.
+     */
+    private Booking changeableOrNull(String code, AppUserPrincipal user, RedirectAttributes redirect) {
+        try {
+            return bookingService.getForOwnerChange(code, user.getId(), Role.USER);
+        } catch (BusinessException e) {
+            redirect.addFlashAttribute("error", e.getMessage());
+            return null;
         }
     }
 

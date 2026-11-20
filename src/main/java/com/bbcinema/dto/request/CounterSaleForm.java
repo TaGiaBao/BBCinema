@@ -36,6 +36,23 @@ public class CounterSaleForm {
     @Digits(integer = 12, fraction = 0, message = "Số tiền không hợp lệ")
     private BigDecimal amountReceived;
 
+    /**
+     * Member code of the member staff looked up (by code or phone), or blank for a walk-in customer. The server
+     * resolves the code again with the lookup's rules and works out the discount itself.
+     */
+    @Size(max = 20)
+    private String memberCode;
+
+    /**
+     * Staff confirmed the member: always set for a code match, ticked by staff for a phone match after the
+     * customer confirmed their full name. Required whenever a member is attached.
+     */
+    private boolean memberConfirmed;
+
+    /** CODE or PHONE: how the member was found. Only used to show the panel again after a failed sale. */
+    @Size(max = 10)
+    private String memberMatchedBy;
+
     /** Printed on the POS terminal's slip when the customer pays by card. */
     @Size(max = 12)
     private String cardApprovalCode;

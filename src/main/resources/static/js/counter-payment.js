@@ -1,4 +1,4 @@
-// Counter sale payment box (staff/sell.html). Shows the total to pay (seats + snacks) and, for cash,
+// Counter sale payment box (staff/sell.html). Shows the total to pay (seats + snacks - member tier discount) and, for cash,
 // the change to hand back or the amount still missing as staff type what the customer gave. For card,
 // staff type the amount on the POS slip, which must equal the total. The server checks the same rules.
 (function () {
@@ -35,8 +35,22 @@
     return comboInputs.reduce((sum, i) => sum + Math.max(0, Number(i.value) || 0) * Number(i.dataset.price), 0);
   }
 
+  // Member attached by member-lookup.js: its tier discount, worked out like MembershipService.discountOn
+  // (percent of tickets + snacks, rounded down to whole đồng). The server recomputes it on submit.
+  const memberPanel = document.getElementById('memberPanel');
+  const discountRow = document.querySelector('[data-role="member-discount-row"]');
+  const discountEl = document.getElementById('memberDiscount');
+
+  function memberPercent() {
+    return memberPanel ? Number(memberPanel.dataset.discountPercent) || 0 : 0;
+  }
+
+  function memberDiscount() {
+    return Math.floor((seatTotal() + comboTotal()) * memberPercent() / 100);
+  }
+
   function total() {
-    return seatTotal() + comboTotal();
+    return seatTotal() + comboTotal() - memberDiscount();
   }
 
   /** Amounts a customer is likely to hand over: the total rounded up to common notes. */
@@ -77,6 +91,11 @@
     const t = total();
     const seats = seatTotal();
     comboTotalEl.textContent = money(comboTotal());
+    if (discountRow) {
+      discountRow.classList.toggle('d-none', memberPercent() === 0);
+      discountRow.querySelector('[data-role="member-discount-percent"]').textContent = memberPercent();
+      discountEl.textContent = '-' + money(memberDiscount());
+    }
     grandTotalEl.textContent = money(t);
     approvalBox.classList.toggle('d-none', m !== 'CARD');
     approvalBox.querySelector('input').required = m === 'CARD';
@@ -122,7 +141,9 @@
     } else {
       hidden.value = '';
     }
-    submit.disabled = seats === 0 || !ok;
+    // A member found by phone must have their name confirmed before the sale (member-lookup.js).
+    const memberWaiting = memberPanel && memberPanel.dataset.memberPending === 'true';
+    submit.disabled = seats === 0 || !ok || memberWaiting;
   }
 
   input.addEventListener('input', () => {
@@ -144,6 +165,10 @@
     input.focus();
   }));
   comboInputs.forEach((i) => i.addEventListener('input', update));
+  document.addEventListener('bb:member-changed', () => {
+    cardTouched = false; // a card amount typed for the old total is no longer right
+    update();
+  });
   // seat-map.js redraws the seat total (and the submit button) when seats are picked or taken by others.
   if (seatTotalEl) {
     new MutationObserver(update).observe(seatTotalEl, { childList: true, characterData: true, subtree: true });
