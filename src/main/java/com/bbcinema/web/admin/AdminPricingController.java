@@ -25,6 +25,7 @@ public class AdminPricingController {
 
     private final PricingService pricingService;
     private final ComboService comboService;
+    private final com.bbcinema.service.InventoryService inventoryService;
 
     @GetMapping("/prices")
     public String prices(Model model) {
@@ -55,11 +56,42 @@ public class AdminPricingController {
     @GetMapping("/combos")
     public String combos(Model model) {
         model.addAttribute("combos", comboService.findAll());
+        model.addAttribute("recipes", inventoryService.recipes());
         if (!model.containsAttribute("form")) {
             model.addAttribute("form", new ComboForm());
         }
         model.addAttribute("menu", "combos");
         return "admin/combos";
+    }
+
+    /** What one portion of a combo takes from the stock; selling it then takes this from the cinema's stock. */
+    @GetMapping("/combos/{id}/recipe")
+    public String recipe(@PathVariable Long id, Model model) {
+        model.addAttribute("combo", comboService.getById(id));
+        model.addAttribute("items", inventoryService.items());
+        java.util.Map<Long, java.math.BigDecimal> current = new java.util.HashMap<>();
+        inventoryService.recipes().getOrDefault(id, java.util.List.of())
+                .forEach(i -> current.put(i.getItem().getId(), i.getQuantity().stripTrailingZeros()));
+        model.addAttribute("current", current);
+        model.addAttribute("menu", "combos");
+        return "admin/combo-recipe";
+    }
+
+    @PostMapping("/combos/{id}/recipe")
+    public String saveRecipe(@PathVariable Long id, @RequestParam java.util.Map<String, String> params, RedirectAttributes redirect) {
+        java.util.Map<Long, java.math.BigDecimal> quantities = AdminInventoryController.quantities(params, "use_");
+        if (quantities == null) {
+            redirect.addFlashAttribute("error", "Định lượng phải là số, ví dụ 1 hoặc 0,15");
+            return "redirect:/admin/combos/" + id + "/recipe";
+        }
+        try {
+            inventoryService.saveRecipe(id, quantities);
+            redirect.addFlashAttribute("success", "Đã lưu công thức combo " + comboService.getById(id).getName());
+            return "redirect:/admin/combos";
+        } catch (BusinessException e) {
+            redirect.addFlashAttribute("error", e.getMessage());
+            return "redirect:/admin/combos/" + id + "/recipe";
+        }
     }
 
     @GetMapping("/combos/{id}/edit")

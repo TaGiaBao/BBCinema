@@ -8,14 +8,19 @@
     <div class="row g-4">
         <div class="col-xl-8"><div class="panel">
             <table class="table align-middle mb-0">
-                <thead><tr><th></th><th>Tên</th><th>Mô tả</th><th class="text-end">Giá</th><th>Trạng thái</th><th></th></tr></thead>
+                <thead><tr><th></th><th>Tên</th><th>Mô tả · Công thức trừ kho</th><th class="text-end">Giá</th><th>Trạng thái</th><th></th></tr></thead>
                 <tbody><tr th:each="c : ${combos}">
                     <td><img th:src="${c.imagePath != null ? c.imagePath : '/images/no-image.svg'}" alt="" style="width: 72px; border-radius: 6px"></td>
                     <td class="fw-semibold" th:text="${c.name}">Combo</td>
-                    <td class="small" th:text="${c.description}">-</td>
+                    <td class="small"><span th:text="${c.description}">-</span>
+                        <div class="text-muted" th:with="r=${recipes.get(c.id)}">
+                            <span th:if="${r == null}" class="text-warning">Chưa có công thức: bán không trừ kho</span>
+                            <span th:each="i, st : ${r}" th:text="${@fmt.qty(i.quantity)} + ' ' + ${i.item.unit} + ' ' + ${i.item.name} + (${st.last} ? '' : ' · ')">0,15 kg ngô</span>
+                        </div></td>
                     <td class="text-end tabular" th:text="${@fmt.money(c.price)}">0đ</td>
                     <td><span class="badge" th:classappend="${c.active} ? 'text-bg-success' : 'text-bg-secondary'" th:text="${c.active ? 'Đang bán' : 'Ngừng bán'}">-</span></td>
-                    <td class="text-end"><a class="btn btn-sm btn-outline-navy" th:href="@{/admin/combos/{id}/edit(id=${c.id})}">Sửa</a></td>
+                    <td class="text-end text-nowrap"><a class="btn btn-sm btn-outline-navy" th:href="@{/admin/combos/{id}/edit(id=${c.id})}">Sửa</a>
+                        <a class="btn btn-sm btn-outline-secondary" th:href="@{/admin/combos/{id}/recipe(id=${c.id})}">Công thức</a></td>
                 </tr></tbody>
             </table>
         </div></div>

@@ -26,6 +26,18 @@ public class Fmt {
         return new DecimalFormat("#,##0", symbols).format(value) + "đ";
     }
 
+    /** Stock quantity: 12.500 -> "12,5", 800 -> "800", -0.150 -> "-0,15". */
+    public String qty(Number amount) {
+        if (amount == null) {
+            return "0";
+        }
+        BigDecimal value = amount instanceof BigDecimal d ? d : new BigDecimal(amount.toString());
+        DecimalFormatSymbols symbols = new DecimalFormatSymbols(Locale.ROOT);
+        symbols.setGroupingSeparator('.');
+        symbols.setDecimalSeparator(',');
+        return new DecimalFormat("#,##0.###", symbols).format(value);
+    }
+
     public String dayName(LocalDate date) {
         DayOfWeek day = date.getDayOfWeek();
         return com.bbcinema.config.I18n.t("day." + day.getValue(), DAY_NAMES[day.getValue() - 1]);

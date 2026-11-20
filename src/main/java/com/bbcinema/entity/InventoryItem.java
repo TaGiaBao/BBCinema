@@ -20,7 +20,11 @@ public class InventoryItem {
     @Column(nullable = false, unique = true, length = 100)
     private String name;
 
-    /** Counting unit shown next to quantities, e.g. kg, thùng, cái. */
+    /** Units the general manager can pick when adding an item. */
+    public static final java.util.List<String> UNITS =
+            java.util.List.of("kg", "g", "lít", "chai", "lon", "gói", "cái", "ly", "hộp", "thùng", "bình");
+
+    /** Counting unit shown next to quantities, one of {@link #UNITS}. */
     @Column(nullable = false, length = 20)
     private String unit;
 

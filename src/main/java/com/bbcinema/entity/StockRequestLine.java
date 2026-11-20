@@ -25,6 +25,7 @@ public class StockRequestLine {
     @JoinColumn(name = "item_id")
     private InventoryItem item;
 
-    @Column(nullable = false)
-    private int quantity;
+    /** Decimals allowed, e.g. 12.5 kg of corn. */
+    @Column(nullable = false, precision = 12, scale = 3)
+    private java.math.BigDecimal quantity;
 }

@@ -47,7 +47,8 @@ public class AdminInventoryController {
         model.addAttribute("isAdmin", admin);
         model.addAttribute("allCinemas", cinemas);
         model.addAttribute("selectedCinema", selected);
-        model.addAttribute("stock", selected == null ? Map.of() : inventoryService.stockOf(selected.getId()));
+        model.addAttribute("stock", selected == null ? List.of() : inventoryService.stockLines(selected.getId()));
+        model.addAttribute("units", com.bbcinema.entity.InventoryItem.UNITS);
         model.addAttribute("items", inventoryService.items());
         model.addAttribute("activeItems", inventoryService.activeItems());
         model.addAttribute("requests", inventoryService.requestsFor(user));
@@ -59,16 +60,11 @@ public class AdminInventoryController {
     @PostMapping("/requests")
     public String request(@RequestParam Map<String, String> params, @AuthenticationPrincipal AppUserPrincipal viewer,
                           RedirectAttributes redirect) {
-        Map<Long, Integer> quantities = new HashMap<>();
-        params.forEach((key, value) -> {
-            if (key.startsWith("qty_") && value != null && !value.isBlank()) {
-                try {
-                    quantities.put(Long.parseLong(key.substring(4)), Integer.parseInt(value.trim()));
-                } catch (NumberFormatException e) {
-                    redirect.addFlashAttribute("error", "Số lượng phải là số nguyên");
-                }
-            }
-        });
+        Map<Long, java.math.BigDecimal> quantities = quantities(params, "qty_");
+        if (quantities == null) {
+            redirect.addFlashAttribute("error", "Số lượng phải là số, ví dụ 12 hoặc 0,5");
+            return "redirect:/admin/inventory";
+        }
         try {
             var request = inventoryService.request(viewer.getId(), quantities, params.get("note"));
             redirect.addFlashAttribute("success", "Đã gửi phiếu nhập #" + request.getId() + " cho quản lý tổng duyệt");
@@ -92,6 +88,24 @@ public class AdminInventoryController {
             redirect.addFlashAttribute("error", e.getMessage());
             return "redirect:/admin/inventory";
         }
+    }
+
+    /** Reads prefix{itemId} fields as decimals ("0,5" or "0.5"); null when one is not a number. */
+    static Map<Long, java.math.BigDecimal> quantities(Map<String, String> params, String prefix) {
+        Map<Long, java.math.BigDecimal> quantities = new HashMap<>();
+        for (Map.Entry<String, String> e : params.entrySet()) {
+            String value = e.getValue();
+            if (!e.getKey().startsWith(prefix) || value == null || value.isBlank()) {
+                continue;
+            }
+            try {
+                quantities.put(Long.parseLong(e.getKey().substring(prefix.length())),
+                        new java.math.BigDecimal(value.trim().replace(',', '.')));
+            } catch (NumberFormatException ex) {
+                return null;
+            }
+        }
+        return quantities;
     }
 
     /** General manager: add an item to the stock list. */

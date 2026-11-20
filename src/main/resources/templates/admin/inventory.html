@@ -16,7 +16,8 @@
     </div>
     <p class="text-muted small" style="max-width: 900px">
         Quản lý quầy nhập số hàng nhận được vào phiếu nhập kho; phiếu được gửi cho quản lý tổng duyệt.
-        Tồn kho chỉ tăng khi phiếu đã được duyệt.
+        Tồn kho chỉ tăng khi phiếu đã được duyệt. Mỗi đơn có combo khi thanh toán sẽ tự trừ kho theo công thức combo
+        (mục Combo bắp nước), huỷ đơn thì hoàn lại. Hết hàng thì combo đó tạm ngưng bán ở rạp này.
     </p>
     <div class="alert alert-warning" th:if="${!isAdmin and selectedCinema == null}">
         Tài khoản của bạn chưa được gắn rạp. Nhờ quản lý tổng gắn rạp ở mục Tài khoản.</div>
@@ -26,12 +27,15 @@
             <div class="panel mb-4">
                 <h2 class="h6">Tồn kho</h2>
                 <table class="table table-sm small mb-0" data-role="stock">
-                    <thead><tr><th>Mặt hàng</th><th class="text-end">Tồn</th><th>Đơn vị</th></tr></thead>
+                    <thead><tr><th>Mặt hàng</th><th class="text-end">Đã nhập</th><th class="text-end">Đã dùng</th>
+                        <th class="text-end">Tồn</th><th>Đơn vị</th></tr></thead>
                     <tbody>
-                    <tr th:each="e : ${stock}">
-                        <td th:text="${e.key.name}" th:classappend="${!e.key.active} ? 'text-muted'">Bắp</td>
-                        <td class="text-end tabular fw-semibold" th:text="${e.value}">0</td>
-                        <td th:text="${e.key.unit}">kg</td>
+                    <tr th:each="l : ${stock}">
+                        <td th:text="${l.item.name}" th:classappend="${!l.item.active} ? 'text-muted'">Bắp</td>
+                        <td class="text-end tabular" th:text="${@fmt.qty(l.received)}">0</td>
+                        <td class="text-end tabular" th:text="${@fmt.qty(l.used)}">0</td>
+                        <td class="text-end tabular fw-semibold" th:classappend="${l.out} ? 'text-danger'" th:text="${@fmt.qty(l.onHand)}">0</td>
+                        <td th:text="${l.item.unit}">kg</td>
                     </tr>
                     </tbody>
                 </table>
@@ -42,7 +46,7 @@
                 <h2 class="h6">Phiếu nhập kho mới</h2>
                 <div class="d-flex justify-content-between align-items-center py-1" th:each="i : ${activeItems}">
                     <label class="small" th:for="'qty_' + ${i.id}" th:text="${i.name} + ' (' + ${i.unit} + ')'">Bắp (kg)</label>
-                    <input class="form-control form-control-sm text-end" style="width: 110px" type="number" min="0" max="100000"
+                    <input class="form-control form-control-sm text-end" style="width: 110px" type="number" min="0" max="100000" step="0.001"
                            th:id="'qty_' + ${i.id}" th:name="'qty_' + ${i.id}" placeholder="0">
                 </div>
                 <input class="form-control form-control-sm mt-2" name="note" maxlength="255" placeholder="Ghi chú (nhà cung cấp, số hoá đơn...)" aria-label="Ghi chú">
@@ -54,7 +58,8 @@
                 <h2 class="h6">Thêm mặt hàng</h2>
                 <div class="d-flex gap-2">
                     <input class="form-control form-control-sm" name="name" maxlength="100" placeholder="Tên mặt hàng" aria-label="Tên mặt hàng" required>
-                    <input class="form-control form-control-sm" style="width: 110px" name="unit" maxlength="20" placeholder="Đơn vị" aria-label="Đơn vị" required>
+                    <select class="form-select form-select-sm" style="width: 110px" name="unit" aria-label="Đơn vị tính" required>
+                        <option th:each="u : ${units}" th:value="${u}" th:text="${u}">kg</option></select>
                     <button class="btn btn-navy btn-sm" type="submit">Thêm</button>
                 </div>
             </form>
@@ -69,7 +74,7 @@
                         <div class="small">
                             <strong th:text="'#' + ${r.id}">#1</strong>
                             <span th:text="' · ' + ${r.cinema.name} + ' · ' + ${r.requestedBy.fullName} + ' · ' + ${#temporals.format(r.requestedAt, 'HH:mm dd/MM')}">· Rạp</span>
-                            <div th:each="l : ${r.lines}" th:text="'• ' + ${l.item.name} + ': ' + ${l.quantity} + ' ' + ${l.item.unit}">• Bắp: 10 kg</div>
+                            <div th:each="l : ${r.lines}" th:text="'• ' + ${l.item.name} + ': ' + ${@fmt.qty(l.quantity)} + ' ' + ${l.item.unit}">• Bắp: 10 kg</div>
                             <div class="text-muted" th:if="${r.note != null}" th:text="'Ghi chú: ' + ${r.note}">Ghi chú</div>
                             <div class="text-muted" th:if="${r.reviewedBy != null}"
                                  th:text="${r.status.label} + ' bởi ' + ${r.reviewedBy.fullName} + ' lúc ' + ${#temporals.format(r.reviewedAt, 'HH:mm dd/MM')}

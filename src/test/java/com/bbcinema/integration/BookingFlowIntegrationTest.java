@@ -28,6 +28,7 @@ class BookingFlowIntegrationTest extends IntegrationTestBase {
 
     @Autowired TransactionTemplate tx;
     @Autowired PaymentRepository paymentRepository;
+    @Autowired com.bbcinema.service.InventoryService inventoryService;
 
     private Combo combo(long price) {
         Combo c = new Combo();
@@ -260,5 +261,48 @@ class BookingFlowIntegrationTest extends IntegrationTestBase {
         // The next shift starts from zero: earlier sales are not mixed in.
         CounterShift next = openShift(staff, 200_000);
         assertThat(shiftService.summary(next).expectedCash()).isEqualByComparingTo("200000");
+    }
+
+    @Test
+    void combosTakeTheirRecipeFromTheCinemaStockAndARefundPutsItBack() {
+        Showtime st = showtimeTomorrow();
+        Cinema cinema = st.getRoom().getCinema();
+        User manager = account(Role.MANAGER);
+        manager.setCinema(cinema);
+        userRepository.save(manager);
+        User general = account(Role.ADMIN);
+        int n = unique();
+        InventoryItem corn = inventoryService.addItem("Ngô " + n, "kg");
+        InventoryItem can = inventoryService.addItem("Coca " + n, "lon");
+        Combo solo = combo(79_000);
+        inventoryService.saveRecipe(solo.getId(), Map.of(corn.getId(), new BigDecimal("0.15"), can.getId(), BigDecimal.ONE));
+        // Stock: 0.4 kg corn, 3 cans (approved). Enough for two Solo, not three.
+        var note = inventoryService.request(manager.getId(), Map.of(corn.getId(), new BigDecimal("0.4"), can.getId(), new BigDecimal("3")), null);
+        inventoryService.review(note.getId(), general.getId(), true, null);
+
+        User staff = staffOnShift();
+        CounterSaleForm form = new CounterSaleForm();
+        form.setShowtimeSeatIds(freeSeats(st.getId(), 1));
+        form.setComboQuantities(Map.of(solo.getId(), 3));
+        form.setAmountReceived(BigDecimal.valueOf(1_000_000));
+        assertThatThrownBy(() -> bookingService.sellAtCounter(staff.getId(), st.getId(), form))
+                .hasMessageContaining("tạm hết " + corn.getName());
+
+        form.setComboQuantities(Map.of(solo.getId(), 2));
+        Booking sold = bookingService.sellAtCounter(staff.getId(), st.getId(), form);
+        assertThat(onHand(cinema, corn)).isEqualByComparingTo("0.1");
+        assertThat(onHand(cinema, can)).isEqualByComparingTo("1");
+
+        // A later recipe change does not rewrite what was taken; a refund puts back exactly that.
+        inventoryService.saveRecipe(solo.getId(), Map.of(corn.getId(), new BigDecimal("0.2")));
+        User approver = account(Role.MANAGER);
+        shiftService.refund(staff.getId(), sold.getCode(), approver.getEmail(), "Secret@123");
+        assertThat(onHand(cinema, corn)).isEqualByComparingTo("0.4");
+        assertThat(onHand(cinema, can)).isEqualByComparingTo("3");
+    }
+
+    private BigDecimal onHand(Cinema cinema, InventoryItem item) {
+        return inventoryService.stockOf(cinema.getId()).entrySet().stream()
+                .filter(e -> e.getKey().getId().equals(item.getId())).findFirst().orElseThrow().getValue();
     }
 }

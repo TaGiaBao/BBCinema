@@ -45,6 +45,7 @@ public class BookingService {
     private final ShowtimeSeatRepository showtimeSeatRepository;
     private final PaymentRepository paymentRepository;
     private final CounterShiftRepository counterShiftRepository;
+    private final InventoryService inventoryService;
     private final ShowtimeService showtimeService;
     private final UserService userService;
     private final ComboService comboService;
@@ -227,6 +228,10 @@ public class BookingService {
                 booking.getCombos().add(line);
                 comboAmount = comboAmount.add(line.getLineTotal());
             }
+        }
+        if (!booking.getCombos().isEmpty()) {
+            // The snacks come from the stock of the cinema where the film is shown.
+            inventoryService.checkAvailable(booking.getShowtime().getRoom().getCinema(), booking.getCombos());
         }
         booking.setComboAmount(comboAmount);
     }
@@ -443,6 +448,8 @@ public class BookingService {
         }
         payment.setPaidAt(now);
         paymentRepository.save(payment);
+        // Paid: the combos' ingredients leave the stock (the money is in, so this never refuses).
+        inventoryService.takeForOrder(booking);
 
         eventPublisher.publishEvent(new BookingPaidEvent(booking.getCode()));
         log.info("Booking {} paid by {} ({}đ)", booking.getCode(), method, booking.getTotalAmount());
@@ -495,6 +502,7 @@ public class BookingService {
             throw new BusinessException("Vé đã được soát, không thể huỷ");
         }
         releaseSeats(booking);
+        inventoryService.returnForOrder(booking);
         User user = booking.getUser();
         if (user != null) {
             pointService.record(user, booking, PointType.REVERT, booking.getPointsUsed(), "Hoàn điểm đã dùng, huỷ đơn " + booking.getCode());

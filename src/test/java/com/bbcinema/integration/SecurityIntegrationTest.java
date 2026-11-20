@@ -353,13 +353,15 @@ class SecurityIntegrationTest extends IntegrationTestBase {
         // Only the general manager keeps the item list.
         mvc.perform(post("/admin/inventory/items").with(csrf()).cookie(counter).param("name", itemName).param("unit", "kg"))
                 .andExpect(status().isForbidden());
+        mvc.perform(post("/admin/inventory/items").with(csrf()).cookie(general).param("name", itemName).param("unit", "thước"))
+                .andExpect(flash().attribute("error", containsString("Chọn đơn vị tính")));
         mvc.perform(post("/admin/inventory/items").with(csrf()).cookie(general).param("name", itemName).param("unit", "kg"))
                 .andExpect(flash().attribute("success", containsString(itemName)));
         Long itemId = inventoryService.items().stream().filter(i -> i.getName().equals(itemName)).findFirst().orElseThrow().getId();
 
         mvc.perform(post("/admin/inventory/requests").with(csrf()).cookie(counter).param("note", "trống"))
                 .andExpect(flash().attribute("error", containsString("ít nhất một mặt hàng")));
-        mvc.perform(post("/admin/inventory/requests").with(csrf()).cookie(counter).param("qty_" + itemId, "25").param("note", "NCC A"))
+        mvc.perform(post("/admin/inventory/requests").with(csrf()).cookie(counter).param("qty_" + itemId, "24,5").param("note", "NCC A"))
                 .andExpect(flash().attribute("success", containsString("cho quản lý tổng duyệt")));
         var request = inventoryService.requestsFor(manager).get(0);
         // Waiting for approval: no stock yet; the counter manager cannot approve their own note.
@@ -372,7 +374,7 @@ class SecurityIntegrationTest extends IntegrationTestBase {
         mvc.perform(post("/admin/inventory/requests/" + request.getId() + "/review").with(csrf()).cookie(general).param("decision", "approve"))
                 .andExpect(flash().attribute("success", containsString("Đã duyệt")));
         assertThat(inventoryService.stockOf(cinema.getId()).entrySet().stream()
-                .filter(e -> e.getKey().getId().equals(itemId)).findFirst().orElseThrow().getValue()).isEqualTo(25);
+                .filter(e -> e.getKey().getId().equals(itemId)).findFirst().orElseThrow().getValue()).isEqualByComparingTo("24.5");
         mvc.perform(post("/admin/inventory/requests/" + request.getId() + "/review").with(csrf()).cookie(general).param("decision", "approve"))
                 .andExpect(flash().attribute("error", containsString("đã được xử lý")));
         mvc.perform(get("/admin/inventory").cookie(counter)).andExpect(status().isOk())

@@ -52,7 +52,7 @@ class BookingServiceTest {
         pointService = spy(new PointService(mock(com.bbcinema.repository.PointTransactionRepository.class),
                 TestFixtures.properties(), TestFixtures.clock()));
         service = new BookingService(bookingRepository, showtimeSeatRepository, paymentRepository,
-                mock(com.bbcinema.repository.CounterShiftRepository.class), showtimeService,
+                mock(com.bbcinema.repository.CounterShiftRepository.class), mock(InventoryService.class), showtimeService,
                 userService, comboService, promotionService, pointService,
                 new MembershipService(bookingRepository, TestFixtures.properties(), TestFixtures.clock()), eventPublisher,
                 TestFixtures.properties(), TestFixtures.clock());

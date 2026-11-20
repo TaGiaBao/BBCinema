@@ -134,22 +134,45 @@ public class DataSeeder implements ApplicationRunner {
             User second = userService.createAccount("manager.hd@bbcinema.vn", "Phạm Quản Lý", "Manager@123", Role.MANAGER);
             second.setCinema(cinemas.get(1));
         }
-        String[][] items = {{"Ngô hạt rang bắp", "kg"}, {"Bơ caramel", "kg"}, {"Ly bắp giấy", "cái"},
-                {"Ly nước nhựa", "cái"}, {"Siro nước ngọt", "bình"}, {"Snack khoai tây", "gói"}};
-        Map<Long, Integer> first = new HashMap<>();
-        Map<Long, Integer> pending = new HashMap<>();
-        int[] received = {50, 10, 800, 800, 12, 200};
-        for (int i = 0; i < items.length; i++) {
-            Long id = inventoryService.addItem(items[i][0], items[i][1]).getId();
-            first.put(id, received[i]);
-            if (i % 2 == 0) {
-                pending.put(id, received[i] / 2);
+        // Snack-bar items, each counted in its own unit (corn by kg, soft drinks by can or bottle, crisps by bag).
+        Object[][] items = {
+                {"Ngô hạt rang bắp", "kg", "60"}, {"Bơ caramel", "kg", "15"}, {"Hộp bắp giấy", "cái", "1000"},
+                {"Nước ngọt Coca-Cola", "lon", "600"}, {"Nước ngọt Pepsi", "chai", "300"}, {"Bim bim khoai tây", "gói", "200"}};
+        Map<String, Long> ids = new HashMap<>();
+        Map<Long, BigDecimal> delivery = new HashMap<>();
+        Map<Long, BigDecimal> topUp = new HashMap<>();
+        for (Object[] item : items) {
+            Long id = inventoryService.addItem((String) item[0], (String) item[1]).getId();
+            ids.put((String) item[0], id);
+            delivery.put(id, new BigDecimal((String) item[2]));
+            topUp.put(id, new BigDecimal((String) item[2]).divide(BigDecimal.valueOf(2)));
+        }
+        // What one portion of each combo takes from the stock.
+        Map<String, String[][]> recipes = Map.of(
+                "Bắp ngọt nhỏ", new String[][]{{"Ngô hạt rang bắp", "0.1"}, {"Bơ caramel", "0.02"}, {"Hộp bắp giấy", "1"}},
+                "Combo Solo", new String[][]{{"Ngô hạt rang bắp", "0.15"}, {"Bơ caramel", "0.03"}, {"Hộp bắp giấy", "1"},
+                        {"Nước ngọt Coca-Cola", "1"}},
+                "Combo Couple", new String[][]{{"Ngô hạt rang bắp", "0.2"}, {"Bơ caramel", "0.04"}, {"Hộp bắp giấy", "1"},
+                        {"Nước ngọt Coca-Cola", "1"}, {"Nước ngọt Pepsi", "1"}},
+                "Combo Gia đình", new String[][]{{"Ngô hạt rang bắp", "0.4"}, {"Bơ caramel", "0.08"}, {"Hộp bắp giấy", "2"},
+                        {"Nước ngọt Coca-Cola", "2"}, {"Nước ngọt Pepsi", "2"}, {"Bim bim khoai tây", "1"}});
+        for (Combo combo : comboRepository.findAll()) {
+            String[][] recipe = recipes.get(combo.getName());
+            if (recipe != null) {
+                Map<Long, BigDecimal> uses = new HashMap<>();
+                for (String[] use : recipe) {
+                    uses.put(ids.get(use[0]), new BigDecimal(use[1]));
+                }
+                inventoryService.saveRecipe(combo.getId(), uses);
             }
         }
+        // Each cinema received a first delivery (approved); Cau Giay also has a top-up waiting for approval.
         User admin = userRepository.findByEmailIgnoreCase("admin@bbcinema.vn").orElseThrow();
-        var approved = inventoryService.request(manager.getId(), first, "Nhập đầu tháng, NCC Phương Nam");
-        inventoryService.review(approved.getId(), admin.getId(), true, "Đã kiểm hàng");
-        inventoryService.request(manager.getId(), pending, "Bổ sung cuối tuần");
+        for (User m : userRepository.findAll().stream().filter(u -> u.getRole() == Role.MANAGER).toList()) {
+            var approved = inventoryService.request(m.getId(), delivery, "Nhập đầu tháng, NCC Phương Nam");
+            inventoryService.review(approved.getId(), admin.getId(), true, "Đã kiểm hàng");
+        }
+        inventoryService.request(manager.getId(), topUp, "Bổ sung cuối tuần");
     }
 
     // ------------------------------------------------------------------ prices, combos, promotions
