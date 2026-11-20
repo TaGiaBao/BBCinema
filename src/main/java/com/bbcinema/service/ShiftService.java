@@ -9,12 +9,15 @@ import com.bbcinema.entity.enums.BookingStatus;
 import com.bbcinema.entity.enums.PaymentMethod;
 import com.bbcinema.entity.enums.Role;
 import com.bbcinema.exception.BusinessException;
+import com.bbcinema.exception.LoginBlockedException;
 import com.bbcinema.exception.NotFoundException;
 import com.bbcinema.repository.BookingRepository;
 import com.bbcinema.repository.CinemaRepository;
 import com.bbcinema.repository.CounterShiftRepository;
 import com.bbcinema.repository.PaymentRepository;
 import com.bbcinema.repository.UserRepository;
+import com.bbcinema.security.ClientIp;
+import com.bbcinema.security.LoginAttemptService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -41,6 +44,12 @@ public class ShiftService {
 
     public static final String WRONG_MANAGER = "Email hoặc mật khẩu quản lý quầy không đúng";
 
+    /**
+     * BCrypt hash of a random password nobody knows. Checked when the email has no manager account, so a wrong
+     * email takes as long as a wrong password and the answer time does not tell which managers exist.
+     */
+    private static final String DUMMY_HASH = "$2a$10$RaTofoAR0khASWtWz58YaukLkk6zu6rBPOa1rPMhaKbHyQ2lk.EvO";
+
     private final CounterShiftRepository shiftRepository;
     private final PaymentRepository paymentRepository;
     private final BookingRepository bookingRepository;
@@ -48,6 +57,8 @@ public class ShiftService {
     private final CinemaRepository cinemaRepository;
     private final BookingService bookingService;
     private final PasswordEncoder passwordEncoder;
+    private final LoginAttemptService loginAttempts;
+    private final ClientIp clientIp;
     private final Clock clock;
 
     /** Money of a shift, worked out from its sales and refunds. */
@@ -226,18 +237,39 @@ public class ShiftService {
         return bookingService.refundAtCounter(code.trim().toUpperCase(java.util.Locale.ROOT), manager, shift);
     }
 
-    /** The account must be an active counter manager (MANAGER) and the password must match. */
+    /**
+     * The account must be an active counter manager (MANAGER) and the password must match. This is a password
+     * check like a login, so it shares the failed-login limits: a blocked account (or address) is refused here
+     * too, and wrong passwords typed here count towards the block.
+     */
     public User verifyManager(String email, String password) {
         if (email == null || password == null || email.isBlank() || password.isEmpty()) {
             throw new BusinessException("Cần quản lý nhập email và mật khẩu");
         }
-        User manager = userRepository.findByEmailIgnoreCase(email.trim())
-                .filter(u -> u.getRole() == Role.MANAGER && u.isEnabled())
-                .orElseThrow(() -> new BusinessException(WRONG_MANAGER));
-        if (!passwordEncoder.matches(password, manager.getPasswordHash())) {
+        LoginAttemptService.Attempt attempt;
+        try {
+            attempt = loginAttempts.begin(email, clientIp.ofCurrentRequest());
+        } catch (LoginBlockedException e) {
+            throw new BusinessException(LoginAttemptService.BLOCKED_MESSAGE);
+        } catch (org.springframework.security.core.AuthenticationException e) {
             throw new BusinessException(WRONG_MANAGER);
         }
-        return manager;
+        try {
+            User manager = userRepository.findByEmailIgnoreCase(email.trim())
+                    .filter(u -> u.getRole() == Role.MANAGER && u.isEnabled())
+                    .orElse(null);
+            // Always run BCrypt, even without an account, so both answers take the same time.
+            boolean matches = passwordEncoder.matches(password, manager == null ? DUMMY_HASH : manager.getPasswordHash());
+            if (manager == null || !matches) {
+                throw new BusinessException(attempt.failed() ? LoginAttemptService.BLOCKED_MESSAGE : WRONG_MANAGER);
+            }
+            if (!attempt.succeeded()) {
+                throw new BusinessException(LoginAttemptService.BLOCKED_MESSAGE);
+            }
+            return manager;
+        } finally {
+            attempt.close();
+        }
     }
 
     private User requireManagerAccount(Long managerId) {

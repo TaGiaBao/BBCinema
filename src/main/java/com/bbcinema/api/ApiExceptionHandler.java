@@ -3,6 +3,7 @@ package com.bbcinema.api;
 import com.bbcinema.dto.response.ApiError;
 import com.bbcinema.exception.AccessDeniedBookingException;
 import com.bbcinema.exception.BusinessException;
+import com.bbcinema.exception.LoginBlockedException;
 import com.bbcinema.exception.NotFoundException;
 import com.bbcinema.exception.SeatUnavailableException;
 import org.springframework.http.HttpStatus;
@@ -51,6 +52,11 @@ public class ApiExceptionHandler {
     public ResponseEntity<ApiError> badLogin(RuntimeException e) {
         String message = e instanceof DisabledException ? "Tài khoản đã bị khoá" : "Email hoặc mật khẩu không đúng";
         return error(HttpStatus.UNAUTHORIZED, message);
+    }
+
+    @ExceptionHandler(LoginBlockedException.class)
+    public ResponseEntity<ApiError> tooManyLogins(LoginBlockedException e) {
+        return error(HttpStatus.TOO_MANY_REQUESTS, e.getMessage());
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)

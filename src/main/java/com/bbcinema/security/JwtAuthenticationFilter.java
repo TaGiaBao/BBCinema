@@ -30,6 +30,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final JwtService jwtService;
     private final CustomUserDetailsService userDetailsService;
     private final AppProperties properties;
+    private final TokenCookies tokenCookies;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
@@ -74,6 +75,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     }
 
     private void clearCookie(HttpServletResponse response) {
-        response.addHeader("Set-Cookie", properties.jwt().cookieName() + "=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax");
+        tokenCookies.clear(response);
     }
 }

@@ -4,17 +4,24 @@ import com.bbcinema.dto.request.LoginRequest;
 import com.bbcinema.dto.request.RegisterForm;
 import com.bbcinema.dto.response.TokenResponse;
 import com.bbcinema.entity.User;
+import com.bbcinema.exception.BusinessException;
+import com.bbcinema.exception.LoginBlockedException;
 import com.bbcinema.security.AppUserPrincipal;
+import com.bbcinema.security.ClientIp;
 import com.bbcinema.security.JwtService;
+import com.bbcinema.security.LoginAttemptService;
+import com.bbcinema.service.EmailVerificationService;
 import com.bbcinema.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.bind.annotation.*;
 
 @Tag(name = "Auth", description = "Đăng ký, đăng nhập lấy JWT")
@@ -26,16 +33,33 @@ public class AuthApiController {
     private final AuthenticationManager authenticationManager;
     private final JwtService jwtService;
     private final UserService userService;
-    private final com.bbcinema.service.EmailVerificationService emailVerificationService;
+    private final EmailVerificationService emailVerificationService;
+    private final LoginAttemptService loginAttempts;
+    private final ClientIp clientIp;
 
-    @Operation(summary = "Đăng nhập, trả về access token")
+    @Operation(summary = "Đăng nhập, trả về access token (sai quá nhiều lần thì bị chặn tạm thời, mã 429)")
     @PostMapping("/login")
-    public TokenResponse login(@Valid @RequestBody LoginRequest request) {
-        Authentication auth = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(request.email().trim(), request.password()));
+    public TokenResponse login(@Valid @RequestBody LoginRequest request, HttpServletRequest http) {
+        // Reserved before the password check (429 when blocked); an absurdly long email answers 401 at once.
+        LoginAttemptService.Attempt attempt = loginAttempts.begin(request.email(), clientIp.of(http));
+        Authentication auth;
+        try {
+            auth = authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(request.email().trim(), request.password()));
+            if (!attempt.succeeded()) {
+                throw new LoginBlockedException();
+            }
+        } catch (AuthenticationException e) {
+            if (attempt.failed()) {
+                throw new LoginBlockedException();
+            }
+            throw e;
+        } finally {
+            attempt.close();
+        }
         AppUserPrincipal user = (AppUserPrincipal) auth.getPrincipal();
         if (!userService.getById(user.getId()).isEmailVerified()) {
-            throw new com.bbcinema.exception.BusinessException(
+            throw new BusinessException(
                     "Email chưa được xác nhận. Hãy bấm đường dẫn trong email đã gửi khi đăng ký.");
         }
         return new TokenResponse(jwtService.generateToken(user), "Bearer", jwtService.getLifetimeSeconds(),
