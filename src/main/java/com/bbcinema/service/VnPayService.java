@@ -46,6 +46,15 @@ public class VnPayService {
         return properties.vnpay() != null && properties.vnpay().isConfigured();
     }
 
+    /** Tells whoever runs the app why customers cannot pick VNPay; customers only see a short notice. */
+    @org.springframework.context.event.EventListener(org.springframework.boot.context.event.ApplicationReadyEvent.class)
+    public void logWhenDisabled() {
+        if (!isEnabled()) {
+            log.info("VNPay is off: set VNPAY_TMN_CODE and VNPAY_HASH_SECRET in .env (free sandbox account at "
+                    + "https://sandbox.vnpayment.vn/devreg/) to turn it on.");
+        }
+    }
+
     /** Creates a pending payment and returns the VNPay URL the browser is sent to. */
     @Transactional
     public String createPaymentUrl(String bookingCode, Long userId, String clientIp) {

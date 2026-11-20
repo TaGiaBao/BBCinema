@@ -5,8 +5,4 @@
 <circle cx="980" cy="210" r="150" fill="#ffb400" opacity="0.9"/>
 <circle cx="980" cy="210" r="110" fill="none" stroke="#1b1f3b" stroke-width="10" stroke-dasharray="20 14"/>
 <polygon points="950,160 950,260 1040,210" fill="#1b1f3b"/>
-<text x="80" y="190" font-family="'Be Vietnam Pro', 'Segoe UI', Arial, sans-serif" font-size="58" font-weight="800" fill="#ffffff">Đặt vé nhanh, chọn ghế đẹp</text>
-<text x="80" y="250" font-family="'Be Vietnam Pro', 'Segoe UI', Arial, sans-serif" font-size="26" fill="#ffffff" opacity="0.85">Giữ ghế 5 phút, thanh toán trong một bước</text>
-<rect x="80" y="290" width="200" height="54" rx="27" fill="#ffb400"/>
-<text x="180" y="325" text-anchor="middle" font-family="'Be Vietnam Pro', 'Segoe UI', Arial, sans-serif" font-size="22" font-weight="800" fill="#1b1f3b">ĐẶT VÉ NGAY</text>
 </svg>

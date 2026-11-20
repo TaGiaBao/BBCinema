@@ -11,7 +11,13 @@
         </div>
         <div class="carousel-inner">
             <div class="carousel-item" th:each="b, s : ${banners}" th:classappend="${s.first} ? 'active'">
-                <a th:href="${b.link != null ? b.link : '#'}"><img th:src="${b.imagePath}" th:alt="${b.title}"></a>
+                <a th:href="${b.link != null ? b.link : '#'}"><img th:src="${b.imagePath}" th:alt="${b.titleFor(lang)}"></a>
+                <!-- Text over the picture, in the visitor's language (the picture itself has none) -->
+                <div class="banner-caption" th:unless="${b.captionHidden}">
+                    <h2 th:text="${b.titleFor(lang)}">Tiêu đề</h2>
+                    <p th:if="${b.subtitleFor(lang) != null}" th:text="${b.subtitleFor(lang)}">Mô tả</p>
+                    <a class="btn btn-amber rounded-pill" th:href="${b.link != null ? b.link : '/schedule'}">[[#{banner.cta}]]</a>
+                </div>
             </div>
         </div>
         <button class="carousel-control-prev" type="button" data-bs-target="#bannerCarousel" data-bs-slide="prev">

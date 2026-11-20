@@ -114,6 +114,8 @@ def motif_svg(kind, accent, rnd):
 
 
 def poster(slug, lines, tagline, colors, motif, rating, index):
+    """The age rating is not drawn here: the site shows it as a badge, so it stays correct if the rating changes.
+    The tagline is not drawn either: the bottom right corner is kept free for the rating badge."""
     top, bottom, accent = colors
     rnd = random.Random(index)
     dark_text = slug in ("mua-he", "lop-hoc")
@@ -127,14 +129,12 @@ def poster(slug, lines, tagline, colors, motif, rating, index):
 {motif_svg(motif, accent, rnd)}
 <rect x="0" y="420" width="400" height="180" fill="{bottom}" opacity="0.35"/>
 {title}
-<text x="200" y="580" text-anchor="middle" font-family="{FONT}" font-size="15" fill="{text_color}" opacity="0.85">{esc(tagline)}</text>
-<rect x="320" y="18" width="62" height="30" rx="6" fill="#ffb400"/>
-<text x="351" y="39" text-anchor="middle" font-family="{FONT}" font-size="16" font-weight="800" fill="#1b1f3b">{rating}</text>
-<text x="20" y="38" font-family="{FONT}" font-size="14" font-weight="800" fill="{text_color}" opacity="0.8">BBCINEMA</text>
+<text x="380" y="38" text-anchor="end" font-family="{FONT}" font-size="14" font-weight="800" fill="{text_color}" opacity="0.8">BBCINEMA</text>
 </svg>'''
 
 
-def banner(name, title, subtitle, c1, c2, accent):
+def banner(name, c1, c2, accent):
+    """Artwork only: the home page writes the title, subtitle and button over it, in the visitor's language."""
     return f'''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 420" width="1200" height="420">
 <defs><linearGradient id="b" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="{c1}"/><stop offset="1" stop-color="{c2}"/></linearGradient></defs>
 <rect width="1200" height="420" fill="url(#b)"/>
@@ -142,10 +142,6 @@ def banner(name, title, subtitle, c1, c2, accent):
 <circle cx="980" cy="210" r="150" fill="{accent}" opacity="0.9"/>
 <circle cx="980" cy="210" r="110" fill="none" stroke="#1b1f3b" stroke-width="10" stroke-dasharray="20 14"/>
 <polygon points="950,160 950,260 1040,210" fill="#1b1f3b"/>
-<text x="80" y="190" font-family="{FONT}" font-size="58" font-weight="800" fill="#ffffff">{esc(title)}</text>
-<text x="80" y="250" font-family="{FONT}" font-size="26" fill="#ffffff" opacity="0.85">{esc(subtitle)}</text>
-<rect x="80" y="290" width="200" height="54" rx="27" fill="{accent}"/>
-<text x="180" y="325" text-anchor="middle" font-family="{FONT}" font-size="22" font-weight="800" fill="#1b1f3b">ĐẶT VÉ NGAY</text>
 </svg>'''
 
 
@@ -181,9 +177,9 @@ def post_image(title, c1, c2, symbol):
 def main():
     for i, p in enumerate(POSTERS):
         write("posters", p[0] + ".svg", poster(*p, i))
-    write("banners", "banner-1.svg", banner("1", "Đặt vé nhanh, chọn ghế đẹp", "Giữ ghế 5 phút, thanh toán trong một bước", "#1b1f3b", "#2e3a87", "#ffb400"))
-    write("banners", "banner-2.svg", banner("2", "Thứ Tư vui vẻ", "Đồng giá 50.000đ cho suất 2D trước 17h", "#ff6b35", "#c1121f", "#ffd60a"))
-    write("banners", "banner-3.svg", banner("3", "Hành Tinh Lặng Im", "Suất chiếu sớm 23h, chỉ trong 2 đêm", "#2d1b4e", "#07020f", "#a78bfa"))
+    write("banners", "banner-1.svg", banner("1", "#1b1f3b", "#2e3a87", "#ffb400"))
+    write("banners", "banner-2.svg", banner("2", "#ff6b35", "#c1121f", "#ffd60a"))
+    write("banners", "banner-3.svg", banner("3", "#2d1b4e", "#07020f", "#a78bfa"))
     write("combos", "popcorn.svg", combo("BẮP NGỌT", 0, 1, "#4361ee"))
     write("combos", "solo.svg", combo("SOLO", 1, 1, "#4361ee"))
     write("combos", "couple.svg", combo("COUPLE", 2, 1, "#ff6b9a"))

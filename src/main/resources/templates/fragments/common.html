@@ -18,6 +18,7 @@
 <div th:fragment="movieCard(movie)" class="movie-card">
     <div class="poster">
         <img th:src="${movie.posterPath != null ? movie.posterPath : '/images/no-image.svg'}" th:alt="${movie.title}" loading="lazy">
+        <span class="age-badge poster-age" th:classappend="${movie.ageRating.name()}" th:text="${movie.ageRating.name()}">P</span>
         <span class="rating-badge" th:if="${movie.ratingCount > 0}" th:aria-label="#{review.badgeAria(${movie.ratingAverage})}">
             <i class="bi bi-star-fill"></i> <span th:text="${#numbers.formatDecimal(movie.ratingAverage, 1, 1, 'COMMA')}">4,5</span></span>
         <div class="overlay">
@@ -28,8 +29,7 @@
     </div>
     <div class="body">
         <a class="title" th:href="@{/movies/{slug}(slug=${movie.slug})}" th:text="${movie.title}">Tên phim</a>
-        <div class="meta"><span class="age-badge" th:classappend="${movie.ageRating.name()}" th:text="${movie.ageRating.name()}">P</span>
-            <span th:text="${movie.genreNames}">Thể loại</span></div>
+        <div class="meta"><span th:text="${movie.genreNames}">Thể loại</span></div>
         <div class="meta"><i class="bi bi-clock"></i> <span th:text="#{unit.minutesN(${movie.durationMinutes})}">120 phút</span>
             <span th:if="${movie.releaseDate != null}"> · <i class="bi bi-calendar-event"></i>
                 <span th:text="${#temporals.format(movie.releaseDate, 'dd/MM/yyyy')}">01/01</span></span></div>

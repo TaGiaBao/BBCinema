@@ -48,6 +48,7 @@ springdoc:
 app:
   base-url: ${APP_BASE_URL}
   seed-data: ${SEED_DATA:false}
+  demo-mailbox: false
   jwt:
     secret: ${JWT_SECRET}
 

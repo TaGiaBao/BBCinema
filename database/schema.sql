@@ -10,11 +10,15 @@ SET NAMES utf8mb4;
 
     create table banners (
         active bit not null,
+        caption_hidden bit not null default 0,
         sort_order integer not null,
         id bigint not null auto_increment,
         title varchar(150) not null,
         image_path varchar(255) not null,
         link varchar(255),
+        subtitle varchar(255),
+        title_en varchar(150),
+        subtitle_en varchar(255),
         primary key (id)
     ) engine=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 

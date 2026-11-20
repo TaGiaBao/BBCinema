@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/main :: layout(~{::title}, ~{::main}, ~{::scripts})}">
+<head><title>[[#{demo.mailbox.title}]] · BBCinema</title></head>
+<body>
+<main>
+    <div class="page-head"><div class="container">
+        <h1 class="h3 mb-1">[[#{demo.mailbox.title}]]</h1>
+        <p class="mb-0 opacity-75 small">[[#{demo.mailbox.note}]]</p>
+    </div></div>
+    <div class="container py-4">
+        <div class="panel text-center text-muted py-5" th:if="${#lists.isEmpty(mails)}">[[#{demo.mailbox.empty}]]</div>
+        <div class="row g-4" th:unless="${#lists.isEmpty(mails)}">
+            <div class="col-lg-4">
+                <div class="list-group">
+                    <a class="list-group-item list-group-item-action" th:each="m : ${mails}"
+                       th:href="@{/demo/mailbox(id=${m.id})}" th:classappend="${selected != null and selected.id == m.id} ? 'active'">
+                        <div class="fw-semibold text-truncate" th:text="${m.subject}">Tiêu đề</div>
+                        <div class="small d-flex justify-content-between gap-2">
+                            <span class="text-truncate" th:text="${m.to}">email</span>
+                            <span class="text-nowrap" th:text="${#temporals.format(m.sentAt, 'HH:mm:ss dd/MM')}">10:00</span>
+                        </div>
+                    </a>
+                </div>
+            </div>
+            <div class="col-lg-8" th:if="${selected != null}">
+                <div class="panel p-0 overflow-hidden">
+                    <div class="px-3 py-2 border-bottom small">
+                        <div><strong>[[#{demo.mailbox.to}]]</strong> <span th:text="${selected.to}">-</span></div>
+                        <div><strong>[[#{demo.mailbox.subject}]]</strong> <span th:text="${selected.subject}">-</span></div>
+                    </div>
+                    <iframe th:src="@{/demo/mailbox/{id}(id=${selected.id})}" title="E-mail" class="w-100 border-0" style="height: 760px; background: #fff"></iframe>
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+<th:block th:fragment="scripts"></th:block>
+</body>
+</html>

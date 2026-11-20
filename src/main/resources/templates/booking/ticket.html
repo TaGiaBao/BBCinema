@@ -67,7 +67,7 @@
                     <td th:text="${p.method.label}">-</td>
                     <td class="small font-monospace" th:text="${p.transactionRef}">-</td>
                     <td class="text-end tabular" th:text="${@fmt.money(p.amount)}">0đ</td>
-                    <td th:text="${p.status}">-</td>
+                    <td th:text="${p.status.label}">-</td>
                 </tr></tbody>
             </table>
         </div>

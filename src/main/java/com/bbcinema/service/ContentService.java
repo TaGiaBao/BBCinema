@@ -131,6 +131,10 @@ public class ContentService {
             throw new BusinessException("Vui lòng chọn ảnh banner");
         }
         banner.setTitle(form.getTitle().trim());
+        banner.setSubtitle(TextUtil.blankToNull(form.getSubtitle()));
+        banner.setTitleEn(TextUtil.blankToNull(form.getTitleEn()));
+        banner.setSubtitleEn(TextUtil.blankToNull(form.getSubtitleEn()));
+        banner.setCaptionHidden(form.isCaptionHidden());
         banner.setLink(TextUtil.blankToNull(form.getLink()));
         banner.setSortOrder(form.getSortOrder());
         banner.setActive(form.isActive());
@@ -146,6 +150,10 @@ public class ContentService {
         BannerForm form = new BannerForm();
         form.setId(banner.getId());
         form.setTitle(banner.getTitle());
+        form.setSubtitle(banner.getSubtitle());
+        form.setTitleEn(banner.getTitleEn());
+        form.setSubtitleEn(banner.getSubtitleEn());
+        form.setCaptionHidden(banner.isCaptionHidden());
         form.setLink(banner.getLink());
         form.setSortOrder(banner.getSortOrder());
         form.setActive(banner.isActive());

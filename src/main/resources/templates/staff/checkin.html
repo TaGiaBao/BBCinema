@@ -20,7 +20,7 @@
     </div>
     <form class="d-flex gap-2 mb-4" method="get" action="/staff/checkin">
         <input class="form-control form-control-lg text-uppercase font-monospace" name="code" th:value="${code}" placeholder="VD: K7M2QX9P" aria-label="Mã vé" autofocus required>
-        <button class="btn btn-navy btn-lg" type="submit">Tra cứu</button>
+        <button class="btn btn-navy btn-lg text-nowrap" type="submit">Tra cứu</button>
     </form>
     <div class="alert alert-danger" th:if="${lookupError != null}" th:text="${lookupError}">Lỗi</div>
     <div class="panel" th:if="${booking != null}">

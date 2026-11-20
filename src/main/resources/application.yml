@@ -7,6 +7,8 @@ server:
       force: true
   error:
     include-message: always
+    # DevTools turns stack traces on in error responses; customers and API clients must never see them.
+    include-stacktrace: never
 
 spring:
   application:
@@ -67,6 +69,8 @@ app:
   base-url: ${APP_BASE_URL:http://localhost:8080}
   timezone: Asia/Ho_Chi_Minh
   seed-data: ${SEED_DATA:true}
+  # Keeps a copy of every e-mail the app sends and lists them at /demo/mailbox. Demo only: never in production.
+  demo-mailbox: ${DEMO_MAILBOX:false}
   booking:
     hold-minutes: 5
     cancel-before-hours: 2
@@ -130,3 +134,6 @@ spring:
     url: jdbc:h2:file:./data/bbcinema;MODE=MySQL;DATABASE_TO_LOWER=TRUE;AUTO_SERVER=TRUE
     username: sa
     password:
+# Demo on a laptop: e-mails (ticket, password reset) can be read at /demo/mailbox without a real mailbox.
+app:
+  demo-mailbox: ${DEMO_MAILBOX:true}

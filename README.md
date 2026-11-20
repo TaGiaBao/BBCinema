@@ -26,7 +26,7 @@ Các điểm kỹ thuật chính:
 - **Kiểm tra độ tuổi** theo ngày sinh với phim T13, T16, T18.
 - **VNPay sandbox** (ký HMAC-SHA512), email vé dạng HTML có mã QR (ZXing), gửi bất đồng bộ sau khi thanh toán.
 - **REST API** có tài liệu Swagger, xử lý lỗi tập trung, kiểm tra dữ liệu với Bean Validation.
-- **204 test** (JUnit 5, Mockito, MockMvc, test tích hợp với H2), báo cáo độ phủ JaCoCo.
+- **214 test** (JUnit 5, Mockito, MockMvc, test tích hợp với H2), báo cáo độ phủ JaCoCo.
 
 ## Công nghệ
 
@@ -45,6 +45,10 @@ Cách 1 và 2 cần **JDK 21**; Maven đã có sẵn trong project (`mvnw`), kh�
 ```
 
 Trên Windows dùng `mvnw.cmd` thay cho `./mvnw`. Dữ liệu lưu trong thư mục `data/`.
+
+Ở cách này có **hộp thư demo** tại `/demo/mailbox`: xem email vé và email đặt lại mật khẩu mà không cần
+tài khoản email. Muốn làm sạch dữ liệu trước buổi demo: tắt ứng dụng rồi chạy `scripts\reset-demo.cmd`.
+Kịch bản trình bày nằm ở `docs/demo-script.md`.
 
 ### Cách 2: chạy với MySQL (mặc định)
 

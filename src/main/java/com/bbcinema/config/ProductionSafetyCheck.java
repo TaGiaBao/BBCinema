@@ -37,6 +37,9 @@ public class ProductionSafetyCheck implements EnvironmentPostProcessor, Ordered 
                 read(environment, "spring.datasource.username"),
                 read(environment, "spring.datasource.password"),
                 read(environment, "app.base-url"));
+        if ("true".equalsIgnoreCase(read(environment, "app.demo-mailbox"))) {
+            problems.add("DEMO_MAILBOX must be off: the demo mailbox shows every e-mail, password reset links included");
+        }
         if (!problems.isEmpty()) {
             throw new IllegalStateException("Unsafe production configuration (profile prod):\n - "
                     + String.join("\n - ", problems));

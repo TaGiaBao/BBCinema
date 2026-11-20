@@ -54,4 +54,18 @@ class ProductionSafetyCheckTest {
                 .hasMessageContaining("JWT_SECRET")
                 .hasMessageContaining("DB_USERNAME");
     }
+
+    @Test
+    void refusesTheDemoMailboxInProduction() {
+        MockEnvironment prod = new MockEnvironment()
+                .withProperty("app.jwt.secret", GOOD_KEY)
+                .withProperty("spring.datasource.username", "bbcinema_app")
+                .withProperty("spring.datasource.password", "S3cure-Long-Pass!")
+                .withProperty("app.base-url", "https://bbcinema.example")
+                .withProperty("app.demo-mailbox", "true");
+        prod.setActiveProfiles("mysql", "prod");
+        assertThatThrownBy(() -> new ProductionSafetyCheck().postProcessEnvironment(prod, null))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("DEMO_MAILBOX");
+    }
 }

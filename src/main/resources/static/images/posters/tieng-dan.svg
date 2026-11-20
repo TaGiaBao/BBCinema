@@ -12,8 +12,5 @@
 <path d="M340 200 q10 -20 20 0" stroke="#f9dc5c" stroke-width="3" fill="none" opacity="0.7"/>
 <rect x="0" y="420" width="400" height="180" fill="#0b3d2e" opacity="0.35"/>
 <text x="200" y="470" text-anchor="middle" font-family="'Be Vietnam Pro', 'Segoe UI', Arial, sans-serif" font-size="46" font-weight="800" letter-spacing="1" fill="#ffffff">TIẾNG ĐÀN</text><text x="200" y="522" text-anchor="middle" font-family="'Be Vietnam Pro', 'Segoe UI', Arial, sans-serif" font-size="46" font-weight="800" letter-spacing="1" fill="#ffffff">TRÊN SÔNG</text>
-<text x="200" y="580" text-anchor="middle" font-family="'Be Vietnam Pro', 'Segoe UI', Arial, sans-serif" font-size="15" fill="#ffffff" opacity="0.85">Giữ lấy câu hò của cha</text>
-<rect x="320" y="18" width="62" height="30" rx="6" fill="#ffb400"/>
-<text x="351" y="39" text-anchor="middle" font-family="'Be Vietnam Pro', 'Segoe UI', Arial, sans-serif" font-size="16" font-weight="800" fill="#1b1f3b">K</text>
-<text x="20" y="38" font-family="'Be Vietnam Pro', 'Segoe UI', Arial, sans-serif" font-size="14" font-weight="800" fill="#ffffff" opacity="0.8">BBCINEMA</text>
+<text x="380" y="38" text-anchor="end" font-family="'Be Vietnam Pro', 'Segoe UI', Arial, sans-serif" font-size="14" font-weight="800" fill="#ffffff" opacity="0.8">BBCINEMA</text>
 </svg>

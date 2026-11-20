@@ -65,8 +65,27 @@ h1, h2, h3, h4, h5 { font-weight: 800; letter-spacing: -0.01em; }
 
 /* ---------- home ---------- */
 .banner-carousel img { width: 100%; aspect-ratio: 1200 / 420; object-fit: cover; }
+.banner-carousel .carousel-item { position: relative; }
+/* The caption sits on the left 55% of the banner; the artwork keeps the right side. */
+.banner-caption { position: absolute; top: 0; bottom: 0; left: 10%; width: 50%; display: flex; flex-direction: column;
+  justify-content: center; align-items: flex-start; gap: .4rem; color: #fff; pointer-events: none; }
+.banner-caption h2 { font-weight: 800; font-size: clamp(1.15rem, 3.6vw, 3.1rem); line-height: 1.15; margin: 0; text-wrap: balance;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, .25); }
+.banner-caption p { font-size: clamp(.8rem, 1.6vw, 1.4rem); opacity: .9; margin: 0; }
+.banner-caption .btn { pointer-events: auto; font-weight: 800; margin-top: .5rem; padding: .5rem 1.6rem; }
+@media (max-width: 575.98px) {
+  .banner-caption { left: 13%; width: 52%; gap: .2rem; }
+  .banner-caption h2 { font-size: 1.05rem; }
+  .banner-caption p { display: none; }
+  .banner-caption .btn { font-size: .75rem; padding: .25rem .9rem; margin-top: .25rem; }
+}
 .section-tabs .nav-link { color: var(--bb-muted); font-weight: 800; font-size: 1.15rem; border: 0; border-bottom: 3px solid transparent; border-radius: 0; padding: .6rem 0; margin-right: 1.75rem; background: none; }
 .section-tabs .nav-link.active { color: var(--bb-navy); border-bottom-color: var(--bb-amber); }
+/* Phones: the three tabs stay on one line and scroll sideways instead of wrapping. */
+@media (max-width: 575.98px) {
+  .section-tabs { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
+  .section-tabs .nav-link { white-space: nowrap; font-size: 1rem; margin-right: 1.25rem; }
+}
 
 /* ---------- movie card ---------- */
 .movie-card { background: #fff; border-radius: 12px; overflow: hidden; height: 100%; display: flex; flex-direction: column;
@@ -86,6 +105,8 @@ h1, h2, h3, h4, h5 { font-weight: 800; letter-spacing: -0.01em; }
 .age-badge.T16, .age-badge.T18 { background: #d7263d; color: #fff; }
 .age-badge.T13 { background: #f77f00; color: #fff; }
 .age-badge.P { background: #2bb673; color: #fff; }
+/* On the poster: age at the top left, rating (.rating-badge) at the bottom right. */
+.movie-card .poster-age { position: absolute; top: .5rem; left: .5rem; font-size: .8rem; box-shadow: 0 1px 3px rgba(0, 0, 0, .3); }
 
 /* ---------- date strip & showtimes ---------- */
 /* 14 days do not fit on a phone: the strip scrolls sideways with snapping. */
@@ -253,7 +274,7 @@ h1, h2, h3, h4, h5 { font-weight: 800; letter-spacing: -0.01em; }
 
 /* Movie ratings */
 .movie-card .poster { position: relative; }
-.rating-badge { position: absolute; top: .5rem; right: .5rem; background: rgba(17, 20, 42, .85); color: #fff; font-weight: 700;
+.rating-badge { position: absolute; bottom: .5rem; right: .5rem; background: rgba(17, 20, 42, .85); color: #fff; font-weight: 700;
   font-size: .8rem; border-radius: 999px; padding: .15rem .55rem; z-index: 1; }
 .rating-badge .bi, .rating-chip .bi, .stars .bi { color: var(--bb-amber); }
 .rating-chip { color: #fff; text-decoration: none; }

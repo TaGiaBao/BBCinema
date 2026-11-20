@@ -22,10 +22,12 @@ import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
 
 import java.nio.charset.StandardCharsets;
+import java.util.Map;
 
 /**
  * Sends the e-ticket with its QR code after a booking is paid. Runs in the background so a slow
  * mail server never delays the payment page. When mail is turned off, it only writes a log line.
+ * In a demo (app.demo-mailbox) every mail is also kept by {@link DemoMailbox} so it can be shown on screen.
  */
 @Slf4j
 @Service
@@ -38,6 +40,7 @@ public class MailService {
     private final TicketWatermark ticketWatermark;
     private final TemplateEngine templateEngine;
     private final AppProperties properties;
+    private final DemoMailbox demoMailbox;
 
     @Async
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
@@ -48,11 +51,12 @@ public class MailService {
             return;
         }
         String to = booking.getUser() != null ? booking.getUser().getEmail() : booking.getCustomerEmail();
-        if (to == null || to.isBlank()) {
+        if (to == null || to.isBlank() || isReservedAddress(to)) {
             return;
         }
         JavaMailSender sender = mailSender.getIfAvailable();
-        if (!properties.mail().enabled() || sender == null) {
+        boolean sending = properties.mail().enabled() && sender != null;
+        if (!sending && !demoMailbox.isEnabled()) {
             log.info("Mail is off. Ticket {} would be sent to {}", booking.getCode(), to);
             return;
         }
@@ -61,15 +65,21 @@ public class MailService {
             context.setVariable("booking", booking);
             context.setVariable("baseUrl", properties.baseUrl());
             String html = templateEngine.process("mail/ticket", context);
-
+            String subject = "[BBCinema] Vé xem phim " + booking.getShowtime().getMovie().getTitle() + " - " + booking.getCode();
+            byte[] qr = qrCodeService.png(booking.getCode(), 240);
+            byte[] watermark = ticketWatermark.png();
+            demoMailbox.keep(to, subject, html, Map.of("qr", qr, "watermark", watermark));
+            if (!sending) {
+                return;
+            }
             MimeMessage message = sender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true, StandardCharsets.UTF_8.name());
             helper.setFrom(properties.mail().from());
             helper.setTo(to);
-            helper.setSubject("[BBCinema] Vé xem phim " + booking.getShowtime().getMovie().getTitle() + " - " + booking.getCode());
+            helper.setSubject(subject);
             helper.setText(html, true);
-            helper.addInline("qr", new ByteArrayResource(qrCodeService.png(booking.getCode(), 240)), "image/png");
-            helper.addInline("watermark", new ByteArrayResource(ticketWatermark.png()), "image/png");
+            helper.addInline("qr", new ByteArrayResource(qr), "image/png");
+            helper.addInline("watermark", new ByteArrayResource(watermark), "image/png");
             sender.send(message);
             log.info("Ticket {} sent to {}", booking.getCode(), to);
         } catch (Exception e) {
@@ -81,7 +91,8 @@ public class MailService {
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void onPasswordResetRequested(PasswordResetRequestedEvent event) {
         JavaMailSender sender = mailSender.getIfAvailable();
-        if (!properties.mail().enabled() || sender == null) {
+        boolean sending = properties.mail().enabled() && sender != null;
+        if (!sending && !demoMailbox.isEnabled()) {
             // Demo mode without e-mail: the link is only written to the server log.
             log.info("Mail is off. Password reset link for {}: {}", event.email(), event.link());
             return;
@@ -91,16 +102,31 @@ public class MailService {
             context.setVariable("fullName", event.fullName());
             context.setVariable("link", event.link());
             context.setVariable("minutes", PasswordResetService.LINK_LIFETIME.toMinutes());
+            String html = templateEngine.process("mail/password-reset", context);
+            String subject = "[BBCinema] Đặt lại mật khẩu";
+            demoMailbox.keep(event.email(), subject, html, Map.of());
+            if (!sending) {
+                return;
+            }
             MimeMessage message = sender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, false, StandardCharsets.UTF_8.name());
             helper.setFrom(properties.mail().from());
             helper.setTo(event.email());
-            helper.setSubject("[BBCinema] Đặt lại mật khẩu");
-            helper.setText(templateEngine.process("mail/password-reset", context), true);
+            helper.setSubject(subject);
+            helper.setText(html, true);
             sender.send(message);
             log.info("Password reset mail sent to {}", event.email());
         } catch (Exception e) {
             log.error("Could not send password reset mail to {}: {}", event.email(), e.getMessage());
         }
+    }
+
+    /**
+     * Addresses on domains reserved for examples (RFC 2606: example.com, .test, .invalid...) can never
+     * receive mail. The demo customers use them, so their tickets are not mailed.
+     */
+    static boolean isReservedAddress(String email) {
+        String domain = email.substring(email.lastIndexOf('@') + 1).toLowerCase(java.util.Locale.ROOT);
+        return domain.matches("(.+\\.)?example\\.(com|net|org)") || domain.matches(".+\\.(test|example|invalid|localhost)");
     }
 }

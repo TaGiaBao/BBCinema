@@ -14,6 +14,17 @@ public class BannerForm {
     private String title;
 
     @Size(max = 255)
+    private String subtitle;
+
+    @Size(max = 150)
+    private String titleEn;
+
+    @Size(max = 255)
+    private String subtitleEn;
+
+    private boolean captionHidden;
+
+    @Size(max = 255)
     private String link;
 
     private int sortOrder;

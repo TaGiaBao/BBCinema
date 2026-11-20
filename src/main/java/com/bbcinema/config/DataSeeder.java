@@ -204,16 +204,26 @@ public class DataSeeder implements ApplicationRunner {
             post.setPublishedAt(now.minusDays(i++ * 3L));
             postRepository.save(post);
         }
+        // title, subtitle, English title, English subtitle, picture, link
         String[][] banners = {
-                {"Đặt vé nhanh, chọn ghế đẹp", "/images/banners/banner-1.svg", "/schedule"},
-                {"Thứ Tư vui vẻ: đồng giá 50.000đ", "/images/banners/banner-2.svg", "/news"},
-                {"Suất chiếu sớm Hành Tinh Lặng Im", "/images/banners/banner-3.svg", "/movies/hanh-tinh-lang-im"}};
+                {"Đặt vé nhanh, chọn ghế đẹp", "Giữ ghế 5 phút, thanh toán trong một bước",
+                        "Book fast, pick great seats", "Seats held for 5 minutes, pay in one step",
+                        "/images/banners/banner-1.svg", "/schedule"},
+                {"Thứ Tư vui vẻ", "Đồng giá 50.000đ cho suất 2D trước 17h",
+                        "Happy Wednesday", "All 2D shows before 5 pm at 50,000đ",
+                        "/images/banners/banner-2.svg", "/news"},
+                {"Hành Tinh Lặng Im", "Suất chiếu sớm 23h, chỉ trong 2 đêm",
+                        "Hành Tinh Lặng Im", "Early screenings at 11 pm, two nights only",
+                        "/images/banners/banner-3.svg", "/movies/hanh-tinh-lang-im"}};
         int order = 1;
         for (String[] b : banners) {
             Banner banner = new Banner();
             banner.setTitle(b[0]);
-            banner.setImagePath(b[1]);
-            banner.setLink(b[2]);
+            banner.setSubtitle(b[1]);
+            banner.setTitleEn(b[2]);
+            banner.setSubtitleEn(b[3]);
+            banner.setImagePath(b[4]);
+            banner.setLink(b[5]);
             banner.setSortOrder(order++);
             bannerRepository.save(banner);
         }
