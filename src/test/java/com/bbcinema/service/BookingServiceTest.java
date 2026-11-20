@@ -339,4 +339,27 @@ class BookingServiceTest {
         b.setStatus(BookingStatus.PAID);
         assertThat(service.isHoldExpired(b)).isFalse();
     }
+
+    @Test
+    void cashAtTheCounterMustCoverTheTotalAndGivesChange() {
+        BigDecimal total = BigDecimal.valueOf(165_000);
+        assertThat(BookingService.counterChange(PaymentMethod.CASH, BigDecimal.valueOf(200_000), total)).isEqualByComparingTo("35000");
+        assertThat(BookingService.counterChange(PaymentMethod.CASH, total, total)).isEqualByComparingTo("0");
+        assertThatThrownBy(() -> BookingService.counterChange(PaymentMethod.CASH, BigDecimal.valueOf(150_000), total))
+                .hasMessageContaining("Khách đưa thiếu 15.000đ");
+        assertThatThrownBy(() -> BookingService.counterChange(PaymentMethod.CASH, null, total))
+                .hasMessageContaining("Nhập số tiền khách đưa");
+    }
+
+    @Test
+    void cardSlipAtTheCounterMustMatchTheTotal() {
+        BigDecimal total = BigDecimal.valueOf(165_000);
+        assertThat(BookingService.counterChange(PaymentMethod.CARD, total, total)).isEqualByComparingTo("0");
+        assertThatThrownBy(() -> BookingService.counterChange(PaymentMethod.CARD, BigDecimal.valueOf(170_000), total))
+                .hasMessageContaining("Hoá đơn POS thừa 5.000đ");
+        assertThatThrownBy(() -> BookingService.counterChange(PaymentMethod.CARD, BigDecimal.valueOf(160_000), total))
+                .hasMessageContaining("Hoá đơn POS thiếu 5.000đ");
+        assertThatThrownBy(() -> BookingService.counterChange(PaymentMethod.CARD, null, total))
+                .hasMessageContaining("hoá đơn máy POS");
+    }
 }

@@ -549,11 +549,92 @@ public class BookingService {
         lockAndHoldSeats(booking, form.getShowtimeSeatIds(), now);
         applyCombos(booking, form.getComboQuantities());
         recalculate(booking);
-        return switch (method) {
-            case CARD -> confirmPayment(booking, PaymentMethod.CARD, "CARD-" + booking.getCode(), approval);
-            case BANK_QR -> startBankTransfer(booking.getCode(), staffId, Role.STAFF);
-            default -> confirmPayment(booking, PaymentMethod.CASH, "CASH-" + booking.getCode(), null);
-        };
+        if (method == PaymentMethod.BANK_QR) {
+            return startBankTransfer(booking.getCode(), staffId, Role.STAFF);
+        }
+        BigDecimal received = form.getAmountReceived();
+        BigDecimal change = counterChange(method, received, booking.getTotalAmount());
+        String ref = method.name() + "-" + booking.getCode();
+        confirmPayment(booking, method, ref, method == PaymentMethod.CARD ? approval : null);
+        paymentRepository.findByTransactionRef(ref).ifPresent(p -> {
+            p.setAmountReceived(received);
+            p.setChangeAmount(change);
+        });
+        return booking;
+    }
+
+    /** The successful payment of a paid booking, if any (shown on the counter receipt). */
+    public Payment paymentOf(Booking booking) {
+        return paymentRepository.findByBookingIdOrderByCreatedAtDesc(booking.getId()).stream()
+                .filter(p -> p.getStatus() == PaymentStatus.SUCCESS).findFirst().orElse(null);
+    }
+
+    /** What one staff member took at the counter on a day, per payment method, to count the till against. */
+    public record CounterTakings(int cashSales, BigDecimal cashTotal, BigDecimal cashReceived, BigDecimal changeGiven,
+                                 int cardSales, BigDecimal cardTotal, int transferSales, BigDecimal transferTotal) {
+
+        /** Cash that should be in the drawer from these sales: received minus change, i.e. the cash total. */
+        public BigDecimal cashInDrawer() {
+            return cashReceived.subtract(changeGiven);
+        }
+    }
+
+    public CounterTakings counterTakings(Long staffId, LocalDate day) {
+        List<Payment> payments = paymentRepository.findCounterTakings(staffId, day.atStartOfDay(), day.plusDays(1).atStartOfDay());
+        int cash = 0, card = 0, transfer = 0;
+        BigDecimal cashTotal = BigDecimal.ZERO, received = BigDecimal.ZERO, change = BigDecimal.ZERO;
+        BigDecimal cardTotal = BigDecimal.ZERO, transferTotal = BigDecimal.ZERO;
+        for (Payment p : payments) {
+            switch (p.getMethod()) {
+                case CASH -> {
+                    cash++;
+                    cashTotal = cashTotal.add(p.getAmount());
+                    // Older sales did not record the cash handed over: count them as paid exactly.
+                    received = received.add(p.getAmountReceived() == null ? p.getAmount() : p.getAmountReceived());
+                    change = change.add(p.getChangeAmount() == null ? BigDecimal.ZERO : p.getChangeAmount());
+                }
+                case CARD -> {
+                    card++;
+                    cardTotal = cardTotal.add(p.getAmount());
+                }
+                case BANK_QR -> {
+                    transfer++;
+                    transferTotal = transferTotal.add(p.getAmount());
+                }
+                default -> { }
+            }
+        }
+        return new CounterTakings(cash, cashTotal, received, change, card, cardTotal, transfer, transferTotal);
+    }
+
+    /**
+     * Checks the money taken at the counter against the order total and returns the change to hand back.
+     * Cash must cover the total; a card slip must show exactly the total, otherwise the POS sale is wrong.
+     */
+    static BigDecimal counterChange(PaymentMethod method, BigDecimal received, BigDecimal total) {
+        if (method == PaymentMethod.CASH) {
+            if (received == null) {
+                throw new BusinessException("Nhập số tiền khách đưa");
+            }
+            if (received.compareTo(total) < 0) {
+                throw new BusinessException("Khách đưa thiếu " + money(total.subtract(received))
+                        + " (tổng tiền " + money(total) + ", khách đưa " + money(received) + ")");
+            }
+            return received.subtract(total);
+        }
+        if (received == null) {
+            throw new BusinessException("Nhập số tiền in trên hoá đơn máy POS");
+        }
+        int diff = received.compareTo(total);
+        if (diff != 0) {
+            throw new BusinessException("Hoá đơn POS " + (diff > 0 ? "thừa " : "thiếu ") + money(received.subtract(total).abs())
+                    + " so với tổng tiền " + money(total) + ". Huỷ giao dịch trên máy POS và quẹt lại đúng số tiền.");
+        }
+        return BigDecimal.ZERO;
+    }
+
+    private static String money(BigDecimal amount) {
+        return String.format(Locale.ROOT, "%,d", amount.longValue()).replace(',', '.') + "đ";
     }
 
     /** Ticket check at the cinema entrance. */

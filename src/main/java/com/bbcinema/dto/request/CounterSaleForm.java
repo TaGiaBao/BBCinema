@@ -1,10 +1,13 @@
 package com.bbcinema.dto.request;
 
+import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.Digits;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -27,6 +30,11 @@ public class CounterSaleForm {
     private String customerEmail;
 
     private com.bbcinema.entity.enums.PaymentMethod paymentMethod = com.bbcinema.entity.enums.PaymentMethod.CASH;
+
+    /** Cash: what the customer hands over. Card: the amount printed on the POS slip. */
+    @DecimalMin(value = "0", message = "Số tiền không hợp lệ")
+    @Digits(integer = 12, fraction = 0, message = "Số tiền không hợp lệ")
+    private BigDecimal amountReceived;
 
     /** Printed on the POS terminal's slip when the customer pays by card. */
     @Size(max = 12)

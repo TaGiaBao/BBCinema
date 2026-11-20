@@ -128,7 +128,12 @@ class BankTransferIntegrationTest extends IntegrationTestBase {
                 .andExpect(flash().attribute("error", containsString("mã chuẩn chi")));
         mvc.perform(post("/staff/sell/" + st.getId()).with(csrf()).cookie(login(staff))
                         .param("showtimeSeatIds", seats.get(0).toString()).param("paymentMethod", "CARD")
-                        .param("cardApprovalCode", "a1b2c3"))
+                        .param("cardApprovalCode", "a1b2c3").param("amountReceived", "1000"))
+                .andExpect(flash().attribute("error", containsString("Hoá đơn POS thiếu")));
+        String price = showtimeSeatRepository.findById(seats.get(0)).orElseThrow().getPrice().toBigInteger().toString();
+        mvc.perform(post("/staff/sell/" + st.getId()).with(csrf()).cookie(login(staff))
+                        .param("showtimeSeatIds", seats.get(0).toString()).param("paymentMethod", "CARD")
+                        .param("cardApprovalCode", "a1b2c3").param("amountReceived", price))
                 .andExpect(redirectedUrlPattern("/staff/tickets/*"));
         Payment card = paymentRepository.findAll().stream()
                 .filter(p -> p.getMethod() == PaymentMethod.CARD).reduce((a, b) -> b).orElseThrow();

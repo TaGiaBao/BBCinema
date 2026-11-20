@@ -11,6 +11,26 @@
             <button class="btn btn-navy" type="submit"><i class="bi bi-qr-code-scan"></i> Soát vé</button>
         </form>
     </div>
+    <!-- What this staff member took today, to count the cash drawer at the end of the shift. -->
+    <div class="panel mb-3" th:if="${takings != null}">
+        <h2 class="h6 mb-2"><i class="bi bi-cash-stack"></i> Tiền thu hôm nay của bạn</h2>
+        <div class="row g-3 small">
+            <div class="col-md-5">
+                <div class="fw-semibold mb-1" th:text="'Tiền mặt · ' + ${takings.cashSales} + ' đơn'">Tiền mặt</div>
+                <div class="summary-row"><span>Khách đưa</span><span class="tabular" th:text="${@fmt.money(takings.cashReceived)}">0đ</span></div>
+                <div class="summary-row"><span>Đã trả lại khách</span><span class="tabular" th:text="'− ' + ${@fmt.money(takings.changeGiven)}">0đ</span></div>
+                <div class="summary-row"><span>Tiền mặt phải có trong két</span><strong class="tabular" th:text="${@fmt.money(takings.cashInDrawer())}">0đ</strong></div>
+            </div>
+            <div class="col-md-3">
+                <div class="fw-semibold mb-1" th:text="'Thẻ (POS) · ' + ${takings.cardSales} + ' đơn'">Thẻ</div>
+                <div class="summary-row"><span>Tổng</span><strong class="tabular" th:text="${@fmt.money(takings.cardTotal)}">0đ</strong></div>
+            </div>
+            <div class="col-md-4">
+                <div class="fw-semibold mb-1" th:text="'Chuyển khoản QR · ' + ${takings.transferSales} + ' đơn'">QR</div>
+                <div class="summary-row"><span>Tổng</span><strong class="tabular" th:text="${@fmt.money(takings.transferTotal)}">0đ</strong></div>
+            </div>
+        </div>
+    </div>
     <div class="date-strip mb-4">
         <a th:each="d : ${dates}" th:href="@{/staff(date=${d})}" th:classappend="${d == selectedDate} ? 'active'">
             <span class="day" th:text="${#temporals.format(d, 'dd')}">01</span>

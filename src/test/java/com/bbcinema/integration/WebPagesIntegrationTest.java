@@ -13,6 +13,7 @@ import jakarta.servlet.http.Cookie;
 import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockMultipartFile;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -118,8 +119,23 @@ class WebPagesIntegrationTest extends IntegrationTestBase {
         Long seat = freeSeats(st.getId(), 1).get(0);
         mvc.perform(post("/staff/sell/" + st.getId()).with(csrf()).cookie(staff)
                         .param("showtimeSeatIds", seat.toString()).param("customerName", "Khách"))
+                .andExpect(flash().attribute("error", containsString("Nhập số tiền khách đưa")));
+        String location = mvc.perform(post("/staff/sell/" + st.getId()).with(csrf()).cookie(staff)
+                        .param("showtimeSeatIds", seat.toString()).param("customerName", "Khách")
+                        .param("amountReceived", "500000"))
                 .andExpect(status().is3xxRedirection())
-                .andExpect(redirectedUrlPattern("/staff/tickets/*"));
+                .andExpect(redirectedUrlPattern("/staff/tickets/*"))
+                .andReturn().getResponse().getRedirectedUrl();
+        // The receipt shows what the customer gave and the change; the counter page sums the day's cash.
+        mvc.perform(get(location).cookie(staff))
+                .andExpect(content().string(containsString("Khách đưa")))
+                .andExpect(content().string(containsString("500.000đ")))
+                .andExpect(content().string(containsString("Tiền thừa trả khách")));
+        mvc.perform(get("/staff").cookie(staff))
+                .andExpect(content().string(containsString("Tiền mặt phải có trong két")));
+        mvc.perform(get("/staff/sell/" + st.getId()).cookie(staff))
+                .andExpect(content().string(containsString("/js/counter-payment.js")))
+                .andExpect(content().string(containsString("name=\"amountReceived\"")));
     }
 
     @Test
@@ -130,6 +146,7 @@ class WebPagesIntegrationTest extends IntegrationTestBase {
         CounterSaleForm form = new CounterSaleForm();
         form.setShowtimeSeatIds(freeSeats(st.getId(), 1));
         form.setCustomerName("Khách lẻ");
+        form.setAmountReceived(BigDecimal.valueOf(1_000_000));
         Booking sold = bookingService.sellAtCounter(staff.getId(), st.getId(), form);
         Cookie cookie = authCookie(staff);
 
@@ -184,6 +201,7 @@ class WebPagesIntegrationTest extends IntegrationTestBase {
         CounterSaleForm form = new CounterSaleForm();
         form.setShowtimeSeatIds(freeSeats(st.getId(), 1));
         form.setCustomerName("Khách lẻ");
+        form.setAmountReceived(BigDecimal.valueOf(1_000_000));
         Booking sold = bookingService.sellAtCounter(staff.getId(), st.getId(), form);
         mvc.perform(get("/staff/tickets/" + sold.getCode()).cookie(authCookie(staff)))
                 .andExpect(status().isOk())

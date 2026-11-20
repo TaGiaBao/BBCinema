@@ -40,6 +40,7 @@ public class StaffController {
     @GetMapping
     public String today(@RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
                         @ModelAttribute("currentCinema") Cinema cinema,
+                        @AuthenticationPrincipal AppUserPrincipal staff,
                         Model model) {
         LocalDate today = LocalDate.now(clock);
         LocalDate selected = date == null ? today : date;
@@ -47,6 +48,7 @@ public class StaffController {
         model.addAttribute("dates", showtimeService.upcomingDates());
         model.addAttribute("selectedDate", selected);
         model.addAttribute("schedule", cinema == null ? List.of() : showtimeService.scheduleForCinema(cinema.getId(), selected));
+        model.addAttribute("takings", bookingService.counterTakings(staff.getId(), today));
         model.addAttribute("menu", "staff");
         return "staff/index";
     }
@@ -164,7 +166,9 @@ public class StaffController {
 
     @GetMapping("/tickets/{code}")
     public String ticket(@PathVariable String code, Model model) {
-        model.addAttribute("booking", bookingService.getByCode(code));
+        Booking booking = bookingService.getByCode(code);
+        model.addAttribute("booking", booking);
+        model.addAttribute("payment", bookingService.paymentOf(booking));
         return "staff/ticket";
     }
 

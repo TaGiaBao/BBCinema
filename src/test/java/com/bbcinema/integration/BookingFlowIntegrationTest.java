@@ -5,6 +5,8 @@ import com.bbcinema.entity.*;
 import com.bbcinema.entity.enums.*;
 import com.bbcinema.exception.BusinessException;
 import com.bbcinema.exception.SeatUnavailableException;
+import com.bbcinema.repository.PaymentRepository;
+import com.bbcinema.service.BookingService;
 import org.junit.jupiter.api.Test;
 import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,6 +26,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 class BookingFlowIntegrationTest extends IntegrationTestBase {
 
     @Autowired TransactionTemplate tx;
+    @Autowired PaymentRepository paymentRepository;
 
     private Combo combo(long price) {
         Combo c = new Combo();
@@ -147,7 +150,20 @@ class BookingFlowIntegrationTest extends IntegrationTestBase {
         form.setComboQuantities(Map.of(combo.getId(), 1));
         form.setCustomerName("Khách lẻ");
 
+        // Cash must cover the total; the change is recorded for the till.
+        form.setAmountReceived(BigDecimal.valueOf(1_000));
+        assertThatThrownBy(() -> bookingService.sellAtCounter(staff.getId(), st.getId(), form))
+                .hasMessageContaining("Khách đưa thiếu");
+        form.setAmountReceived(BigDecimal.valueOf(1_000_000));
         Booking sold = bookingService.sellAtCounter(staff.getId(), st.getId(), form);
+
+        Payment cash = paymentRepository.findByTransactionRef("CASH-" + sold.getCode()).orElseThrow();
+        assertThat(cash.getAmountReceived()).isEqualByComparingTo("1000000");
+        assertThat(cash.getChangeAmount()).isEqualByComparingTo(BigDecimal.valueOf(1_000_000).subtract(sold.getTotalAmount()));
+        BookingService.CounterTakings takings = bookingService.counterTakings(staff.getId(), java.time.LocalDate.now());
+        assertThat(takings.cashSales()).isEqualTo(1);
+        assertThat(takings.cashInDrawer()).isEqualByComparingTo(sold.getTotalAmount());
+        assertThat(takings.changeGiven()).isEqualByComparingTo(cash.getChangeAmount());
 
         assertThat(sold.getStatus()).isEqualTo(BookingStatus.PAID);
         assertThat(sold.getChannel()).isEqualTo(SalesChannel.COUNTER);

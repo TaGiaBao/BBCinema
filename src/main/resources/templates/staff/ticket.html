@@ -18,6 +18,17 @@
             <div class="small" th:each="c : ${booking.combos}" th:text="${c.quantity} + ' × ' + ${c.combo.name}">Combo</div>
             <hr>
             <div class="summary-row"><span>Tổng tiền</span><strong th:text="${@fmt.money(booking.totalAmount)}">0đ</strong></div>
+            <th:block th:if="${payment != null}">
+                <div class="summary-row small"><span>Thanh toán</span><span th:text="${payment.method.label}">Tiền mặt</span></div>
+                <th:block th:if="${payment.amountReceived != null}">
+                    <div class="summary-row small"><span th:text="${payment.method.name() == 'CASH'} ? 'Khách đưa' : 'Số tiền POS'">Khách đưa</span>
+                        <span class="tabular" th:text="${@fmt.money(payment.amountReceived)}">0đ</span></div>
+                    <div class="summary-row small" th:if="${payment.method.name() == 'CASH'}"><span>Tiền thừa trả khách</span>
+                        <strong class="tabular" th:text="${@fmt.money(payment.changeAmount)}">0đ</strong></div>
+                </th:block>
+                <div class="summary-row small" th:if="${payment.method.name() == 'CARD' and payment.gatewayTransactionNo != null}">
+                    <span>Mã chuẩn chi</span><span th:text="${payment.gatewayTransactionNo}">-</span></div>
+            </th:block>
             <div class="code mt-2" th:text="${booking.code}">CODE</div>
             <img th:src="@{/booking/{code}/qr.png(code=${booking.code})}" alt="QR" style="width: 160px">
             <div class="small text-muted" th:text="'Bán lúc ' + ${#temporals.format(booking.paidAt, 'HH:mm dd/MM/yyyy')} + ' · ' + ${booking.channel.label}">-</div>
