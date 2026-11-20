@@ -3,7 +3,9 @@
       th:replace="~{layout/admin :: layout(~{::title}, ~{::section}, ~{::scripts})}">
 <head><title>Kết ca · BBCinema</title></head>
 <body>
-<section class="p-4" th:with="s=${summary}, shift=${summary.shift}">
+<section class="p-4" th:with="s=${summary}, shift=${summary.shift},
+                               action=${closeAction != null ? closeAction : '/staff/shift/close'},
+                               needManager=${askManager == null or askManager}">
     <div class="row g-4">
         <div class="col-lg-6">
             <div class="panel">
@@ -29,7 +31,7 @@
             </div>
         </div>
         <div class="col-lg-6">
-            <form class="panel" method="post" th:action="@{/staff/shift/close}" autocomplete="off">
+            <form class="panel" method="post" th:action="@{${action}}" autocomplete="off">
                 <h2 class="h6">Quản lý đếm két và kết ca</h2>
                 <label class="form-label small fw-semibold" for="countedCash">Tiền mặt đếm được trong két (gồm cả quỹ đầu ca)</label>
                 <div class="input-group">
@@ -40,14 +42,15 @@
                 <div class="mt-2 fw-semibold" id="countResult" role="status" aria-live="polite"></div>
                 <label class="form-label small mt-3" for="note">Ghi chú (nếu két lệch)</label>
                 <input class="form-control mb-3" id="note" name="note" maxlength="255">
-                <fieldset class="border rounded p-3 mb-3">
+                <fieldset class="border rounded p-3 mb-3" th:if="${needManager}">
                     <legend class="float-none w-auto px-2 small fw-semibold mb-0">Quản lý xác nhận</legend>
                     <input class="form-control mb-2" name="managerEmail" type="email" placeholder="Email quản lý"
                            aria-label="Email quản lý" required autocomplete="off">
                     <input class="form-control" name="managerPassword" type="password" placeholder="Mật khẩu quản lý"
                            aria-label="Mật khẩu quản lý" required autocomplete="new-password">
                 </fieldset>
-                <button class="btn btn-amber w-100" type="submit"><i class="bi bi-lock"></i> Kết ca và đăng xuất</button>
+                <button class="btn btn-amber w-100" type="submit"><i class="bi bi-lock"></i>
+                    <span th:text="${needManager} ? 'Kết ca và đăng xuất' : 'Kết ca'">Kết ca</span></button>
             </form>
         </div>
     </div>

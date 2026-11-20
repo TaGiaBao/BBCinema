@@ -241,4 +241,34 @@ class SecurityIntegrationTest extends IntegrationTestBase {
                 .andExpect(content().string(containsString("Biên bản ca bán vé #" + id)));
         mvc.perform(get("/admin/shifts").cookie(authCookie(staff))).andExpect(status().isForbidden());
     }
+
+    @Test
+    void managerClosesAShiftFromTheAdminAreaWhenTheStaffMemberHasLeft() throws Exception {
+        User staff = account(Role.STAFF);
+        openShift(staff, 300_000);
+        Long id = shiftService.findOpen(staff.getId()).orElseThrow().getId();
+        Cookie admin = authCookie(account(Role.ADMIN));
+
+        mvc.perform(get("/admin/shifts").cookie(admin))
+                .andExpect(content().string(containsString("href=\"/admin/shifts/" + id + "/close\"")));
+        mvc.perform(get("/admin/shifts/" + id + "/close").cookie(admin))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("action=\"/admin/shifts/" + id + "/close\"")))
+                .andExpect(content().string(not(containsString("name=\"managerPassword\""))));
+        mvc.perform(post("/admin/shifts/" + id + "/close").with(csrf()).cookie(admin).param("countedCash", "290000")
+                        .param("note", "Nhân viên bỏ về không bàn giao"))
+                .andExpect(redirectedUrl("/admin/shifts"))
+                .andExpect(flash().attribute("success", containsString("Đã kết ca #" + id)));
+
+        var closed = shiftService.getDetailed(id);
+        assertThat(closed.isOpen()).isFalse();
+        assertThat(closed.getDifference()).isEqualByComparingTo("-10000");
+        // Closing twice is refused; staff coming back must have a new shift opened.
+        mvc.perform(post("/admin/shifts/" + id + "/close").with(csrf()).cookie(admin).param("countedCash", "0"))
+                .andExpect(flash().attribute("error", containsString("đã kết")));
+        mvc.perform(get("/staff").cookie(authCookie(staff))).andExpect(redirectedUrl("/staff/shift/open"));
+        // Staff cannot use the admin close.
+        mvc.perform(post("/admin/shifts/" + id + "/close").with(csrf()).cookie(authCookie(staff)).param("countedCash", "0"))
+                .andExpect(status().isForbidden());
+    }
 }

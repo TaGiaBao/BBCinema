@@ -139,7 +139,26 @@ public class ShiftService {
     @Transactional
     public CounterShift close(Long staffId, String managerEmail, String managerPassword, BigDecimal countedCash, String note) {
         User manager = verifyManager(managerEmail, managerPassword);
-        CounterShift shift = requireOpen(staffId);
+        return close(requireOpen(staffId), manager, countedCash, note);
+    }
+
+    /**
+     * A manager signed in to the admin area closes a shift, whether or not the staff member is still at the
+     * counter (closing is the manager's job). A staff member still signed in is sent back to "open shift".
+     */
+    @Transactional
+    public CounterShift closeByManager(Long shiftId, Long managerId, BigDecimal countedCash, String note) {
+        User manager = userRepository.findById(managerId)
+                .filter(u -> u.getRole() == Role.ADMIN)
+                .orElseThrow(() -> new BusinessException("Chỉ quản lý mới kết ca được"));
+        CounterShift shift = getDetailed(shiftId);
+        if (!shift.isOpen()) {
+            throw new BusinessException("Ca #" + shiftId + " đã kết lúc " + shift.getClosedAt().toLocalTime().withNano(0));
+        }
+        return close(shift, manager, countedCash, note);
+    }
+
+    private CounterShift close(CounterShift shift, User manager, BigDecimal countedCash, String note) {
         if (countedCash == null || countedCash.signum() < 0) {
             throw new BusinessException("Nhập số tiền mặt đếm được trong két");
         }
