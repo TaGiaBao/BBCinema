@@ -20,6 +20,7 @@ import java.util.List;
 public class ScheduleController {
 
     private final ShowtimeService showtimeService;
+    private final com.bbcinema.service.HolidayService holidayService;
     private final Clock clock;
 
     @GetMapping("/schedule")
@@ -29,7 +30,9 @@ public class ScheduleController {
         LocalDate today = LocalDate.now(clock);
         LocalDate selected = date == null || date.isBefore(today) ? today : date;
         model.addAttribute("today", today);
-        model.addAttribute("dates", showtimeService.upcomingDates());
+        List<LocalDate> dates = showtimeService.upcomingDates();
+        model.addAttribute("dates", dates);
+        model.addAttribute("holidayDates", holidayService.holidayDatesIn(dates));
         model.addAttribute("selectedDate", selected);
         model.addAttribute("schedule", currentCinema == null ? List.of()
                 : showtimeService.scheduleForCinema(currentCinema.getId(), selected));

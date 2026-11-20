@@ -204,6 +204,8 @@ public class ShowtimeService {
         showtime = showtimeRepository.save(showtime);
 
         List<ShowtimeSeat> seats = new ArrayList<>();
+        java.util.Map<com.bbcinema.entity.enums.SeatType, java.math.BigDecimal> priceByType =
+                new java.util.EnumMap<>(com.bbcinema.entity.enums.SeatType.class);
         for (Seat seat : roomService.getSeats(room.getId())) {
             if (!seat.isActive()) {
                 continue;
@@ -211,7 +213,7 @@ public class ShowtimeService {
             ShowtimeSeat ss = new ShowtimeSeat();
             ss.setShowtime(showtime);
             ss.setSeat(seat);
-            ss.setPrice(pricingService.priceFor(seat.getType(), format, start));
+            ss.setPrice(priceByType.computeIfAbsent(seat.getType(), type -> pricingService.priceFor(type, format, start)));
             seats.add(ss);
         }
         showtimeSeatRepository.saveAll(seats);

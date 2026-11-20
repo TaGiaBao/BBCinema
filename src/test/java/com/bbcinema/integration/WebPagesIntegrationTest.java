@@ -223,8 +223,10 @@ class WebPagesIntegrationTest extends IntegrationTestBase {
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("= 2 × giá VIP (tự động)")))
                 .andReturn().getResponse().getContentAsString();
-        // Only standard and VIP prices have inputs: 2 formats x 2 day types x 2 time slots x 2 seat types.
-        assertThat(page.split("name=\"price_", -1).length - 1).isEqualTo(16);
+        // Only standard and VIP prices have inputs: 2 formats x 3 day types x 2 time slots x 2 seat types.
+        // A holiday price not set yet has a "holiday_..." input instead of a "price_{id}" one.
+        int inputs = page.split("name=\"price_", -1).length - 1 + page.split("name=\"holiday_", -1).length - 1;
+        assertThat(inputs).isEqualTo(24);
         mvc.perform(get("/prices"))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("Ghế đôi (dành cho hai người) có giá bằng 2 ghế VIP")));

@@ -53,6 +53,7 @@ public class DataSeeder implements ApplicationRunner {
     private final com.bbcinema.service.ReviewService reviewService;
     private final PricingService pricingService;
     private final TicketPriceRepository ticketPriceRepository;
+    private final HolidayRepository holidayRepository;
     private final ComboRepository comboRepository;
     private final PromotionRepository promotionRepository;
     private final PostRepository postRepository;
@@ -75,6 +76,7 @@ public class DataSeeder implements ApplicationRunner {
             transactionTemplate.executeWithoutResult(status -> {
                 seedAccounts();
                 seedPrices();
+                seedHolidays();
                 seedCombos();
                 seedPromotions();
                 seedContent();
@@ -185,18 +187,53 @@ public class DataSeeder implements ApplicationRunner {
                 "WEEKEND_BEFORE_17", new int[]{80_000, 90_000},
                 "WEEKEND_FROM_17", new int[]{90_000, 100_000});
         for (ScreenFormat format : ScreenFormat.values()) {
-            for (DayType day : DayType.values()) {
+            for (DayType day : List.of(DayType.WEEKDAY, DayType.WEEKEND)) {
                 for (TimeSlot slot : TimeSlot.values()) {
                     int[] values = base.get(day.name() + "_" + slot.name());
                     SeatType[] types = {SeatType.STANDARD, SeatType.VIP};
                     for (int i = 0; i < types.length; i++) {
                         int extra = format == ScreenFormat.THREE_D ? 20_000 : 0;
-                        ticketPriceRepository.save(new TicketPrice(types[i], format, day, slot, BigDecimal.valueOf(values[i] + extra)));
+                        BigDecimal price = BigDecimal.valueOf(values[i] + extra);
+                        ticketPriceRepository.save(new TicketPrice(types[i], format, day, slot, price));
+                        if (day == DayType.WEEKEND) {
+                            ticketPriceRepository.save(new TicketPrice(types[i], format, DayType.HOLIDAY, slot, holidayPriceFrom(price)));
+                        }
                     }
                 }
             }
         }
         pricingService.ensureAllPricesExist(BigDecimal.valueOf(80_000));
+    }
+
+    /** Demo holiday price: the weekend price plus 10%, rounded to 1,000đ. */
+    static BigDecimal holidayPriceFrom(BigDecimal weekendPrice) {
+        return weekendPrice.multiply(BigDecimal.valueOf(11)).divide(BigDecimal.valueOf(10))
+                .divide(BigDecimal.valueOf(1000)).setScale(0, java.math.RoundingMode.HALF_UP).multiply(BigDecimal.valueOf(1000));
+    }
+
+    /**
+     * Public holidays fixed on the solar calendar, each at its next date from today (so a year ahead).
+     * Lunar holidays (Tết, Giỗ Tổ Hùng Vương) and the extra day next to 2/9 change every year; the
+     * admin adds them on the holidays page.
+     */
+    private void seedHolidays() {
+        LocalDate today = LocalDate.now(clock);
+        for (Map.Entry<MonthDay, String> fixed : FIXED_HOLIDAYS.entrySet()) {
+            LocalDate date = fixed.getKey().atYear(today.getYear());
+            if (date.isBefore(today)) {
+                date = fixed.getKey().atYear(today.getYear() + 1);
+            }
+            holidayRepository.save(new Holiday(date, fixed.getValue()));
+        }
+    }
+
+    static final Map<MonthDay, String> FIXED_HOLIDAYS = new LinkedHashMap<>();
+
+    static {
+        FIXED_HOLIDAYS.put(MonthDay.of(1, 1), "Tết Dương lịch");
+        FIXED_HOLIDAYS.put(MonthDay.of(4, 30), "Ngày Giải phóng miền Nam 30/4");
+        FIXED_HOLIDAYS.put(MonthDay.of(5, 1), "Ngày Quốc tế Lao động 1/5");
+        FIXED_HOLIDAYS.put(MonthDay.of(9, 2), "Quốc khánh 2/9");
     }
 
     private void seedCombos() {

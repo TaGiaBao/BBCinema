@@ -27,6 +27,7 @@ public class HomeController {
     private final CinemaService cinemaService;
     private final PricingService pricingService;
     private final ComboService comboService;
+    private final com.bbcinema.service.HolidayService holidayService;
 
     @GetMapping("/")
     public String home(@ModelAttribute("currentCinema") Cinema currentCinema, Model model) {
@@ -60,6 +61,7 @@ public class HomeController {
     public String prices(Model model) {
         model.addAttribute("prices", pricingService.findAll());
         model.addAttribute("combos", comboService.findActive());
+        model.addAttribute("holidays", holidayService.upcoming(12));
         addPriceAxes(model);
         return "prices";
     }

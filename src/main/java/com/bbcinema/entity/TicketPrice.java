@@ -42,6 +42,13 @@ public class TicketPrice {
     @Column(nullable = false, precision = 12, scale = 0)
     private BigDecimal price;
 
+    /**
+     * Only on rows built for display: a holiday price that has not been set, shown with the
+     * weekend price that is charged instead.
+     */
+    @Transient
+    private boolean weekendFallback;
+
     public TicketPrice(SeatType seatType, ScreenFormat format, DayType dayType, TimeSlot timeSlot, BigDecimal price) {
         this.seatType = seatType;
         this.format = format;

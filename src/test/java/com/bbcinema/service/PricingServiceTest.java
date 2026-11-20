@@ -6,15 +6,21 @@ import com.bbcinema.entity.enums.ScreenFormat;
 import com.bbcinema.entity.enums.SeatType;
 import com.bbcinema.entity.enums.TimeSlot;
 import com.bbcinema.exception.BusinessException;
+import com.bbcinema.repository.HolidayRepository;
+import com.bbcinema.repository.ShowtimeRepository;
+import com.bbcinema.repository.ShowtimeSeatRepository;
 import com.bbcinema.repository.TicketPriceRepository;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
+import java.time.Clock;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -32,8 +38,25 @@ class PricingServiceTest {
     @Mock
     TicketPriceRepository repository;
 
-    @InjectMocks
+    @Mock
+    HolidayRepository holidayRepository;
+
+    @Mock
+    ShowtimeRepository showtimeRepository;
+
+    @Mock
+    ShowtimeSeatRepository showtimeSeatRepository;
+
     PricingService service;
+
+    /** "Now" for these tests: Friday 20/11/2026, 10:00. */
+    static final Clock CLOCK = Clock.fixed(LocalDateTime.of(2026, 11, 20, 10, 0).atZone(ZoneId.of("Asia/Ho_Chi_Minh")).toInstant(),
+            ZoneId.of("Asia/Ho_Chi_Minh"));
+
+    @BeforeEach
+    void setUp() {
+        service = new PricingService(repository, holidayRepository, showtimeRepository, showtimeSeatRepository, CLOCK);
+    }
 
     @Test
     void saturdayAndSundayAreWeekend() {
@@ -131,5 +154,108 @@ class PricingServiceTest {
                 .isInstanceOf(BusinessException.class)
                 .hasMessageContaining("tự động");
         assertThat(oldCouple.getPrice()).isEqualByComparingTo("130000");
+    }
+
+    // ------------------------------------------------------------------ holidays
+
+    private static final LocalDate NATIONAL_DAY = LocalDate.of(2027, 9, 2); // a Thursday
+
+    @Test
+    void holidayOnAWeekdayUsesTheHolidayPrice() {
+        when(holidayRepository.existsByDate(NATIONAL_DAY)).thenReturn(true);
+        when(repository.findBySeatTypeAndFormatAndDayTypeAndTimeSlot(SeatType.STANDARD, ScreenFormat.TWO_D, DayType.HOLIDAY, TimeSlot.FROM_17))
+                .thenReturn(Optional.of(new TicketPrice(SeatType.STANDARD, ScreenFormat.TWO_D, DayType.HOLIDAY, TimeSlot.FROM_17, BigDecimal.valueOf(99_000))));
+
+        BigDecimal result = service.priceFor(SeatType.STANDARD, ScreenFormat.TWO_D, NATIONAL_DAY.atTime(19, 0));
+
+        assertThat(service.dayTypeFor(NATIONAL_DAY.atTime(19, 0))).isEqualTo(DayType.HOLIDAY);
+        assertThat(result).isEqualByComparingTo("99000");
+        verify(repository, never()).findBySeatTypeAndFormatAndDayTypeAndTimeSlot(any(), any(), eq(DayType.WEEKDAY), any());
+    }
+
+    @Test
+    void holidayIsDecidedByTheStartDate() {
+        when(holidayRepository.existsByDate(any())).thenAnswer(call -> NATIONAL_DAY.equals(call.getArgument(0)));
+
+        assertThat(service.dayTypeFor(NATIONAL_DAY.minusDays(1).atTime(23, 30))).isEqualTo(DayType.WEEKDAY);
+        assertThat(service.dayTypeFor(NATIONAL_DAY.atTime(0, 15))).isEqualTo(DayType.HOLIDAY);
+    }
+
+    @Test
+    void holidayOnASundayStillUsesTheHolidayPrice() {
+        LocalDate sunday = LocalDate.of(2027, 5, 2);
+        when(holidayRepository.existsByDate(sunday)).thenReturn(true);
+
+        assertThat(service.dayTypeFor(sunday.atTime(10, 0))).isEqualTo(DayType.HOLIDAY);
+    }
+
+    @Test
+    void missingHolidayPriceFallsBackToTheWeekendPrice() {
+        when(holidayRepository.existsByDate(NATIONAL_DAY)).thenReturn(true);
+        when(repository.findBySeatTypeAndFormatAndDayTypeAndTimeSlot(SeatType.VIP, ScreenFormat.THREE_D, DayType.HOLIDAY, TimeSlot.BEFORE_17))
+                .thenReturn(Optional.empty());
+        when(repository.findBySeatTypeAndFormatAndDayTypeAndTimeSlot(SeatType.VIP, ScreenFormat.THREE_D, DayType.WEEKEND, TimeSlot.BEFORE_17))
+                .thenReturn(Optional.of(new TicketPrice(SeatType.VIP, ScreenFormat.THREE_D, DayType.WEEKEND, TimeSlot.BEFORE_17, BigDecimal.valueOf(110_000))));
+
+        assertThat(service.priceFor(SeatType.VIP, ScreenFormat.THREE_D, NATIONAL_DAY.atTime(9, 0))).isEqualByComparingTo("110000");
+    }
+
+    @Test
+    void coupleSeatOnAHolidayCostsTwoHolidayVipSeats() {
+        when(holidayRepository.existsByDate(NATIONAL_DAY)).thenReturn(true);
+        when(repository.findBySeatTypeAndFormatAndDayTypeAndTimeSlot(SeatType.VIP, ScreenFormat.TWO_D, DayType.HOLIDAY, TimeSlot.FROM_17))
+                .thenReturn(Optional.of(new TicketPrice(SeatType.VIP, ScreenFormat.TWO_D, DayType.HOLIDAY, TimeSlot.FROM_17, BigDecimal.valueOf(110_000))));
+
+        assertThat(service.priceFor(SeatType.COUPLE, ScreenFormat.TWO_D, NATIONAL_DAY.atTime(20, 0))).isEqualByComparingTo("220000");
+    }
+
+    @Test
+    void priceTableShowsTheWeekendPriceForHolidayPricesNotSet() {
+        TicketPrice weekendVip = new TicketPrice(SeatType.VIP, ScreenFormat.TWO_D, DayType.WEEKEND, TimeSlot.FROM_17, BigDecimal.valueOf(100_000));
+        TicketPrice weekendStandard = new TicketPrice(SeatType.STANDARD, ScreenFormat.TWO_D, DayType.WEEKEND, TimeSlot.FROM_17, BigDecimal.valueOf(90_000));
+        TicketPrice holidayStandard = new TicketPrice(SeatType.STANDARD, ScreenFormat.TWO_D, DayType.HOLIDAY, TimeSlot.FROM_17, BigDecimal.valueOf(99_000));
+        when(repository.findAllByOrderByFormatAscDayTypeAscTimeSlotAscSeatTypeAsc()).thenReturn(List.of(holidayStandard, weekendStandard, weekendVip));
+
+        List<TicketPrice> holidayRows = service.findAll().stream().filter(p -> p.getDayType() == DayType.HOLIDAY).toList();
+
+        assertThat(holidayRows).extracting(TicketPrice::getSeatType).containsExactly(SeatType.STANDARD, SeatType.VIP, SeatType.COUPLE);
+        assertThat(holidayRows.get(0).isWeekendFallback()).isFalse();
+        assertThat(holidayRows.get(0).getPrice()).isEqualByComparingTo("99000");
+        assertThat(holidayRows.get(1).isWeekendFallback()).isTrue();
+        assertThat(holidayRows.get(1).getPrice()).isEqualByComparingTo("100000");
+        assertThat(holidayRows.get(2).getPrice()).isEqualByComparingTo("200000");
+        assertThat(holidayRows.get(2).isWeekendFallback()).isTrue();
+    }
+
+    @Test
+    void holidayPriceTypedInForTheFirstTimeCreatesTheRowAndRepricesHolidayShows() {
+        when(repository.findBySeatTypeAndFormatAndDayTypeAndTimeSlot(SeatType.VIP, ScreenFormat.TWO_D, DayType.HOLIDAY, TimeSlot.FROM_17))
+                .thenReturn(Optional.empty());
+        when(holidayRepository.findDatesFrom(LocalDate.of(2026, 11, 20))).thenReturn(List.of());
+
+        service.updatePrices(Map.of(), Map.of(new PricingService.HolidayCell(SeatType.VIP, ScreenFormat.TWO_D, TimeSlot.FROM_17),
+                BigDecimal.valueOf(120_000)));
+
+        verify(repository).save(argThat(p -> p.getDayType() == DayType.HOLIDAY && p.getSeatType() == SeatType.VIP
+                && p.getPrice().compareTo(BigDecimal.valueOf(120_000)) == 0));
+        verify(holidayRepository).findDatesFrom(LocalDate.of(2026, 11, 20));
+    }
+
+    @Test
+    void coupleHolidayPriceCannotBeTypedIn() {
+        assertThatThrownBy(() -> service.updatePrices(Map.of(), Map.of(
+                new PricingService.HolidayCell(SeatType.COUPLE, ScreenFormat.TWO_D, TimeSlot.FROM_17), BigDecimal.ONE)))
+                .isInstanceOf(BusinessException.class)
+                .hasMessageContaining("tự động");
+        verify(repository, never()).save(any());
+    }
+
+    @Test
+    void createsNoHolidayRowsByDefault() {
+        when(repository.findBySeatTypeAndFormatAndDayTypeAndTimeSlot(any(), any(), any(), any())).thenReturn(Optional.empty());
+
+        service.ensureAllPricesExist(BigDecimal.valueOf(80_000));
+
+        verify(repository, never()).save(argThat(p -> p.getDayType() == DayType.HOLIDAY));
     }
 }

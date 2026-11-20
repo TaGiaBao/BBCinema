@@ -31,6 +31,28 @@ public interface ShowtimeSeatRepository extends JpaRepository<ShowtimeSeat, Long
             """)
     List<ShowtimeSeat> findForUpdate(Long showtimeId, Collection<Long> ids);
 
+    /**
+     * Every seat of a showtime, row-locked (SELECT ... FOR UPDATE) in id order. Used to re-price seats
+     * without racing a customer who is holding them: whoever locks first wins, the other one waits
+     * and then sees the committed status and price.
+     */
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("""
+            select ss from ShowtimeSeat ss join fetch ss.seat
+            where ss.showtime.id = :showtimeId
+            order by ss.id
+            """)
+    List<ShowtimeSeat> findAllOfShowtimeForUpdate(Long showtimeId);
+
+    /** The different prices of the free seats of one type in a showtime, leaving out the given seats. */
+    @Query("""
+            select distinct ss.price from ShowtimeSeat ss
+            where ss.showtime.id = :showtimeId and ss.seat.type = :seatType
+              and ss.status = com.bbcinema.entity.enums.SeatStatus.AVAILABLE and ss.id not in :excludedIds
+            """)
+    List<java.math.BigDecimal> findFreeSeatPrices(Long showtimeId, com.bbcinema.entity.enums.SeatType seatType,
+                                                  Collection<Long> excludedIds);
+
     long countByShowtimeIdAndStatus(Long showtimeId, SeatStatus status);
 
     long countByShowtimeId(Long showtimeId);
