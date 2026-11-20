@@ -2,9 +2,11 @@ package com.bbcinema.repository;
 
 import com.bbcinema.entity.Booking;
 import com.bbcinema.entity.enums.BookingStatus;
+import jakarta.persistence.LockModeType;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 
 import java.math.BigDecimal;
@@ -23,6 +25,11 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
     Optional<Booking> findDetailedByCode(String code);
 
     boolean existsByCode(String code);
+
+    /** Loads a booking with a row lock, so two print clicks at the same moment are both counted. */
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select b from Booking b where b.code = :code")
+    Optional<Booking> findForUpdateByCode(String code);
 
     @Query(value = """
             select b from Booking b

@@ -31,15 +31,23 @@
             </th:block>
             <div class="code mt-2" th:text="${booking.code}">CODE</div>
             <img th:src="@{/booking/{code}/qr.png(code=${booking.code})}" alt="QR" style="width: 160px">
-            <div class="small text-muted" th:text="'Bán lúc ' + ${#temporals.format(booking.paidAt, 'HH:mm dd/MM/yyyy')} + ' · ' + ${booking.channel.label}">-</div>
+            <div class="small text-muted" th:if="${booking.paidAt != null}"
+                 th:text="(${booking.channel.name() == 'COUNTER'} ? 'Bán lúc ' : 'Thanh toán online lúc ') +${#temporals.format(booking.paidAt, 'HH:mm dd/MM/yyyy')} + ' · ' + ${booking.channel.label}">-</div>
         </div>
     </div>
+    <div class="alert alert-warning text-center mx-auto mt-3 no-print" style="max-width: 420px" th:unless="${booking.paid}"
+         th:text="'Đơn ' + ${booking.status.label.toLowerCase()} + ', không in vé được'">Đơn chưa thanh toán</div>
+    <div class="text-center small text-muted mt-3 no-print" data-role="print-log" th:classappend="${booking.printCount == 0} ? 'd-none'"
+         th:text="${booking.printCount > 0} ? ('Đã in ' + ${booking.printCount} + ' lần · lần cuối ' + ${#temporals.format(booking.lastPrintedAt, 'HH:mm dd/MM/yyyy')}) : ''"></div>
     <div class="text-center mt-3 no-print d-flex gap-2 justify-content-center">
-        <button class="btn btn-navy" onclick="window.print()"><i class="bi bi-printer"></i> In vé</button>
+        <button class="btn btn-navy" type="button" th:if="${booking.paid}" data-role="print-ticket"
+                th:attr="data-print-url=@{/staff/tickets/{c}/printed(c=${booking.code})}"><i class="bi bi-printer"></i> In vé</button>
         <a class="btn btn-outline-navy" th:href="@{/staff/sell/{id}(id=${booking.showtime.id})}">Bán tiếp suất này</a>
         <a class="btn btn-outline-secondary" href="/staff">Danh sách suất</a>
     </div>
 </section>
-<th:block th:fragment="scripts"></th:block>
+<th:block th:fragment="scripts">
+    <script src="/js/ticket-print.js"></script>
+</th:block>
 </body>
 </html>

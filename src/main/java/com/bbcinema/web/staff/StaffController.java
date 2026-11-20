@@ -36,7 +36,11 @@ public class StaffController {
     private final ComboService comboService;
     private final com.bbcinema.service.BankTransferService bankTransferService;
     private final com.bbcinema.service.ShiftService shiftService;
+    private final com.bbcinema.service.TicketPrintService ticketPrintService;
     private final Clock clock;
+
+    private static final java.time.format.DateTimeFormatter PRINT_TIME =
+            java.time.format.DateTimeFormatter.ofPattern("HH:mm dd/MM/yyyy");
 
     @GetMapping
     public String today(@RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
@@ -174,6 +178,24 @@ public class StaffController {
         model.addAttribute("booking", booking);
         model.addAttribute("payment", bookingService.paymentOf(booking));
         return "staff/ticket";
+    }
+
+    /** Called by the "In vé" button just before the browser prints: one click counts as one print. */
+    @PostMapping("/tickets/{code}/printed")
+    @ResponseBody
+    public org.springframework.http.ResponseEntity<Map<String, Object>> ticketPrinted(@PathVariable String code) {
+        try {
+            Booking booking = ticketPrintService.recordPrint(code);
+            return org.springframework.http.ResponseEntity.ok(Map.of(
+                    "printCount", booking.getPrintCount(),
+                    "lastPrintedAt", PRINT_TIME.format(booking.getLastPrintedAt())));
+        } catch (NotFoundException e) {
+            return org.springframework.http.ResponseEntity.status(org.springframework.http.HttpStatus.NOT_FOUND)
+                    .body(Map.of("message", e.getMessage()));
+        } catch (BusinessException e) {
+            return org.springframework.http.ResponseEntity.status(org.springframework.http.HttpStatus.CONFLICT)
+                    .body(Map.of("message", e.getMessage()));
+        }
     }
 
     @GetMapping("/checkin")

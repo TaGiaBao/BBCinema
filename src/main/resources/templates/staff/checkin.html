@@ -27,12 +27,27 @@
         <div class="d-flex justify-content-between align-items-start">
             <div>
                 <div class="code" th:text="${booking.code}">CODE</div>
-                <div class="h5 mb-1" th:text="${booking.showtime.movie.title}">Phim</div>
+                <div class="h5 mb-1 d-flex align-items-center gap-2">
+                    <span class="age-badge" th:classappend="${booking.showtime.movie.ageRating.name()}"
+                          th:text="${booking.showtime.movie.ageRating.name()}" th:title="${booking.showtime.movie.ageRating.label}">P</span>
+                    <span th:text="${booking.showtime.movie.title}">Phim</span>
+                </div>
                 <div th:text="${booking.showtime.room.cinema.name} + ' · ' + ${booking.showtime.room.name} + ' · ' + ${#temporals.format(booking.showtime.startTime, 'HH:mm dd/MM/yyyy')}">Suất</div>
                 <div>Ghế: <strong th:text="${booking.seatLabels}">A1</strong> · Khách: <strong th:text="${booking.displayName}">Tên</strong></div>
                 <div class="small" th:each="c : ${booking.combos}" th:text="${c.quantity} + ' × ' + ${c.combo.name}">Combo</div>
             </div>
             <span class="status-pill" th:classappend="'status-' + ${booking.status.name()}" th:text="${booking.status.label}">Đã thanh toán</span>
+        </div>
+        <!-- A reminder only: staff decide, check-in is never blocked by the age rating. -->
+        <div class="alert alert-warning small mt-3 mb-0" data-role="age-warning" th:if="${booking.showtime.movie.ageRating.minAge > 0}">
+            <i class="bi bi-person-vcard"></i>
+            <span th:text="'Phim ' + ${booking.showtime.movie.ageRating.name()} + ': kiểm tra căn cước nếu khách trông chưa đủ ' + ${booking.showtime.movie.ageRating.minAge} + ' tuổi.'">Phim T16: kiểm tra căn cước nếu khách trông chưa đủ 16 tuổi.</span>
+        </div>
+        <div class="d-flex flex-wrap align-items-center gap-2 mt-3" th:if="${booking.paid}">
+            <a class="btn btn-outline-navy" data-role="print-link" target="_blank" rel="noopener"
+               th:href="@{/staff/tickets/{c}(c=${booking.code})}"><i class="bi bi-printer"></i> In vé</a>
+            <span class="small text-muted" data-role="print-status"
+                  th:text="${booking.printCount > 0} ? ('Đã in ' + ${booking.printCount} + ' lần · lần cuối ' + ${#temporals.format(booking.lastPrintedAt, 'HH:mm dd/MM/yyyy')}) : 'Chưa in vé giấy'">Chưa in vé giấy</span>
         </div>
         <div class="alert alert-success mt-3 mb-0" th:if="${booking.checkedInAt != null}"
              th:text="'Đã soát vé lúc ' + ${#temporals.format(booking.checkedInAt, 'HH:mm dd/MM/yyyy')}">Đã soát</div>
