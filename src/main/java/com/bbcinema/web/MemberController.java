@@ -30,6 +30,8 @@ public class MemberController {
     private final com.bbcinema.service.MembershipService membershipService;
     private final com.bbcinema.service.MemberCodeService memberCodeService;
     private final com.bbcinema.service.QrCodeService qrCodeService;
+    private final com.bbcinema.service.BirthdayRewardService birthdayRewardService;
+    private final java.time.Clock clock;
 
     @GetMapping
     public String profile(@AuthenticationPrincipal AppUserPrincipal principal, Model model) {
@@ -106,6 +108,8 @@ public class MemberController {
     public String points(@AuthenticationPrincipal AppUserPrincipal principal, Model model) {
         addCommon(model, userService.getById(principal.getId()), "points");
         model.addAttribute("transactions", pointService.history(principal.getId()));
+        model.addAttribute("birthdayReward", birthdayRewardService.currentFor(principal.getId()).orElse(null));
+        model.addAttribute("today", java.time.LocalDate.now(clock));
         return "member/points";
     }
 

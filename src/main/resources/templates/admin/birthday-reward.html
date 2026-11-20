@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/admin :: layout(~{::title}, ~{::section}, ~{::scripts})}">
+<head><title>Quà sinh nhật thành viên · Quản trị BBCinema</title></head>
+<body>
+<section class="p-4">
+    <div class="d-flex align-items-center gap-3 mb-3">
+        <h1 class="h4 mb-0">Quà sinh nhật thành viên</h1>
+        <a class="btn btn-sm btn-outline-navy ms-auto" href="/admin/promotions"><i class="bi bi-arrow-left"></i> Mã giảm giá</a>
+    </div>
+    <p class="text-muted small">Mỗi thành viên (đã xác nhận email, có ngày sinh) nhận <b>một mã cá nhân mỗi năm</b>, dùng được một lần,
+        chỉ cho tài khoản của mình, từ ngày 1 đến hết ngày cuối của tháng sinh nhật. Mã được gửi lúc 8:00 mỗi ngày qua email
+        và hiện trong mục Điểm thưởng của thành viên. Tắt tính năng thì không phát mã mới; mã đã phát vẫn dùng được đến khi hết hạn.</p>
+    <div class="row g-4">
+        <div class="col-xl-4">
+            <form class="panel row g-2" method="post" th:action="@{/admin/promotions/birthday}" th:object="${form}">
+                <h2 class="h6 col-12">Cài đặt quà tặng</h2>
+                <div class="col-12 alert alert-danger" th:if="${#fields.hasGlobalErrors()}" th:text="${#fields.globalErrors()[0]}">Lỗi</div>
+                <div class="col-12"><div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" role="switch" th:field="*{enabled}">
+                    <label class="form-check-label" th:for="${#ids.prev('enabled')}">Bật quà sinh nhật</label>
+                </div></div>
+                <div class="col-12"><label class="form-label small" for="discountType">Cách giảm</label>
+                    <select class="form-select" id="discountType" th:field="*{discountType}" th:errorclass="is-invalid">
+                        <option th:each="t : ${discountTypes}" th:value="${t}" th:text="${t.label}">%</option>
+                    </select><div class="invalid-feedback" th:errors="*{discountType}"></div></div>
+                <div class="col-12"><label class="form-label small" for="discountValue">Mức giảm (% hoặc số tiền đ)</label>
+                    <input class="form-control" type="number" min="1" step="1" id="discountValue" th:field="*{discountValue}" th:errorclass="is-invalid">
+                    <div class="invalid-feedback" th:errors="*{discountValue}"></div></div>
+                <div class="col-6"><label class="form-label small" for="maxDiscount">Giảm tối đa (đ, chỉ cho %)</label>
+                    <input class="form-control" type="number" min="0" step="1000" id="maxDiscount" th:field="*{maxDiscount}" placeholder="Không giới hạn" th:errorclass="is-invalid">
+                    <div class="invalid-feedback" th:errors="*{maxDiscount}"></div></div>
+                <div class="col-6"><label class="form-label small" for="minOrder">Đơn tối thiểu (đ)</label>
+                    <input class="form-control" type="number" min="0" step="1000" id="minOrder" th:field="*{minOrder}" placeholder="Mọi đơn" th:errorclass="is-invalid">
+                    <div class="invalid-feedback" th:errors="*{minOrder}"></div></div>
+                <div class="col-12 small text-muted" th:if="${settings.updatedAt != null}"
+                     th:text="'Cập nhật lần cuối ' + ${#temporals.format(settings.updatedAt, 'HH:mm dd/MM/yyyy')}">-</div>
+                <div class="col-12"><button class="btn btn-amber" type="submit">Lưu cài đặt</button></div>
+                <p class="col-12 small text-muted mb-0">Đổi mức giảm chỉ áp dụng cho mã phát sau đó, mã đã phát giữ nguyên.</p>
+            </form>
+        </div>
+        <div class="col-xl-8"><div class="panel table-responsive">
+            <h2 class="h6">Mã đã phát năm <span th:text="${today.year}">2026</span>
+                <span class="text-muted small" th:text="'(' + ${rewardCount} + ' mã' + (${rewardCount > rewards.size()} ? ', hiện ' + ${rewards.size()} + ' mã mới nhất' : '') + ')'">(0)</span></h2>
+            <p class="text-muted small mb-0" th:if="${#lists.isEmpty(rewards)}">Chưa phát mã sinh nhật nào trong năm nay.</p>
+            <table class="table align-middle mb-0" th:unless="${#lists.isEmpty(rewards)}">
+                <thead><tr><th>Thành viên</th><th>Mã</th><th>Ưu đãi</th><th>Hạn dùng</th><th>Phát lúc</th><th>Trạng thái</th></tr></thead>
+                <tbody><tr th:each="r : ${rewards}">
+                    <td><div th:text="${r.user.fullName}">Tên</div><div class="small text-muted" th:text="${r.user.email}">email</div></td>
+                    <td class="fw-bold font-monospace" th:text="${r.promotion.code}">SN...</td>
+                    <td class="small" th:text="${@birthdayRewardService.discountText(r.promotion)}">Giảm 20%</td>
+                    <td class="small" th:text="${#temporals.format(r.promotion.validTo, 'dd/MM/yyyy')}">-</td>
+                    <td class="small" th:text="${#temporals.format(r.issuedAt, 'HH:mm dd/MM')}">-</td>
+                    <td><span class="badge"
+                              th:with="used=${r.promotion.usedUp}, expired=${today.isAfter(r.promotion.validTo)}"
+                              th:classappend="${used} ? 'text-bg-success' : (${expired} ? 'text-bg-secondary' : 'text-bg-warning')"
+                              th:text="${used ? 'Đã dùng' : (expired ? 'Hết hạn' : 'Chưa dùng')}">-</span></td>
+                </tr></tbody>
+            </table>
+        </div></div>
+    </div>
+</section>
+<th:block th:fragment="scripts"></th:block>
+</body>
+</html>

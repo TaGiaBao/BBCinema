@@ -13,4 +13,6 @@ public interface PromotionRepository extends JpaRepository<Promotion, Long> {
     boolean existsByCodeIgnoreCase(String code);
 
     List<Promotion> findAllByOrderByValidToDesc();
+
+    List<Promotion> findByOwnerIsNullOrderByValidToDesc();
 }

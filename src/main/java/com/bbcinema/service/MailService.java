@@ -40,6 +40,7 @@ public class MailService {
     private final AppProperties properties;
     private final DemoMailbox demoMailbox;
     private final com.bbcinema.repository.PaymentRepository paymentRepository;
+    private final com.bbcinema.repository.BirthdayRewardRepository birthdayRewardRepository;
 
     @Async
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
@@ -148,6 +149,61 @@ public class MailService {
         } catch (Exception e) {
             log.error("Could not send confirmation mail to {}: {}", event.email(), e.getMessage());
         }
+    }
+
+    /**
+     * "Chúc mừng sinh nhật": the member's personal birthday code, its value, until when it works and a link to book.
+     * Kept in the demo mailbox like the other mails; never really sent to reserved or sample addresses.
+     */
+    @Async
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    @Transactional(propagation = Propagation.REQUIRES_NEW, readOnly = true)
+    public void onBirthdayRewardIssued(com.bbcinema.service.event.BirthdayRewardIssuedEvent event) {
+        com.bbcinema.entity.BirthdayReward reward = birthdayRewardRepository.findDetailed(event.rewardId()).orElse(null);
+        if (reward == null) {
+            return;
+        }
+        String to = reward.getUser().getEmail();
+        JavaMailSender sender = mailSender.getIfAvailable();
+        boolean sending = properties.mail().enabled() && sender != null;
+        if (!sending && !demoMailbox.isEnabled()) {
+            log.info("Mail is off. Birthday code {} would be sent to {}", reward.getPromotion().getCode(), to);
+            return;
+        }
+        try {
+            com.bbcinema.entity.Promotion promotion = reward.getPromotion();
+            Context context = new Context();
+            context.setVariable("fullName", reward.getUser().getFullName());
+            context.setVariable("code", promotion.getCode());
+            context.setVariable("discount", BirthdayRewardService.describe(promotion));
+            context.setVariable("minOrder", promotion.getMinOrder() == null ? null : BirthdayRewardService.money(promotion.getMinOrder()));
+            context.setVariable("validTo", promotion.getValidTo());
+            context.setVariable("link", properties.baseUrl() + "/movies");
+            String html = templateEngine.process("mail/birthday", context);
+            String subject = "[BBCinema] Chúc mừng sinh nhật " + reward.getUser().getFullName() + "!";
+            demoMailbox.keep(to, subject, html, Map.of());
+            if (!sending || isReservedAddress(to) || isSampleAccount(to)) {
+                return;
+            }
+            MimeMessage message = sender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, false, StandardCharsets.UTF_8.name());
+            helper.setFrom(properties.mail().from());
+            helper.setTo(to);
+            helper.setSubject(subject);
+            helper.setText(html, true);
+            sender.send(message);
+            log.info("Birthday code sent to {}", to);
+        } catch (Exception e) {
+            log.error("Could not send birthday mail to {}: {}", to, e.getMessage());
+        }
+    }
+
+    /**
+     * The sample accounts the demo data creates (user@bbcinema.vn, teen@bbcinema.vn...): the cinema does not own that
+     * domain, so their birthday mails are only kept in the demo mailbox, never really sent.
+     */
+    static boolean isSampleAccount(String email) {
+        return email.toLowerCase(java.util.Locale.ROOT).endsWith("@bbcinema.vn");
     }
 
     /** Bookings made by the demo data at start-up: their tickets would otherwise be mailed out for real. */
