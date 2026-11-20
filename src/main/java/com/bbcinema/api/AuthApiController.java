@@ -9,12 +9,15 @@ import com.bbcinema.security.JwtService;
 import com.bbcinema.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import com.bbcinema.exception.LoginBlockedException;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.bind.annotation.*;
 
 @Tag(name = "Auth", description = "Đăng ký, đăng nhập lấy JWT")
@@ -27,12 +30,28 @@ public class AuthApiController {
     private final JwtService jwtService;
     private final UserService userService;
     private final com.bbcinema.service.EmailVerificationService emailVerificationService;
+    private final com.bbcinema.security.LoginAttemptService loginAttempts;
+    private final com.bbcinema.security.ClientIp clientIp;
 
-    @Operation(summary = "Đăng nhập, trả về access token")
+    @Operation(summary = "Đăng nhập, trả về access token (sai quá nhiều lần thì bị chặn tạm thời, mã 429)")
     @PostMapping("/login")
-    public TokenResponse login(@Valid @RequestBody LoginRequest request) {
-        Authentication auth = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(request.email().trim(), request.password()));
+    public TokenResponse login(@Valid @RequestBody LoginRequest request, HttpServletRequest http) {
+        String ip = clientIp.of(http);
+        if (loginAttempts.isBlocked(request.email(), ip)) {
+            throw new LoginBlockedException();
+        }
+        Authentication auth;
+        try {
+            auth = authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(request.email().trim(), request.password()));
+        } catch (AuthenticationException e) {
+            loginAttempts.recordFailure(request.email(), ip);
+            if (loginAttempts.isBlocked(request.email(), ip)) {
+                throw new LoginBlockedException();
+            }
+            throw e;
+        }
+        loginAttempts.recordSuccess(request.email());
         AppUserPrincipal user = (AppUserPrincipal) auth.getPrincipal();
         if (!userService.getById(user.getId()).isEmailVerified()) {
             throw new com.bbcinema.exception.BusinessException(

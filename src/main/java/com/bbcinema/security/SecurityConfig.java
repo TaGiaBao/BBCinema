@@ -1,6 +1,5 @@
 package com.bbcinema.security;
 
-import com.bbcinema.config.AppProperties;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.bbcinema.dto.response.ApiError;
 import jakarta.servlet.http.HttpServletRequest;
@@ -40,13 +39,13 @@ public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final CustomUserDetailsService userDetailsService;
-    private final AppProperties properties;
     private final ObjectMapper objectMapper;
     private final ObjectProvider<ClientRegistrationRepository> googleClients;
     /** Looked up lazily: it needs UserService, which needs the PasswordEncoder defined here. */
     private final ObjectProvider<GoogleLoginSuccessHandler> googleLoginSuccessHandler;
     /** Counter staff cannot log out while their till shift is open; a manager closes it instead. */
     private final ObjectProvider<com.bbcinema.repository.CounterShiftRepository> shiftRepository;
+    private final TokenCookies tokenCookies;
 
     @Bean
     public PasswordEncoder passwordEncoder() {
@@ -113,7 +112,8 @@ public class SecurityConfig {
                         // A blocked logout falls through to ShiftController, which explains why.
                         .logoutRequestMatcher(request -> "POST".equals(request.getMethod())
                                 && (request.getContextPath() + "/logout").equals(request.getRequestURI()) && !inOpenShift())
-                        .deleteCookies(properties.jwt().cookieName())
+                        // Same attributes as the login cookie (Secure, SameSite...), so the browser really drops it.
+                        .addLogoutHandler((request, response, auth) -> tokenCookies.clear(response))
                         .logoutSuccessHandler((request, response, auth) -> response.sendRedirect(
                                 request.getContextPath() + ("internal".equals(request.getParameter("area"))
                                         ? "/internal/login?logout" : "/?logout"))))

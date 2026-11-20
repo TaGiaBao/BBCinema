@@ -108,6 +108,10 @@ Chạy với `SPRING_PROFILES_ACTIVE=mysql,prod`. Profile này (file `src/main/r
 | `JWT_SECRET` | Có | kết quả của `openssl rand -base64 32` |
 | `APP_BASE_URL` | Có | `https://bbcinema.example.com` |
 | `SEED_DATA`, `SWAGGER_ENABLED` | Không | `true` để bật |
+| `COOKIE_SECURE` | Không (mặc định `true` ở prod) | `false` chỉ khi buộc phải chạy prod qua http |
+| `TRUST_FORWARDED_FOR` | Không (mặc định `false`) | `true` khi chạy sau reverse proxy (nginx) có ghi `X-Forwarded-For` |
+
+Đăng nhập sai 5 lần liên tiếp cho cùng một email, hoặc 20 lần trong 15 phút từ cùng một địa chỉ IP, thì bị chặn 15 phút (cả trang khách, trang nội bộ và `/api/auth/login`, API trả mã 429). Ngưỡng chỉnh ở `app.security.login` trong `application.yml`.
 
 ## Tài khoản dùng thử
 

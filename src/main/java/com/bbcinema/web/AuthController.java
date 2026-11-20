@@ -4,6 +4,7 @@ import com.bbcinema.dto.request.RegisterForm;
 import com.bbcinema.entity.enums.Role;
 import com.bbcinema.exception.BusinessException;
 import com.bbcinema.security.AppUserPrincipal;
+import com.bbcinema.security.LoginAttemptService;
 import com.bbcinema.security.TokenCookies;
 import com.bbcinema.service.GoogleLoginService;
 import com.bbcinema.service.PasswordResetService;
@@ -37,6 +38,8 @@ public class AuthController {
     private final PasswordResetService passwordResetService;
     private final com.bbcinema.service.EmailVerificationService emailVerificationService;
     private final TokenCookies tokenCookies;
+    private final com.bbcinema.security.LoginAttemptService loginAttempts;
+    private final com.bbcinema.security.ClientIp clientIp;
     private final org.springframework.beans.factory.ObjectProvider<
             org.springframework.security.oauth2.client.registration.ClientRegistrationRepository> googleClients;
 
@@ -72,9 +75,10 @@ public class AuthController {
     public String login(@RequestParam String email,
                         @RequestParam String password,
                         @RequestParam(required = false) String redirect,
+                        HttpServletRequest request,
                         HttpServletResponse response,
                         Model model) {
-        LoginResult result = signIn(email, password, false, response);
+        LoginResult result = signIn(email, password, false, request, response);
         if (result.user() != null) {
             return "redirect:" + SafeRedirect.localPath(redirect, "/");
         }
@@ -101,9 +105,10 @@ public class AuthController {
     public String internalLogin(@RequestParam String email,
                                 @RequestParam String password,
                                 @RequestParam(required = false) String redirect,
+                                HttpServletRequest request,
                                 HttpServletResponse response,
                                 Model model) {
-        LoginResult result = signIn(email, password, true, response);
+        LoginResult result = signIn(email, password, true, request, response);
         if (result.user() != null) {
             return "redirect:" + SafeRedirect.localPath(redirect, homeFor(result.user().getRole()));
         }
@@ -213,19 +218,30 @@ public class AuthController {
 
     /**
      * Checks the password, then that the account belongs to the area it signs in to.
-     * The cookie is written only when both checks pass.
+     * The cookie is written only when both checks pass. After too many failures for the email or the client
+     * address, every attempt is refused for a while without even checking the password.
      */
-    private LoginResult signIn(String email, String password, boolean internalArea, HttpServletResponse response) {
+    private LoginResult signIn(String email, String password, boolean internalArea,
+                               HttpServletRequest request, HttpServletResponse response) {
+        String ip = clientIp.of(request);
+        if (loginAttempts.isBlocked(email, ip)) {
+            return new LoginResult(null, LoginAttemptService.BLOCKED_MESSAGE);
+        }
         AppUserPrincipal user;
         try {
             Authentication auth = authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(email.trim(), password));
             user = (AppUserPrincipal) auth.getPrincipal();
-        } catch (DisabledException e) {
-            return new LoginResult(null, "Tài khoản của bạn đã bị khoá. Vui lòng liên hệ rạp.");
         } catch (AuthenticationException e) {
-            return new LoginResult(null, "Email hoặc mật khẩu không đúng");
+            loginAttempts.recordFailure(email, ip);
+            if (loginAttempts.isBlocked(email, ip)) {
+                return new LoginResult(null, LoginAttemptService.BLOCKED_MESSAGE);
+            }
+            return new LoginResult(null, e instanceof DisabledException
+                    ? "Tài khoản của bạn đã bị khoá. Vui lòng liên hệ rạp."
+                    : "Email hoặc mật khẩu không đúng");
         }
+        loginAttempts.recordSuccess(email);
         if (internalArea && !isInternal(user.getRole())) {
             return new LoginResult(null, "Trang này chỉ dành cho nhân viên và quản trị viên. "
                     + "Thành viên vui lòng đăng nhập tại trang chủ.");
