@@ -115,7 +115,7 @@ class WebPagesIntegrationTest extends IntegrationTestBase {
     @Test
     void staffSellsAtCounter() throws Exception {
         Showtime st = showtimeTomorrow();
-        Cookie staff = authCookie(account(Role.STAFF));
+        Cookie staff = authCookie(staffOnShift());
         Long seat = freeSeats(st.getId(), 1).get(0);
         mvc.perform(post("/staff/sell/" + st.getId()).with(csrf()).cookie(staff)
                         .param("showtimeSeatIds", seat.toString()).param("customerName", "Khách"))
@@ -140,7 +140,7 @@ class WebPagesIntegrationTest extends IntegrationTestBase {
 
     @Test
     void checkInPageScansWithCameraAndConfirmsTicket() throws Exception {
-        User staff = account(Role.STAFF);
+        User staff = staffOnShift();
         Showtime st = showtime(AgeRating.P,
                 LocalDateTime.now().plusMinutes(30).withSecond(0).withNano(0));
         CounterSaleForm form = new CounterSaleForm();
@@ -189,14 +189,14 @@ class WebPagesIntegrationTest extends IntegrationTestBase {
                 .andExpect(content().string(containsString("data-showtime-id=\"" + st.getId() + "\"")))
                 .andExpect(content().string(containsString("data-role=\"available-count\"")))
                 .andExpect(content().string(containsString("đang có người giữ")));
-        mvc.perform(get("/staff/sell/" + st.getId()).cookie(authCookie(account(Role.STAFF))))
+        mvc.perform(get("/staff/sell/" + st.getId()).cookie(authCookie(staffOnShift())))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("data-showtime-id=\"" + st.getId() + "\"")));
     }
 
     @Test
     void ticketsShowFadedLogoBehindText() throws Exception {
-        User staff = account(Role.STAFF);
+        User staff = staffOnShift();
         Showtime st = showtimeTomorrow();
         CounterSaleForm form = new CounterSaleForm();
         form.setShowtimeSeatIds(freeSeats(st.getId(), 1));
@@ -237,7 +237,7 @@ class WebPagesIntegrationTest extends IntegrationTestBase {
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("/schedule?date=" + lastDay)))
                 .andExpect(content().string(containsString("data-booking-days=\"14\"")));
-        mvc.perform(get("/staff").cookie(authCookie(account(Role.STAFF))))
+        mvc.perform(get("/staff").cookie(authCookie(staffOnShift())))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("date=" + lastDay)));
     }
@@ -294,7 +294,7 @@ class WebPagesIntegrationTest extends IntegrationTestBase {
         mvc.perform(get("/").cookie(new Cookie("BB_CINEMA", "999999")))
                 .andExpect(content().string(containsString("id=\"cinemaChooser\"")));
         // Never on the internal pages.
-        mvc.perform(get("/staff").cookie(authCookie(account(Role.STAFF))))
+        mvc.perform(get("/staff").cookie(authCookie(staffOnShift())))
                 .andExpect(content().string(not(containsString("cinemaChooser"))));
         mvc.perform(get("/internal/login"))
                 .andExpect(content().string(not(containsString("cinemaChooser"))));

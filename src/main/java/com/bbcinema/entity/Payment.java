@@ -59,6 +59,11 @@ public class Payment {
     @JoinColumn(name = "refunded_by_id")
     private User refundedBy;
 
+    /** Cash refunds at the counter: the till shift whose drawer paid the money back. */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "refund_shift_id")
+    private CounterShift refundShift;
+
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 

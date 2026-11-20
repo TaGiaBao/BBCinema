@@ -9,6 +9,7 @@ import com.bbcinema.exception.BusinessException;
 import com.bbcinema.exception.NotFoundException;
 import com.bbcinema.exception.SeatUnavailableException;
 import com.bbcinema.repository.BookingRepository;
+import com.bbcinema.repository.CounterShiftRepository;
 import com.bbcinema.repository.PaymentRepository;
 import com.bbcinema.repository.ShowtimeSeatRepository;
 import com.bbcinema.service.event.BookingPaidEvent;
@@ -43,6 +44,7 @@ public class BookingService {
     private final BookingRepository bookingRepository;
     private final ShowtimeSeatRepository showtimeSeatRepository;
     private final PaymentRepository paymentRepository;
+    private final CounterShiftRepository counterShiftRepository;
     private final ShowtimeService showtimeService;
     private final UserService userService;
     private final ComboService comboService;
@@ -463,14 +465,35 @@ public class BookingService {
         if (!booking.isPaid()) {
             throw new BusinessException("Đơn " + booking.getCode() + " " + booking.getStatus().getLabel().toLowerCase());
         }
+        if (viewerRole == Role.STAFF) {
+            // Counter staff only take money in; giving it back needs a manager (refundAtCounter).
+            throw new BusinessException("Nhân viên quầy không được hoàn tiền. Cần quản lý duyệt huỷ vé tại quầy.");
+        }
+        boolean admin = viewerRole == Role.ADMIN;
+        if (!admin && now.isAfter(cancelDeadline(booking))) {
+            throw new BusinessException("Chỉ được huỷ vé trước giờ chiếu " + properties.booking().cancelBeforeHours() + " tiếng");
+        }
+        return refund(booking, now, admin ? userService.getById(viewerId) : null, null);
+    }
+
+    /**
+     * A manager approved cancelling a paid ticket at the counter: the money is handed back from the drawer of
+     * {@code shift}. Checked-in tickets cannot be refunded.
+     */
+    @Transactional
+    public Booking refundAtCounter(String code, User manager, CounterShift shift) {
+        Booking booking = getByCode(code);
+        if (!booking.isPaid()) {
+            throw new BusinessException("Đơn " + booking.getCode() + " " + booking.getStatus().getLabel().toLowerCase()
+                    + ", không có tiền để hoàn");
+        }
+        return refund(booking, LocalDateTime.now(clock), manager, shift);
+    }
+
+    private Booking refund(Booking booking, LocalDateTime now, User refundedBy, CounterShift shift) {
         if (booking.getCheckedInAt() != null) {
             throw new BusinessException("Vé đã được soát, không thể huỷ");
         }
-        boolean staff = viewerRole == Role.STAFF || viewerRole == Role.ADMIN;
-        if (!staff && now.isAfter(cancelDeadline(booking))) {
-            throw new BusinessException("Chỉ được huỷ vé trước giờ chiếu " + properties.booking().cancelBeforeHours() + " tiếng");
-        }
-
         releaseSeats(booking);
         User user = booking.getUser();
         if (user != null) {
@@ -481,13 +504,13 @@ public class BookingService {
         if (promotion != null && promotion.getUsedCount() > 0) {
             promotion.setUsedCount(promotion.getUsedCount() - 1);
         }
-        User refundedBy = staff ? userService.getById(viewerId) : null;
         paymentRepository.findByBookingIdOrderByCreatedAtDesc(booking.getId()).stream()
                 .filter(p -> p.getStatus() == PaymentStatus.SUCCESS)
                 .forEach(p -> {
                     p.setStatus(PaymentStatus.REFUNDED);
                     p.setRefundedAt(now);
                     p.setRefundedBy(refundedBy);
+                    p.setRefundShift(shift);
                 });
         booking.setStatus(BookingStatus.CANCELLED);
         booking.setCancelledAt(now);
@@ -536,6 +559,10 @@ public class BookingService {
             default -> throw new BusinessException(method.getLabel() + " chưa được kết nối ở quầy");
         }
         User staff = userService.getById(staffId);
+        CounterShift shift = counterShiftRepository.findFirstByStaffIdAndClosedAtIsNullOrderByOpenedAtDesc(staffId).orElse(null);
+        if (shift == null && staff.getRole() == Role.STAFF) {
+            throw new BusinessException("Bạn chưa vào ca. Nhờ quản lý mở ca trước khi bán vé.");
+        }
         Showtime showtime = showtimeService.getDetailed(showtimeId);
         LocalDateTime now = LocalDateTime.now(clock);
         if (showtime.isCancelled()) {
@@ -546,6 +573,7 @@ public class BookingService {
         }
         Booking booking = newBooking(showtime, SalesChannel.COUNTER, now);
         booking.setSoldBy(staff);
+        booking.setShift(shift);
         booking.setCustomerName(form.getCustomerName());
         booking.setCustomerPhone(form.getCustomerPhone());
         booking.setCustomerEmail(form.getCustomerEmail());
@@ -572,51 +600,6 @@ public class BookingService {
     public Payment paymentOf(Booking booking) {
         return paymentRepository.findByBookingIdOrderByCreatedAtDesc(booking.getId()).stream()
                 .filter(p -> p.getStatus() == PaymentStatus.SUCCESS).findFirst().orElse(null);
-    }
-
-    /** What one staff member took at the counter on a day, per payment method, to count the till against. */
-    public record CounterTakings(int cashSales, BigDecimal cashTotal, BigDecimal cashReceived, BigDecimal changeGiven,
-                                 int cardSales, BigDecimal cardTotal, int transferSales, BigDecimal transferTotal,
-                                 int cashRefunds, BigDecimal cashRefunded) {
-
-        /** Cash that should be in the drawer: received, minus change, minus cash handed back for cancelled tickets. */
-        public BigDecimal cashInDrawer() {
-            return cashReceived.subtract(changeGiven).subtract(cashRefunded);
-        }
-    }
-
-    public CounterTakings counterTakings(Long staffId, LocalDate day) {
-        LocalDateTime from = day.atStartOfDay();
-        LocalDateTime to = day.plusDays(1).atStartOfDay();
-        // Sales stay counted after a refund: the money did come in that day. The refund is a separate outflow below.
-        List<Payment> payments = paymentRepository.findCounterTakings(staffId, from, to);
-        int cash = 0, card = 0, transfer = 0;
-        BigDecimal cashTotal = BigDecimal.ZERO, received = BigDecimal.ZERO, change = BigDecimal.ZERO;
-        BigDecimal cardTotal = BigDecimal.ZERO, transferTotal = BigDecimal.ZERO;
-        for (Payment p : payments) {
-            switch (p.getMethod()) {
-                case CASH -> {
-                    cash++;
-                    cashTotal = cashTotal.add(p.getAmount());
-                    // Older sales did not record the cash handed over: count them as paid exactly.
-                    received = received.add(p.getAmountReceived() == null ? p.getAmount() : p.getAmountReceived());
-                    change = change.add(p.getChangeAmount() == null ? BigDecimal.ZERO : p.getChangeAmount());
-                }
-                case CARD -> {
-                    card++;
-                    cardTotal = cardTotal.add(p.getAmount());
-                }
-                case BANK_QR -> {
-                    transfer++;
-                    transferTotal = transferTotal.add(p.getAmount());
-                }
-                default -> { }
-            }
-        }
-        List<Payment> refunds = paymentRepository.findCashRefunds(staffId, from, to);
-        BigDecimal refunded = refunds.stream().map(Payment::getAmount).reduce(BigDecimal.ZERO, BigDecimal::add);
-        return new CounterTakings(cash, cashTotal, received, change, card, cardTotal, transfer, transferTotal,
-                refunds.size(), refunded);
     }
 
     /**

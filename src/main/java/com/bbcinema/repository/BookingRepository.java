@@ -91,4 +91,7 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
             where b.user.id = :userId and b.status = com.bbcinema.entity.enums.BookingStatus.PAID and b.paidAt >= :since
             """)
     java.math.BigDecimal sumPaidByUserSince(Long userId, java.time.LocalDateTime since);
+
+    /** Counter bookings of a till shift in a given state (e.g. bank transfers still waiting). */
+    long countByShiftIdAndStatus(Long shiftId, BookingStatus status);
 }

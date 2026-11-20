@@ -7,6 +7,7 @@ import com.bbcinema.exception.BusinessException;
 import com.bbcinema.exception.SeatUnavailableException;
 import com.bbcinema.repository.PaymentRepository;
 import com.bbcinema.service.BookingService;
+import com.bbcinema.service.ShiftService;
 import org.junit.jupiter.api.Test;
 import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -150,6 +151,12 @@ class BookingFlowIntegrationTest extends IntegrationTestBase {
         form.setComboQuantities(Map.of(combo.getId(), 1));
         form.setCustomerName("Khách lẻ");
 
+        // No sale before a manager opens the shift.
+        form.setAmountReceived(BigDecimal.valueOf(1_000_000));
+        assertThatThrownBy(() -> bookingService.sellAtCounter(staff.getId(), st.getId(), form))
+                .hasMessageContaining("chưa vào ca");
+        CounterShift shift = openShift(staff, 300_000);
+
         // Cash must cover the total; the change is recorded for the till.
         form.setAmountReceived(BigDecimal.valueOf(1_000));
         assertThatThrownBy(() -> bookingService.sellAtCounter(staff.getId(), st.getId(), form))
@@ -160,10 +167,11 @@ class BookingFlowIntegrationTest extends IntegrationTestBase {
         Payment cash = paymentRepository.findByTransactionRef("CASH-" + sold.getCode()).orElseThrow();
         assertThat(cash.getAmountReceived()).isEqualByComparingTo("1000000");
         assertThat(cash.getChangeAmount()).isEqualByComparingTo(BigDecimal.valueOf(1_000_000).subtract(sold.getTotalAmount()));
-        BookingService.CounterTakings takings = bookingService.counterTakings(staff.getId(), java.time.LocalDate.now());
-        assertThat(takings.cashSales()).isEqualTo(1);
-        assertThat(takings.cashInDrawer()).isEqualByComparingTo(sold.getTotalAmount());
-        assertThat(takings.changeGiven()).isEqualByComparingTo(cash.getChangeAmount());
+        ShiftService.Summary summary = shiftService.summary(shift);
+        assertThat(summary.cashSales()).isEqualTo(1);
+        assertThat(summary.netCash()).isEqualByComparingTo(sold.getTotalAmount());
+        assertThat(summary.expectedCash()).isEqualByComparingTo(sold.getTotalAmount().add(BigDecimal.valueOf(300_000)));
+        assertThat(summary.changeGiven()).isEqualByComparingTo(cash.getChangeAmount());
 
         assertThat(sold.getStatus()).isEqualTo(BookingStatus.PAID);
         assertThat(sold.getChannel()).isEqualTo(SalesChannel.COUNTER);
@@ -204,25 +212,49 @@ class BookingFlowIntegrationTest extends IntegrationTestBase {
     }
 
     @Test
-    void cashRefundIsTakenFromTheDrawerOfTheStaffWhoHandsItBack() {
-        User seller = account(Role.STAFF);
-        User other = account(Role.STAFF);
+    void staffCannotRefundAManagerApprovesAndTheShiftClosesWithItsOwnMoney() {
+        User staff = account(Role.STAFF);
+        User manager = account(Role.ADMIN);
+        CounterShift shift = shiftService.open(staff.getId(), null, manager.getEmail(), "Secret@123", BigDecimal.valueOf(500_000));
+        assertThatThrownBy(() -> shiftService.open(staff.getId(), null, manager.getEmail(), "Secret@123", BigDecimal.ZERO))
+                .hasMessageContaining("ca chưa kết");
         Showtime st = showtimeTomorrow();
         CounterSaleForm form = new CounterSaleForm();
+        form.setShowtimeSeatIds(freeSeats(st.getId(), 2));
+        form.setAmountReceived(BigDecimal.valueOf(1_000_000));
+        Booking first = bookingService.sellAtCounter(staff.getId(), st.getId(), form);
         form.setShowtimeSeatIds(freeSeats(st.getId(), 1));
-        form.setAmountReceived(BigDecimal.valueOf(500_000));
-        Booking sold = bookingService.sellAtCounter(seller.getId(), st.getId(), form);
+        Booking second = bookingService.sellAtCounter(staff.getId(), st.getId(), form);
 
-        bookingService.cancel(sold.getCode(), other.getId(), Role.STAFF);
+        // Staff only take money in.
+        assertThatThrownBy(() -> bookingService.cancel(first.getCode(), staff.getId(), Role.STAFF))
+                .hasMessageContaining("không được hoàn tiền");
+        // A wrong or non-manager account is refused.
+        assertThatThrownBy(() -> shiftService.refund(staff.getId(), first.getCode(), manager.getEmail(), "wrong"))
+                .hasMessageContaining(ShiftService.WRONG_MANAGER);
+        assertThatThrownBy(() -> shiftService.refund(staff.getId(), first.getCode(), staff.getEmail(), "Secret@123"))
+                .hasMessageContaining(ShiftService.WRONG_MANAGER);
+        Booking refunded = shiftService.refund(staff.getId(), first.getCode(), manager.getEmail(), "Secret@123");
+        assertThat(refunded.getStatus()).isEqualTo(BookingStatus.CANCELLED);
+        Payment payment = paymentRepository.findByTransactionRef("CASH-" + first.getCode()).orElseThrow();
+        assertThat(payment.getRefundedBy().getId()).isEqualTo(manager.getId());
 
-        LocalDate today = LocalDate.now();
-        BookingService.CounterTakings sellerDay = bookingService.counterTakings(seller.getId(), today);
-        assertThat(sellerDay.cashSales()).isEqualTo(1); // the cash did come in
-        assertThat(sellerDay.cashInDrawer()).isEqualByComparingTo(sold.getTotalAmount());
-        BookingService.CounterTakings otherDay = bookingService.counterTakings(other.getId(), today);
-        assertThat(otherDay.cashRefunds()).isEqualTo(1);
-        assertThat(otherDay.cashInDrawer()).isEqualByComparingTo(sold.getTotalAmount().negate());
-        Payment refunded = paymentRepository.findByTransactionRef("CASH-" + sold.getCode()).orElseThrow();
-        assertThat(refunded.getRefundedAt()).isNotNull();
+        // Drawer: float 500,000 + both sales - the refund = float + the second sale.
+        ShiftService.Summary summary = shiftService.summary(shift);
+        assertThat(summary.cashSales()).isEqualTo(2);
+        assertThat(summary.cashRefunds()).isEqualTo(1);
+        assertThat(summary.expectedCash()).isEqualByComparingTo(second.getTotalAmount().add(BigDecimal.valueOf(500_000)));
+
+        assertThatThrownBy(() -> shiftService.close(staff.getId(), manager.getEmail(), "Secret@123", null, null))
+                .hasMessageContaining("đếm được");
+        BigDecimal counted = summary.expectedCash().subtract(BigDecimal.valueOf(10_000));
+        CounterShift closed = shiftService.close(staff.getId(), manager.getEmail(), "Secret@123", counted, "Thiếu 10k");
+        assertThat(closed.isOpen()).isFalse();
+        assertThat(closed.getExpectedCash()).isEqualByComparingTo(summary.expectedCash());
+        assertThat(closed.getDifference()).isEqualByComparingTo("-10000");
+        assertThat(shiftService.findOpen(staff.getId())).isEmpty();
+        // The next shift starts from zero: earlier sales are not mixed in.
+        CounterShift next = openShift(staff, 200_000);
+        assertThat(shiftService.summary(next).expectedCash()).isEqualByComparingTo("200000");
     }
 }

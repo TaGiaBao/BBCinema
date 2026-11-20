@@ -35,6 +35,7 @@ public class StaffController {
     private final BookingService bookingService;
     private final ComboService comboService;
     private final com.bbcinema.service.BankTransferService bankTransferService;
+    private final com.bbcinema.service.ShiftService shiftService;
     private final Clock clock;
 
     @GetMapping
@@ -48,7 +49,7 @@ public class StaffController {
         model.addAttribute("dates", showtimeService.upcomingDates());
         model.addAttribute("selectedDate", selected);
         model.addAttribute("schedule", cinema == null ? List.of() : showtimeService.scheduleForCinema(cinema.getId(), selected));
-        model.addAttribute("takings", bookingService.counterTakings(staff.getId(), today));
+        shiftService.findOpen(staff.getId()).ifPresent(shift -> model.addAttribute("shiftSummary", shiftService.summary(shift)));
         model.addAttribute("menu", "staff");
         return "staff/index";
     }

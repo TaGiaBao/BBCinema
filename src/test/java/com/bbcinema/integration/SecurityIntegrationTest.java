@@ -1,10 +1,12 @@
 package com.bbcinema.integration;
 
 import com.bbcinema.entity.User;
+import jakarta.servlet.http.Cookie;
 import com.bbcinema.entity.enums.Role;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.MediaType;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.not;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
@@ -44,6 +46,10 @@ class SecurityIntegrationTest extends IntegrationTestBase {
         User admin = account(Role.ADMIN);
         mvc.perform(get("/admin").cookie(authCookie(member))).andExpect(status().isForbidden());
         mvc.perform(get("/staff").cookie(authCookie(member))).andExpect(status().isForbidden());
+        // Counter staff work inside a till shift: without one every counter page leads to "open shift".
+        mvc.perform(get("/staff").cookie(authCookie(staff))).andExpect(redirectedUrl("/staff/shift/open"));
+        mvc.perform(get("/staff/shift/open").cookie(authCookie(staff))).andExpect(status().isOk());
+        openShift(staff, 0);
         mvc.perform(get("/staff").cookie(authCookie(staff))).andExpect(status().isOk());
         mvc.perform(get("/admin").cookie(authCookie(staff))).andExpect(status().isForbidden());
         mvc.perform(get("/admin").cookie(authCookie(admin))).andExpect(status().isOk());
@@ -191,5 +197,48 @@ class SecurityIntegrationTest extends IntegrationTestBase {
         User member = member(20);
         mvc.perform(post("/logout").with(csrf()).cookie(authCookie(member)))
                 .andExpect(redirectedUrl("/?logout"));
+    }
+
+    @Test
+    void staffCannotLogOutDuringAShiftAndTheManagerClosesItWithTheDrawerCount() throws Exception {
+        User staff = account(Role.STAFF);
+        User manager = account(Role.ADMIN);
+        Cookie cookie = authCookie(staff);
+        mvc.perform(post("/staff/shift/open").with(csrf()).cookie(cookie).param("openingFloat", "500000")
+                        .param("managerEmail", manager.getEmail()).param("managerPassword", "wrong"))
+                .andExpect(redirectedUrl("/staff/shift/open"))
+                .andExpect(flash().attribute("error", containsString("không đúng")));
+        mvc.perform(post("/staff/shift/open").with(csrf()).cookie(cookie).param("openingFloat", "500000")
+                        .param("managerEmail", manager.getEmail()).param("managerPassword", "Secret@123"))
+                .andExpect(redirectedUrl("/staff"));
+
+        // No logout button, and a logout request is refused while the shift is open.
+        mvc.perform(get("/staff").cookie(cookie))
+                .andExpect(content().string(containsString("href=\"/staff/shift/close\"")))
+                .andExpect(content().string(not(containsString(">Đăng xuất</button>"))));
+        mvc.perform(post("/logout").with(csrf()).cookie(cookie).param("area", "internal"))
+                .andExpect(redirectedUrl("/staff/shift/close"))
+                .andExpect(cookie().doesNotExist("BB_TOKEN"));
+
+        mvc.perform(get("/staff/shift/close").cookie(cookie))
+                .andExpect(content().string(containsString("Tiền mặt phải có trong két")))
+                .andExpect(content().string(containsString("500.000đ")));
+        mvc.perform(post("/staff/shift/close").with(csrf()).cookie(cookie).param("countedCash", "500000")
+                        .param("managerEmail", manager.getEmail()).param("managerPassword", "Secret@123"))
+                .andExpect(status().isOk())
+                .andExpect(cookie().maxAge("BB_TOKEN", 0))
+                .andExpect(content().string(containsString("Đã kết ca và đăng xuất")))
+                .andExpect(content().string(containsString("Khớp")));
+        assertThat(shiftService.findOpen(staff.getId())).isEmpty();
+
+        // The manager sees the shift in the admin area.
+        Cookie admin = authCookie(manager);
+        mvc.perform(get("/admin/shifts").cookie(admin))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString(staff.getFullName())));
+        Long id = shiftService.recent().get(0).getId();
+        mvc.perform(get("/admin/shifts/" + id).cookie(admin)).andExpect(status().isOk())
+                .andExpect(content().string(containsString("Biên bản ca bán vé #" + id)));
+        mvc.perform(get("/admin/shifts").cookie(authCookie(staff))).andExpect(status().isForbidden());
     }
 }

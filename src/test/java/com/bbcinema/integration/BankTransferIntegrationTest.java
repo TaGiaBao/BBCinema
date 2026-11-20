@@ -119,7 +119,7 @@ class BankTransferIntegrationTest extends IntegrationTestBase {
 
     @Test
     void counterSellsByCardWithApprovalCodeAndByTransferConfirmedByStaff() throws Exception {
-        User staff = account(Role.STAFF);
+        User staff = staffOnShift();
         Showtime st = showtimeTomorrow();
         List<Long> seats = freeSeats(st.getId(), 3);
 

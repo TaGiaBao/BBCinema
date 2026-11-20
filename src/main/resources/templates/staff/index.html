@@ -11,25 +11,31 @@
             <button class="btn btn-navy" type="submit"><i class="bi bi-qr-code-scan"></i> Soát vé</button>
         </form>
     </div>
-    <!-- What this staff member took today, to count the cash drawer at the end of the shift. -->
-    <div class="panel mb-3" th:if="${takings != null}">
-        <h2 class="h6 mb-2"><i class="bi bi-cash-stack"></i> Tiền thu hôm nay của bạn</h2>
+    <!-- Running totals of the open till shift; the manager counts the drawer against them at closing. -->
+    <div class="panel mb-3" th:if="${shiftSummary != null}" th:with="s=${shiftSummary}">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <h2 class="h6 mb-0"><i class="bi bi-cash-stack"></i> Ca hiện tại
+                <span class="small text-muted fw-normal" th:text="'· vào ca ' + ${#temporals.format(s.shift.openedAt, 'HH:mm')}
+                      + ' · quỹ đầu ca ' + ${@fmt.money(s.shift.openingFloat)}">· vào ca 08:00</span></h2>
+            <a class="btn btn-sm btn-outline-navy" href="/staff/shift/close">Kết ca</a>
+        </div>
         <div class="row g-3 small">
             <div class="col-md-5">
-                <div class="fw-semibold mb-1" th:text="'Tiền mặt · ' + ${takings.cashSales} + ' đơn'">Tiền mặt</div>
-                <div class="summary-row"><span>Khách đưa</span><span class="tabular" th:text="${@fmt.money(takings.cashReceived)}">0đ</span></div>
-                <div class="summary-row"><span>Đã trả lại khách</span><span class="tabular" th:text="'− ' + ${@fmt.money(takings.changeGiven)}">0đ</span></div>
-                <div class="summary-row" th:if="${takings.cashRefunds > 0}"><span th:text="'Hoàn tiền huỷ vé (' + ${takings.cashRefunds} + ')'">Hoàn tiền</span>
-                    <span class="tabular" th:text="'− ' + ${@fmt.money(takings.cashRefunded)}">0đ</span></div>
-                <div class="summary-row"><span>Tiền mặt phải có trong két</span><strong class="tabular" th:text="${@fmt.money(takings.cashInDrawer())}">0đ</strong></div>
+                <div class="fw-semibold mb-1" th:text="'Tiền mặt · ' + ${s.cashSales} + ' đơn'">Tiền mặt</div>
+                <div class="summary-row"><span>Khách đưa</span><span class="tabular" th:text="${@fmt.money(s.cashReceived)}">0đ</span></div>
+                <div class="summary-row"><span>Đã trả lại khách</span><span class="tabular" th:text="'− ' + ${@fmt.money(s.changeGiven)}">0đ</span></div>
+                <div class="summary-row" th:if="${s.cashRefunds > 0}"><span th:text="'Hoàn tiền huỷ vé (' + ${s.cashRefunds} + ')'">Hoàn tiền</span>
+                    <span class="tabular" th:text="'− ' + ${@fmt.money(s.cashRefunded)}">0đ</span></div>
+                <div class="summary-row"><span>Tiền mặt thu trong ca</span><strong class="tabular" th:text="${@fmt.money(s.netCash())}">0đ</strong></div>
+                <div class="summary-row"><span>Tiền mặt phải có trong két</span><strong class="tabular" th:text="${@fmt.money(s.expectedCash())}">0đ</strong></div>
             </div>
             <div class="col-md-3">
-                <div class="fw-semibold mb-1" th:text="'Thẻ (POS) · ' + ${takings.cardSales} + ' đơn'">Thẻ</div>
-                <div class="summary-row"><span>Tổng</span><strong class="tabular" th:text="${@fmt.money(takings.cardTotal)}">0đ</strong></div>
+                <div class="fw-semibold mb-1" th:text="'Thẻ (POS) · ' + ${s.cardSales} + ' đơn'">Thẻ</div>
+                <div class="summary-row"><span>Tổng</span><strong class="tabular" th:text="${@fmt.money(s.cardTotal)}">0đ</strong></div>
             </div>
             <div class="col-md-4">
-                <div class="fw-semibold mb-1" th:text="'Chuyển khoản QR · ' + ${takings.transferSales} + ' đơn'">QR</div>
-                <div class="summary-row"><span>Tổng</span><strong class="tabular" th:text="${@fmt.money(takings.transferTotal)}">0đ</strong></div>
+                <div class="fw-semibold mb-1" th:text="'Chuyển khoản QR · ' + ${s.transferSales} + ' đơn'">QR</div>
+                <div class="summary-row"><span>Tổng</span><strong class="tabular" th:text="${@fmt.money(s.transferTotal)}">0đ</strong></div>
             </div>
         </div>
     </div>

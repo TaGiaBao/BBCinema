@@ -16,9 +16,11 @@ import java.time.Duration;
 public class WebConfig implements WebMvcConfigurer {
 
     private final AppProperties properties;
+    private final com.bbcinema.web.staff.ShiftRequiredInterceptor shiftRequiredInterceptor;
 
-    public WebConfig(AppProperties properties) {
+    public WebConfig(AppProperties properties, com.bbcinema.web.staff.ShiftRequiredInterceptor shiftRequiredInterceptor) {
         this.properties = properties;
+        this.shiftRequiredInterceptor = shiftRequiredInterceptor;
     }
 
     /** The visitor's language (vi or en) is kept in the BB_LANG cookie for a year; Vietnamese by default. */
@@ -45,6 +47,8 @@ public class WebConfig implements WebMvcConfigurer {
         };
         interceptor.setParamName("lang");
         registry.addInterceptor(interceptor);
+        // Counter staff must be in an open till shift to use the counter pages.
+        registry.addInterceptor(shiftRequiredInterceptor).addPathPatterns("/staff", "/staff/**").excludePathPatterns("/staff/shift/**");
     }
 
     /** Serves uploaded images from the upload folder at /uploads/**. */

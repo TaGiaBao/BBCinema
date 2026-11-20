@@ -42,6 +42,7 @@ abstract class IntegrationTestBase {
     @Autowired protected ComboRepository comboRepository;
     @Autowired protected PromotionRepository promotionRepository;
     @Autowired protected JwtService jwtService;
+    @Autowired protected com.bbcinema.service.ShiftService shiftService;
 
     protected int unique() {
         return COUNTER.incrementAndGet();
@@ -52,6 +53,19 @@ abstract class IntegrationTestBase {
         User user = userService.createAccount("member" + n + "@test.vn", "Thành viên " + n, "Secret@123", Role.USER);
         user.setBirthDate(LocalDate.now().minusYears(age).minusDays(1));
         return userRepository.save(user);
+    }
+
+    /** A new manager (ADMIN, password Secret@123) opens a till shift for the staff member. */
+    protected com.bbcinema.entity.CounterShift openShift(User staff, long openingFloat) {
+        User manager = account(Role.ADMIN);
+        return shiftService.open(staff.getId(), null, manager.getEmail(), "Secret@123", BigDecimal.valueOf(openingFloat));
+    }
+
+    /** A counter staff member already in an open shift (float 500,000đ). */
+    protected User staffOnShift() {
+        User staff = account(Role.STAFF);
+        openShift(staff, 500_000);
+        return staff;
     }
 
     protected User account(Role role) {

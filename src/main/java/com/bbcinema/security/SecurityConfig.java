@@ -20,7 +20,6 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.authentication.session.NullAuthenticatedSessionStrategy;
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 import org.springframework.security.web.csrf.CsrfTokenRequestAttributeHandler;
@@ -46,6 +45,8 @@ public class SecurityConfig {
     private final ObjectProvider<ClientRegistrationRepository> googleClients;
     /** Looked up lazily: it needs UserService, which needs the PasswordEncoder defined here. */
     private final ObjectProvider<GoogleLoginSuccessHandler> googleLoginSuccessHandler;
+    /** Counter staff cannot log out while their till shift is open; a manager closes it instead. */
+    private final ObjectProvider<com.bbcinema.repository.CounterShiftRepository> shiftRepository;
 
     @Bean
     public PasswordEncoder passwordEncoder() {
@@ -58,6 +59,15 @@ public class SecurityConfig {
         provider.setUserDetailsService(userDetailsService);
         provider.setPasswordEncoder(passwordEncoder);
         return provider::authenticate;
+    }
+
+    /** True for a STAFF user whose till shift is still open (the JWT filter has already run). */
+    private boolean inOpenShift() {
+        var auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !(auth.getPrincipal() instanceof AppUserPrincipal user) || user.getRole() != com.bbcinema.entity.enums.Role.STAFF) {
+            return false;
+        }
+        return shiftRepository.getObject().findFirstByStaffIdAndClosedAtIsNullOrderByOpenedAtDesc(user.getId()).isPresent();
     }
 
     @Bean
@@ -93,12 +103,14 @@ public class SecurityConfig {
                         .authenticationEntryPoint((request, response, e) -> onUnauthenticated(request, response))
                         .accessDeniedHandler((request, response, e) -> onForbidden(request, response)))
                 .logout(logout -> logout
-                        .logoutUrl("/logout")
+                        // A blocked logout falls through to ShiftController, which explains why.
+                        .logoutRequestMatcher(request -> "POST".equals(request.getMethod())
+                                && (request.getContextPath() + "/logout").equals(request.getRequestURI()) && !inOpenShift())
                         .deleteCookies(properties.jwt().cookieName())
                         .logoutSuccessHandler((request, response, auth) -> response.sendRedirect(
                                 request.getContextPath() + ("internal".equals(request.getParameter("area"))
                                         ? "/internal/login?logout" : "/?logout"))))
-                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+                .addFilterBefore(jwtAuthenticationFilter, org.springframework.security.web.authentication.logout.LogoutFilter.class)
                 .headers(h -> h.frameOptions(f -> f.sameOrigin()));
         if (googleClients.getIfAvailable() != null) {
             http.oauth2Login(o -> o

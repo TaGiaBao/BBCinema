@@ -24,6 +24,7 @@
                 <div class="group">Tổng quan</div>
                 <a href="/admin" th:classappend="${menu == 'dashboard'} ? 'active'"><i class="bi bi-graph-up"></i> Thống kê</a>
                 <a href="/admin/bookings" th:classappend="${menu == 'bookings'} ? 'active'"><i class="bi bi-receipt"></i> Đơn đặt vé</a>
+                <a href="/admin/shifts" th:classappend="${menu == 'shifts'} ? 'active'"><i class="bi bi-cash-stack"></i> Ca bán vé</a>
                 <div class="group">Rạp chiếu</div>
                 <a href="/admin/movies" th:classappend="${menu == 'movies'} ? 'active'"><i class="bi bi-film"></i> Phim</a>
                 <a href="/admin/cinemas" th:classappend="${menu == 'cinemas'} ? 'active'"><i class="bi bi-building"></i> Rạp và phòng</a>
@@ -61,7 +62,10 @@
                 <span class="small text-muted"><i class="bi bi-person-badge"></i>
                     <span th:text="${currentUser.fullName}">Tên</span> ·
                     <span th:text="${currentUser.role.label}">Vai trò</span></span>
-                <form th:action="@{/logout}" method="post" class="m-0">
+                <!-- During a till shift staff cannot log out: a manager closes the shift and counts the drawer. -->
+                <a class="btn btn-sm btn-amber" href="/staff/shift/close" th:if="${openShift != null}">
+                    <i class="bi bi-cash-stack"></i> Kết ca</a>
+                <form th:action="@{/logout}" method="post" class="m-0" th:unless="${openShift != null}">
                     <input type="hidden" name="area" value="internal">
                     <button class="btn btn-sm btn-outline-secondary" type="submit">Đăng xuất</button>
                 </form>

@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title th:text="'Biên bản ca #' + ${shift.id} + ' · BBCinema'">Biên bản ca</title>
+    <link rel="icon" href="/images/favicon.svg" type="image/svg+xml">
+    <link rel="stylesheet" href="/webjars/bootstrap/5.3.3/css/bootstrap.min.css">
+    <link rel="stylesheet" href="/webjars/bootstrap-icons/1.11.3/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="/css/app.css">
+</head>
+<body class="bg-light">
+<!-- Standalone page: after closing, the staff member is already logged out. Open shifts (admin view) show running totals. -->
+<main class="container py-4" style="max-width: 640px"
+      th:with="live=${summary != null},
+               cashSales=${live ? summary.cashSales : shift.cashSales},
+               cashReceived=${live ? summary.cashReceived : shift.cashReceived},
+               changeGiven=${live ? summary.changeGiven : shift.changeGiven},
+               cashRefunds=${live ? summary.cashRefunds : shift.cashRefunds},
+               cashRefunded=${live ? summary.cashRefunded : shift.cashRefunded},
+               cardSales=${live ? summary.cardSales : shift.cardSales},
+               cardTotal=${live ? summary.cardTotal : shift.cardTotal},
+               transferSales=${live ? summary.transferSales : shift.transferSales},
+               transferTotal=${live ? summary.transferTotal : shift.transferTotal},
+               expected=${live ? summary.expectedCash() : shift.expectedCash},
+               net=${expected.subtract(shift.openingFloat)}">
+    <div class="alert alert-success no-print" th:if="${loggedOut}">
+        Đã kết ca và đăng xuất. In hoặc lưu biên bản này rồi bàn giao tiền cho quản lý.
+    </div>
+    <div class="panel">
+        <div class="d-flex justify-content-between align-items-start">
+            <div>
+                <div class="fw-bold"><span class="text-warning">BB</span>Cinema</div>
+                <h1 class="h5 mb-0" th:text="'Biên bản ca bán vé #' + ${shift.id}">Biên bản ca</h1>
+                <div class="small text-muted" th:if="${shift.cinema != null}" th:text="${shift.cinema.name}">Rạp</div>
+            </div>
+            <span class="badge" th:classappend="${shift.open} ? 'text-bg-warning' : 'text-bg-success'"
+                  th:text="${shift.open} ? 'Đang mở' : 'Đã kết ca'">Đã kết ca</span>
+        </div>
+        <hr>
+        <div class="summary-row"><span>Nhân viên</span><strong th:text="${shift.staff.fullName}">Tên</strong></div>
+        <div class="summary-row"><span>Vào ca</span><span th:text="${#temporals.format(shift.openedAt, 'HH:mm dd/MM/yyyy')} + ' · mở bởi ' + ${shift.openedBy.fullName}">-</span></div>
+        <div class="summary-row" th:unless="${shift.open}"><span>Kết ca</span><span th:text="${#temporals.format(shift.closedAt, 'HH:mm dd/MM/yyyy')} + ' · đóng bởi ' + ${shift.closedBy.fullName}">-</span></div>
+        <hr>
+        <div class="summary-row"><span>Quỹ đầu ca (giữ lại trong két)</span><span class="tabular" th:text="${@fmt.money(shift.openingFloat)}">0đ</span></div>
+        <div class="fw-semibold small mt-2" th:text="'Tiền mặt · ' + ${cashSales} + ' đơn'">Tiền mặt</div>
+        <div class="summary-row"><span>Khách đưa</span><span class="tabular" th:text="${@fmt.money(cashReceived)}">0đ</span></div>
+        <div class="summary-row"><span>Tiền thừa đã trả khách</span><span class="tabular" th:text="'− ' + ${@fmt.money(changeGiven)}">0đ</span></div>
+        <div class="summary-row"><span th:text="'Hoàn tiền huỷ vé (' + ${cashRefunds} + ')'">Hoàn tiền</span><span class="tabular" th:text="'− ' + ${@fmt.money(cashRefunded)}">0đ</span></div>
+        <div class="summary-row"><span>Tiền mặt thu trong ca (phải nộp)</span><strong class="tabular" th:text="${@fmt.money(net)}">0đ</strong></div>
+        <div class="summary-row"><span>Tiền mặt phải có trong két</span><strong class="tabular" th:text="${@fmt.money(expected)}">0đ</strong></div>
+        <th:block th:unless="${shift.open}">
+            <div class="summary-row"><span>Tiền mặt đếm được</span><strong class="tabular" th:text="${@fmt.money(shift.countedCash)}">0đ</strong></div>
+            <div class="summary-row fs-5"><span>Chênh lệch</span>
+                <strong class="tabular" th:classappend="${shift.difference.signum() == 0} ? 'text-success' : 'text-danger'"
+                        th:text="${shift.difference.signum() == 0} ? 'Khớp'
+                                 : (${shift.difference.signum() > 0} ? 'Thừa ' : 'Thiếu ') + ${@fmt.money(shift.difference.abs())}">Khớp</strong></div>
+            <div class="small text-muted" th:if="${shift.note != null}" th:text="'Ghi chú: ' + ${shift.note}">Ghi chú</div>
+        </th:block>
+        <hr>
+        <div class="summary-row"><span th:text="'Thẻ (POS) · ' + ${cardSales} + ' đơn'">Thẻ</span><span class="tabular" th:text="${@fmt.money(cardTotal)}">0đ</span></div>
+        <div class="summary-row"><span th:text="'Chuyển khoản QR · ' + ${transferSales} + ' đơn'">QR</span><span class="tabular" th:text="${@fmt.money(transferTotal)}">0đ</span></div>
+        <div class="row mt-5 text-center small d-none d-print-flex">
+            <div class="col">Nhân viên<br><br><br>&nbsp;</div>
+            <div class="col">Quản lý<br><br><br>&nbsp;</div>
+        </div>
+    </div>
+    <div class="text-center mt-3 no-print d-flex gap-2 justify-content-center">
+        <button class="btn btn-navy" type="button" onclick="window.print()"><i class="bi bi-printer"></i> In biên bản</button>
+        <a class="btn btn-outline-secondary" th:href="${loggedOut} ? '/internal/login' : '/admin/shifts'"
+           th:text="${loggedOut} ? 'Về trang đăng nhập' : 'Danh sách ca'">Về trang đăng nhập</a>
+    </div>
+</main>
+</body>
+</html>

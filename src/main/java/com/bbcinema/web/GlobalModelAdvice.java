@@ -21,6 +21,7 @@ public class GlobalModelAdvice {
     public static final String CINEMA_COOKIE = "BB_CINEMA";
 
     private final CinemaService cinemaService;
+    private final com.bbcinema.service.ShiftService shiftService;
 
     @ModelAttribute("cinemas")
     public List<Cinema> cinemas() {
@@ -44,6 +45,15 @@ public class GlobalModelAdvice {
     @ModelAttribute("currentUser")
     public AppUserPrincipal currentUser(@AuthenticationPrincipal AppUserPrincipal principal) {
         return principal;
+    }
+
+    /** The till shift a counter staff member is working in, or null (always null for other roles). */
+    @ModelAttribute("openShift")
+    public com.bbcinema.entity.CounterShift openShift(@AuthenticationPrincipal AppUserPrincipal principal) {
+        if (principal == null || principal.getRole() != com.bbcinema.entity.enums.Role.STAFF) {
+            return null;
+        }
+        return shiftService.findOpen(principal.getId()).orElse(null);
     }
 
     /** Number of days shown in the date strips, also read by the "Mua vé" popup script. */

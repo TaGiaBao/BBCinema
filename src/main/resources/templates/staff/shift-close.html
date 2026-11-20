@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/admin :: layout(~{::title}, ~{::section}, ~{::scripts})}">
+<head><title>Kết ca · BBCinema</title></head>
+<body>
+<section class="p-4" th:with="s=${summary}, shift=${summary.shift}">
+    <div class="row g-4">
+        <div class="col-lg-6">
+            <div class="panel">
+                <h1 class="h5 mb-1"><i class="bi bi-cash-stack"></i> Kết ca bán vé</h1>
+                <p class="small text-muted mb-3">
+                    <strong th:text="${shift.staff.fullName}">Tên</strong> · vào ca lúc
+                    <span th:text="${#temporals.format(shift.openedAt, 'HH:mm dd/MM/yyyy')}">08:00</span>
+                    (mở bởi <span th:text="${shift.openedBy.fullName}">Quản lý</span>)
+                </p>
+                <div class="summary-row"><span>Quỹ đầu ca (giữ lại trong két)</span><strong class="tabular" th:text="${@fmt.money(shift.openingFloat)}">0đ</strong></div>
+                <hr>
+                <div class="fw-semibold small mb-1" th:text="'Tiền mặt · ' + ${s.cashSales} + ' đơn'">Tiền mặt</div>
+                <div class="summary-row"><span>Khách đưa</span><span class="tabular" th:text="${@fmt.money(s.cashReceived)}">0đ</span></div>
+                <div class="summary-row"><span>Tiền thừa đã trả khách</span><span class="tabular" th:text="'− ' + ${@fmt.money(s.changeGiven)}">0đ</span></div>
+                <div class="summary-row"><span th:text="'Hoàn tiền huỷ vé (' + ${s.cashRefunds} + ')'">Hoàn tiền</span>
+                    <span class="tabular" th:text="'− ' + ${@fmt.money(s.cashRefunded)}">0đ</span></div>
+                <div class="summary-row"><span>Tiền mặt thu trong ca (phải nộp)</span><strong class="tabular" th:text="${@fmt.money(s.netCash())}">0đ</strong></div>
+                <div class="summary-row fs-5"><span>Tiền mặt phải có trong két</span><strong class="tabular text-danger" id="expectedCash"
+                        th:data-amount="${s.expectedCash()}" th:text="${@fmt.money(s.expectedCash())}">0đ</strong></div>
+                <hr>
+                <div class="summary-row"><span th:text="'Thẻ (POS) · ' + ${s.cardSales} + ' đơn'">Thẻ</span><span class="tabular" th:text="${@fmt.money(s.cardTotal)}">0đ</span></div>
+                <div class="summary-row"><span th:text="'Chuyển khoản QR · ' + ${s.transferSales} + ' đơn'">QR</span><span class="tabular" th:text="${@fmt.money(s.transferTotal)}">0đ</span></div>
+            </div>
+        </div>
+        <div class="col-lg-6">
+            <form class="panel" method="post" th:action="@{/staff/shift/close}" autocomplete="off">
+                <h2 class="h6">Quản lý đếm két và kết ca</h2>
+                <label class="form-label small fw-semibold" for="countedCash">Tiền mặt đếm được trong két (gồm cả quỹ đầu ca)</label>
+                <div class="input-group">
+                    <input class="form-control form-control-lg text-end tabular" id="countedCash" name="countedCash"
+                           type="number" min="0" step="1000" required>
+                    <span class="input-group-text">đ</span>
+                </div>
+                <div class="mt-2 fw-semibold" id="countResult" role="status" aria-live="polite"></div>
+                <label class="form-label small mt-3" for="note">Ghi chú (nếu két lệch)</label>
+                <input class="form-control mb-3" id="note" name="note" maxlength="255">
+                <fieldset class="border rounded p-3 mb-3">
+                    <legend class="float-none w-auto px-2 small fw-semibold mb-0">Quản lý xác nhận</legend>
+                    <input class="form-control mb-2" name="managerEmail" type="email" placeholder="Email quản lý"
+                           aria-label="Email quản lý" required autocomplete="off">
+                    <input class="form-control" name="managerPassword" type="password" placeholder="Mật khẩu quản lý"
+                           aria-label="Mật khẩu quản lý" required autocomplete="new-password">
+                </fieldset>
+                <button class="btn btn-amber w-100" type="submit"><i class="bi bi-lock"></i> Kết ca và đăng xuất</button>
+            </form>
+        </div>
+    </div>
+</section>
+<th:block th:fragment="scripts">
+<script>
+  // Shows at once whether the counted drawer matches what the system expects.
+  (function () {
+    const input = document.getElementById('countedCash');
+    const out = document.getElementById('countResult');
+    const expected = Number(document.getElementById('expectedCash').dataset.amount);
+    const money = (n) => n.toLocaleString('vi-VN') + 'đ';
+    input.addEventListener('input', () => {
+      if (input.value === '') { out.textContent = ''; return; }
+      const diff = Number(input.value) - expected;
+      out.className = 'mt-2 fw-semibold ' + (diff === 0 ? 'text-success' : 'text-danger');
+      out.textContent = diff === 0 ? 'Két khớp với hệ thống'
+        : (diff > 0 ? 'Két thừa ' : 'Két thiếu ') + money(Math.abs(diff));
+    });
+  })();
+</script>
+</th:block>
+</body>
+</html>

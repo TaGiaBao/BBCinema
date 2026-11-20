@@ -40,6 +40,20 @@
             <input type="hidden" name="code" th:value="${booking.code}">
             <button class="btn btn-amber btn-lg" type="submit"><i class="bi bi-check2-circle"></i> Xác nhận vào phòng</button>
         </form>
+        <!-- Staff only take money in: cancelling a paid ticket needs the manager's account. -->
+        <details class="mt-3" th:if="${booking.paid and booking.checkedInAt == null}">
+            <summary class="small text-danger">Khách muốn huỷ vé và lấy lại tiền (cần quản lý duyệt)</summary>
+            <form method="post" th:action="@{/staff/tickets/{c}/refund(c=${booking.code})}" class="border rounded p-3 mt-2"
+                  autocomplete="off" style="max-width: 420px">
+                <p class="small mb-2">Hoàn lại <strong th:text="${@fmt.money(booking.totalAmount)}">0đ</strong>.
+                    Ghế được mở bán lại; tiền mặt được trừ vào két của ca hiện tại.</p>
+                <input class="form-control form-control-sm mb-2" name="managerEmail" type="email" placeholder="Email quản lý"
+                       aria-label="Email quản lý" required autocomplete="off">
+                <input class="form-control form-control-sm mb-2" name="managerPassword" type="password" placeholder="Mật khẩu quản lý"
+                       aria-label="Mật khẩu quản lý" required autocomplete="new-password">
+                <button class="btn btn-sm btn-outline-danger" type="submit">Huỷ vé và hoàn tiền</button>
+            </form>
+        </details>
     </div>
 </section>
 <th:block th:fragment="scripts">

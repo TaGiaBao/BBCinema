@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/admin :: layout(~{::title}, ~{::section}, ~{::scripts})}">
+<head><title>Ca bán vé · Quản trị BBCinema</title></head>
+<body>
+<section class="p-4">
+    <h1 class="h4">Ca bán vé tại quầy</h1>
+    <p class="text-muted small" style="max-width: 900px">
+        Mỗi ca do quản lý mở (nhập quỹ đầu ca) và kết (đếm két). Tiền của ca chỉ gồm các khoản thu sau khi mở ca;
+        quỹ đầu ca được giữ lại trong két. Ca đang mở hiển thị số liệu tạm tính.
+    </p>
+    <p class="text-muted" th:if="${#lists.isEmpty(shifts)}">Chưa có ca nào.</p>
+    <div class="panel table-responsive" th:unless="${#lists.isEmpty(shifts)}">
+        <table class="table table-sm align-middle small mb-0">
+            <thead>
+            <tr><th>#</th><th>Nhân viên</th><th>Rạp</th><th>Vào ca</th><th>Kết ca</th>
+                <th class="text-end">Quỹ đầu ca</th><th class="text-end">Tiền mặt thu</th><th class="text-end">Thẻ</th>
+                <th class="text-end">QR</th><th class="text-end">Chênh lệch két</th><th></th></tr>
+            </thead>
+            <tbody>
+            <tr th:each="s : ${shifts}" th:with="l=${live.get(s.id)}">
+                <td th:text="${s.id}">1</td>
+                <td th:text="${s.staff.fullName}">Tên</td>
+                <td th:text="${s.cinema != null ? s.cinema.name : ''}">Rạp</td>
+                <td th:text="${#temporals.format(s.openedAt, 'HH:mm dd/MM')}">08:00</td>
+                <td>
+                    <span th:if="${s.open}" class="badge text-bg-warning">Đang mở</span>
+                    <span th:unless="${s.open}" th:text="${#temporals.format(s.closedAt, 'HH:mm dd/MM')}">17:00</span>
+                </td>
+                <td class="text-end tabular" th:text="${@fmt.money(s.openingFloat)}">0đ</td>
+                <td class="text-end tabular" th:text="${@fmt.money(l != null ? l.netCash() : s.expectedCash.subtract(s.openingFloat))}">0đ</td>
+                <td class="text-end tabular" th:text="${@fmt.money(l != null ? l.cardTotal : s.cardTotal)}">0đ</td>
+                <td class="text-end tabular" th:text="${@fmt.money(l != null ? l.transferTotal : s.transferTotal)}">0đ</td>
+                <td class="text-end tabular">
+                    <span th:if="${s.open}" class="text-muted">—</span>
+                    <span th:unless="${s.open}" th:classappend="${s.difference.signum() == 0} ? 'text-success' : 'text-danger fw-semibold'"
+                          th:text="${s.difference.signum() == 0} ? 'Khớp' : (${s.difference.signum() > 0} ? '+' : '−') + ${@fmt.money(s.difference.abs())}">Khớp</span>
+                </td>
+                <td><a th:href="@{/admin/shifts/{id}(id=${s.id})}">Biên bản</a></td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+</section>
+<th:block th:fragment="scripts"></th:block>
+</body>
+</html>

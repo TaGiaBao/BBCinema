@@ -51,19 +51,27 @@ Tài khoản: `user@bbcinema.vn / User@123`, `teen@bbcinema.vn / Teen@123` (14 t
 
 1. Trình duyệt 3: `/internal/login` bằng `staff@...`.
    > "Khách và nội bộ tách hẳn: trang khách không có link nào sang đây; tài khoản khách không vào được."
+   Hệ thống bắt **vào ca**: quản lý nhập quỹ đầu ca (ví dụ 1.000.000đ) và `admin@bbcinema.vn / Admin@123` để mở ca.
+   > "Nhân viên chỉ được thu tiền vào: không có nút đăng xuất, không tự hoàn tiền; mở ca, hoàn tiền, kết ca đều cần quản lý."
 2. **Bán vé tại quầy**: chọn suất, chọn ghế, chọn hình thức thanh toán:
-   - **Tiền mặt**, hoặc **Thẻ ngân hàng**: nhập mã chuẩn chi in trên hoá đơn máy POS (ví dụ `A1B2C3`).
+   - **Tiền mặt**: nhập số tiền khách đưa (hoặc bấm mệnh giá gợi ý) → hiện tiền thừa trả khách hoặc số còn thiếu.
+   - **Thẻ ngân hàng**: nhập mã chuẩn chi và số tiền trên hoá đơn máy POS (phải khớp tổng tiền).
    - **Chuyển khoản QR**: màn hình quầy hiện mã cho khách quét; tiền về thì tự in vé, hoặc nhân viên bấm *Đã nhận tiền*.
 3. **Soát vé**: bấm *Bật camera*, đưa mã QR trên điện thoại (vé ở bước 2.6) vào webcam → hiện thông tin vé →
    *Xác nhận vào phòng*. Soát lại lần 2 → báo đã soát.
+4. **Hoàn tiền**: tra một vé chưa soát → *Khách muốn huỷ vé* → quản lý nhập tài khoản → tiền hoàn trừ vào két của ca.
+5. **Kết ca**: bấm *Kết ca* (thay cho nút Đăng xuất) → xem tiền thu trong ca, tiền phải có trong két → quản lý nhập số
+   tiền đếm được và tài khoản → hệ thống báo két khớp/thừa/thiếu, in biên bản ca và tự đăng xuất.
+   > "Mỗi ca chốt tiền riêng: quỹ đầu ca giữ lại, chỉ tính các khoản thu sau khi mở ca, không lẫn với ca sau."
 
 ## 4. Quản trị (4 phút)
 
 1. Đăng xuất, đăng nhập `admin@...`.
-2. **Thống kê**: doanh thu hôm nay, tháng, biểu đồ theo ngày, theo phim.
+2. **Thống kê**: doanh thu hôm nay, tháng, biểu đồ theo ngày, theo phim. **Ca bán vé**: danh sách ca, chênh lệch két, biên bản.
 3. **Rạp và phòng** → mở một phòng: trình chỉnh sơ đồ ghế kéo thả.
 4. **Suất chiếu → Tạo lịch tự động**: chọn rạp, một ngày sau 15 ngày tới, bấm *Tạo lịch đề xuất*.
-   > "Điểm mỗi suất dựa trên 5 yếu tố: ngày trong tuần, thời lượng, giờ vàng, đánh giá, thể loại."
+   > "Phim chia 3 hạng theo tuần chiếu (45/35/20% số suất), neo giờ vàng ở phòng lớn nhất, các phòng lệch giờ ít nhất 10 phút,
+   > dọn phòng tính theo số ghế."
 5. **Bảng giá vé**: giá ghế đôi không nhập tay, tự bằng 2 ghế VIP.
 6. **Đánh giá phim**: ẩn một đánh giá → điểm trung bình của phim cập nhật.
 7. **Banner**: sửa tiêu đề tiếng Anh → về trang chủ bấm ENG để thấy.

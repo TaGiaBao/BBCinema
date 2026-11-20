@@ -62,6 +62,11 @@ public class Booking {
     @JoinColumn(name = "sold_by_id")
     private User soldBy;
 
+    /** Counter sales: the till shift the ticket was sold in. */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "shift_id")
+    private CounterShift shift;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "promotion_id")
     private Promotion promotion;

@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/admin :: layout(~{::title}, ~{::section}, ~{::scripts})}">
+<head><title>Vào ca · BBCinema</title></head>
+<body>
+<section class="p-4">
+    <div class="panel mx-auto" style="max-width: 480px">
+        <h1 class="h5 mb-1"><i class="bi bi-door-open"></i> Vào ca bán vé</h1>
+        <p class="small text-muted">
+            Nhân viên: <strong th:text="${currentUser.fullName}">Tên</strong>
+            <span th:if="${currentCinema != null}" th:text="' · ' + ${currentCinema.name}">· Rạp</span>.
+            Quản lý đếm quỹ đầu ca (tiền lẻ để thối cho khách), nhập vào đây và xác nhận bằng tài khoản quản lý.
+            Quỹ đầu ca được giữ lại trong két khi kết ca; tiền của ca chỉ tính các khoản thu sau khi mở ca.
+        </p>
+        <form method="post" th:action="@{/staff/shift/open}" autocomplete="off">
+            <label class="form-label small fw-semibold" for="openingFloat">Quỹ đầu ca</label>
+            <div class="input-group mb-3">
+                <input class="form-control form-control-lg text-end tabular" id="openingFloat" name="openingFloat"
+                       type="number" min="0" step="1000" required th:value="${suggestedFloat}">
+                <span class="input-group-text">đ</span>
+            </div>
+            <fieldset class="border rounded p-3 mb-3">
+                <legend class="float-none w-auto px-2 small fw-semibold mb-0">Quản lý xác nhận</legend>
+                <input class="form-control mb-2" name="managerEmail" type="email" placeholder="Email quản lý"
+                       aria-label="Email quản lý" required autocomplete="off">
+                <input class="form-control" name="managerPassword" type="password" placeholder="Mật khẩu quản lý"
+                       aria-label="Mật khẩu quản lý" required autocomplete="new-password">
+            </fieldset>
+            <button class="btn btn-amber w-100" type="submit"><i class="bi bi-unlock"></i> Mở ca</button>
+        </form>
+        <form th:action="@{/logout}" method="post" class="mt-3 text-center">
+            <input type="hidden" name="area" value="internal">
+            <button class="btn btn-link btn-sm" type="submit">Không vào ca? Đăng xuất</button>
+        </form>
+    </div>
+</section>
+<th:block th:fragment="scripts"></th:block>
+</body>
+</html>
