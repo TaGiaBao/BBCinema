@@ -13,7 +13,7 @@ dữ liệu thật: khách đặt vé, nhân viên soát vé, quản trị xem d
 | Trình duyệt 3 (Edge) | Nội bộ: `http://localhost:8080/internal/login` |
 | Điện thoại | Để mở vé có mã QR, đưa vào webcam lúc soát vé |
 | IntelliJ / VS Code | Mở sẵn các file ở mục 5 |
-| VNPay (nếu đã đăng ký) | `.env` có `VNPAY_TMN_CODE`, `VNPAY_HASH_SECRET`; app khởi động lại sau khi sửa |
+| VNPay | Trang đăng ký sandbox của VNPay (`/devreg/`) đã đóng (20/11/2026), nên không có mã riêng. Demo bằng *Thanh toán thử*; phần VNPay trình bày ở mục 5. Nếu sau này có mã thì ghi vào `.env` (`VNPAY_TMN_CODE`, `VNPAY_HASH_SECRET`). |
 
 Tài khoản: `user@bbcinema.vn / User@123`, `teen@bbcinema.vn / Teen@123` (14 tuổi),
 `staff@bbcinema.vn / Staff@123`, `admin@bbcinema.vn / Admin@123`. Mã giảm giá: `BBCINEMA10`, `THANHVIEN20`, `HETHAN`.
@@ -36,7 +36,8 @@ Tài khoản: `user@bbcinema.vn / User@123`, `teen@bbcinema.vn / Teen@123` (14 t
    "đang có người giữ".
    > "Màn hình chỉ là lớp tiện lợi; lớp bảo vệ thật là khoá dòng trong CSDL (mục 5)."
 4. Bắp nước → thanh toán: nhập `BBCINEMA10`, dùng 10 điểm, xem tổng tiền tính lại. Thử `HETHAN` để thấy báo lỗi.
-5. Thanh toán: *Thanh toán thử* (hoặc **VNPay sandbox** nếu đã cấu hình: thẻ NCB test, OTP).
+5. Thanh toán bằng *Thanh toán thử*. Chỉ vào ô VNPay đang tắt:
+   > "Rạp chỉ cần điền hai mã VNPay cấp vào file cấu hình là bật được, không phải sửa code. Phần ký và kiểm chữ ký đã có test (mục 5)."
 6. **Vé điện tử**: mã QR, logo mờ phía sau, nút In vé. Bấm In vé để thấy bản in.
 7. Mở **Hộp thư demo** (`/demo/mailbox`): email vé có QR vừa gửi.
    > "Máy demo không có tài khoản Gmail, nên hệ thống giữ bản sao email để xem. Chế độ này tự tắt khi triển khai thật."
@@ -72,7 +73,7 @@ Tài khoản: `user@bbcinema.vn / User@123`, `teen@bbcinema.vn / Teen@123` (14 t
 | 8 người tranh 1 ghế | `BookingFlowIntegrationTest.onlyOneOfManyConcurrentBuyersGetsTheSeat` → bấm Run |
 | Tự trả ghế quá hạn | `ExpiredHoldScheduler`, `BookingService.expireOverdueBookings` |
 | JWT, phân quyền, CSRF | `JwtAuthenticationFilter`, `SecurityConfig` |
-| Chữ ký VNPay | `VnPayService.handleCallback` |
+| Chữ ký VNPay | `VnPayService.handleCallback`; chạy `VnPayServiceTest` (8 test: ký HMAC-SHA512, chặn khi sửa số tiền, thanh toán đến muộn). Muốn cho thầy xem màn hình cổng VNPay: mở `https://sandbox.vnpayment.vn/tryitnow/Home/CreateOrder` (cửa hàng mẫu của VNPay), trả bằng thẻ NCB `9704198526191432198`, `NGUYEN VAN A`, `07/15`, OTP `123456`. |
 | Toàn bộ test + độ phủ | `mvnw.cmd test` (chạy trước, khoảng 4 phút) → mở `target\site\jacoco\index.html` |
 
 ## Khi có sự cố
