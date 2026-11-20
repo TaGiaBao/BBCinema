@@ -11,4 +11,4 @@ if exist data (
     )
 )
 echo Khoi dong BBCinema voi du lieu mau moi...
-call "%~dp0..un.bat"
+call "%~dp0..\run.bat"

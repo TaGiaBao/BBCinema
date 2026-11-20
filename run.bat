@@ -21,10 +21,8 @@ if not errorlevel 1 (
 )
 
 echo Dang khoi dong BBCinema... trinh duyet se tu mo khi san sang (khoang 20-40 giay).
-rem Waits in the background until the site answers, then opens the browser.
-start "" /min powershell -NoProfile -WindowStyle Hidden -Command "for ($i=0; $i -lt 120; $i++) { try { Invoke-WebRequest -UseBasicParsing -TimeoutSec 2 http://localhost:8080/ | Out-Null; Start-Process 'http://localhost:8080'; break } catch { Start-Sleep 2 } }"
-
-call mvnw.cmd spring-boot:run -Dspring-boot.run.profiles=h2
+rem The application opens the browser itself when it is ready (app.open-browser).
+call "%~dp0mvnw.cmd" spring-boot:run -Dspring-boot.run.profiles=h2 "-Dspring-boot.run.arguments=--app.open-browser=true"
 echo.
 echo BBCinema da dung.
-pause
+pause
