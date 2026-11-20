@@ -14,13 +14,20 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
+import java.nio.charset.StandardCharsets;
 import java.time.Clock;
 import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 
 @Controller
 @RequestMapping("/admin")
 @RequiredArgsConstructor
 public class AdminDashboardController {
+
+    /** Longest report, in days (both ends included): keeps one request from loading years of orders. */
+    static final int MAX_DAYS = 366;
+    static final String RANGE_TOO_LONG = "Khoảng thời gian tối đa 366 ngày";
+    private static final int DEFAULT_DAYS = 14;
 
     private final ReportService reportService;
     private final RevenueExportService revenueExportService;
@@ -30,6 +37,12 @@ public class AdminDashboardController {
     public String dashboard(@RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
                             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
                             Model model) {
+        String invalid = rangeError(from, to);
+        if (invalid != null) {
+            model.addAttribute("error", invalid);
+            from = null;
+            to = null;
+        }
         LocalDate[] range = range(from, to);
         LocalDate start = range[0];
         LocalDate end = range[1];
@@ -50,6 +63,12 @@ public class AdminDashboardController {
     @GetMapping("/revenue/export")
     public ResponseEntity<byte[]> export(@RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
                                          @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
+        String invalid = rangeError(from, to);
+        if (invalid != null) {
+            return ResponseEntity.badRequest()
+                    .contentType(new MediaType(MediaType.TEXT_PLAIN, StandardCharsets.UTF_8))
+                    .body(invalid.getBytes(StandardCharsets.UTF_8));
+        }
         LocalDate[] range = range(from, to);
         byte[] body = revenueExportService.export(range[0], range[1]);
         return ResponseEntity.ok()
@@ -59,14 +78,22 @@ public class AdminDashboardController {
                 .body(body);
     }
 
-    /** Date range of the report: the last 14 days by default; a start after the end is moved to the end. */
+    /** Date range of the report: up to today, the last 14 days by default. Check it with {@link #rangeError} first. */
     private LocalDate[] range(LocalDate from, LocalDate to) {
-        LocalDate today = LocalDate.now(clock);
-        LocalDate end = to == null ? today : to;
-        LocalDate start = from == null ? end.minusDays(13) : from;
-        if (start.isAfter(end)) {
-            start = end;
-        }
+        LocalDate end = to == null ? LocalDate.now(clock) : to;
+        LocalDate start = from == null ? end.minusDays(DEFAULT_DAYS - 1) : from;
         return new LocalDate[]{start, end};
+    }
+
+    /** Why the requested range cannot be shown (start after end, or longer than 366 days), or null when it is fine. */
+    private String rangeError(LocalDate from, LocalDate to) {
+        LocalDate[] range = range(from, to);
+        if (range[0].isAfter(range[1])) {
+            return "Ngày bắt đầu phải trước hoặc bằng ngày kết thúc";
+        }
+        if (ChronoUnit.DAYS.between(range[0], range[1]) + 1 > MAX_DAYS) {
+            return RANGE_TOO_LONG;
+        }
+        return null;
     }
 }

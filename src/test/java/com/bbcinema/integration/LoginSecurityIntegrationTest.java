@@ -2,7 +2,9 @@ package com.bbcinema.integration;
 
 import com.bbcinema.entity.User;
 import com.bbcinema.entity.enums.Role;
+import com.bbcinema.exception.BusinessException;
 import com.bbcinema.security.LoginAttemptService;
+import com.bbcinema.service.ShiftService;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -10,6 +12,17 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.RequestPostProcessor;
 
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.Matchers.containsString;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -182,5 +195,108 @@ class LoginSecurityIntegrationTest extends IntegrationTestBase {
                 .andExpect(cookie().httpOnly("BB_TOKEN", true))
                 .andExpect(cookie().secure("BB_TOKEN", false))
                 .andExpect(cookie().sameSite("BB_TOKEN", "Lax"));
+    }
+
+    @Test
+    void parallelWrongPasswordsCannotGuessMoreThanTheLimit() throws Exception {
+        User member = member(20);
+        int threads = 30;
+        ExecutorService pool = Executors.newFixedThreadPool(threads);
+        List<String> answers;
+        try {
+            List<Callable<String>> calls = new ArrayList<>();
+            for (int i = 0; i < threads; i++) {
+                String ip = "10.2.0." + i;
+                calls.add(() -> customerLogin(member.getEmail(), "wrong", ip).andReturn().getResponse().getContentAsString());
+            }
+            answers = new ArrayList<>();
+            for (Future<String> f : pool.invokeAll(calls, 60, TimeUnit.SECONDS)) {
+                answers.add(f.get());
+            }
+        } finally {
+            pool.shutdownNow();
+        }
+        // Only 5 passwords were checked: at most 4 answers say "wrong", every other one says "blocked".
+        long wrong = answers.stream().filter(a -> a.contains(WRONG)).count();
+        long blocked = answers.stream().filter(a -> a.contains(LoginAttemptService.BLOCKED_MESSAGE)).count();
+        assertThat(wrong).isLessThanOrEqualTo(4);
+        assertThat(wrong + blocked).isEqualTo(threads);
+        customerLogin(member.getEmail(), "Secret@123", "10.2.1.1")
+                .andExpect(cookie().doesNotExist("BB_TOKEN"))
+                .andExpect(content().string(containsString(LoginAttemptService.BLOCKED_MESSAGE)));
+    }
+
+    @Test
+    void overlongEmailsAreRefusedAndCountOnlyAgainstTheAddress() throws Exception {
+        String huge = "x".repeat(5_000) + "@test.vn";
+        int before = loginAttempts.trackedKeys();
+        customerLogin(huge, "wrong", "10.2.2.1").andExpect(content().string(containsString(WRONG)));
+        apiLogin(huge, "wrong", "10.2.2.1").andExpect(status().is4xxClientError());
+        assertThat(loginAttempts.trackedKeys() - before).isEqualTo(1); // the address, not the email
+        // The API rejects such an email in validation already; 19 more on the web page make 20 for the address.
+        for (int i = 0; i < 19; i++) {
+            customerLogin(huge, "wrong", "10.2.2.1");
+        }
+        User member = member(20);
+        customerLogin(member.getEmail(), "Secret@123", "10.2.2.1")
+                .andExpect(content().string(containsString(LoginAttemptService.BLOCKED_MESSAGE)));
+    }
+
+    @Test
+    void aBlockedManagerCannotApproveAtTheCounter() throws Exception {
+        User manager = account(Role.MANAGER);
+        User staff = account(Role.STAFF);
+        for (int i = 0; i < 5; i++) {
+            internalLogin(manager.getEmail(), "wrong", "10.2.3.1");
+        }
+        assertThatThrownBy(() -> shiftService.open(staff.getId(), null, manager.getEmail(), "Secret@123", BigDecimal.TEN))
+                .isInstanceOf(BusinessException.class)
+                .hasMessage(LoginAttemptService.BLOCKED_MESSAGE);
+        assertThat(shiftService.findOpen(staff.getId())).isEmpty();
+    }
+
+    @Test
+    void wrongManagerPasswordsAtTheCounterCountTowardsTheLoginBlock() throws Exception {
+        User manager = account(Role.MANAGER);
+        User staff = account(Role.STAFF);
+        for (int i = 0; i < 4; i++) {
+            assertThatThrownBy(() -> shiftService.open(staff.getId(), null, manager.getEmail(), "wrong", BigDecimal.TEN))
+                    .hasMessage(ShiftService.WRONG_MANAGER);
+        }
+        // Same account, another spelling of the email: the fifth failure blocks it.
+        assertThatThrownBy(() -> shiftService.open(staff.getId(), null, manager.getEmail().toUpperCase(), "wrong", BigDecimal.TEN))
+                .hasMessage(LoginAttemptService.BLOCKED_MESSAGE);
+        internalLogin(manager.getEmail(), "Secret@123", "10.2.4.1")
+                .andExpect(cookie().doesNotExist("BB_TOKEN"))
+                .andExpect(content().string(containsString(LoginAttemptService.BLOCKED_MESSAGE)));
+    }
+
+    @Test
+    void unknownManagerEmailsAreCountedAndAnsweredLikeWrongPasswords() {
+        User staff = account(Role.STAFF);
+        String ghost = "ghost-manager" + unique() + "@test.vn";
+        for (int i = 0; i < 4; i++) {
+            assertThatThrownBy(() -> shiftService.open(staff.getId(), null, ghost, "whatever", BigDecimal.TEN))
+                    .hasMessage(ShiftService.WRONG_MANAGER);
+        }
+        assertThatThrownBy(() -> shiftService.open(staff.getId(), null, ghost, "whatever", BigDecimal.TEN))
+                .hasMessage(LoginAttemptService.BLOCKED_MESSAGE);
+        // A staff account is not a manager: its right password is refused like a wrong one.
+        User other = account(Role.STAFF);
+        assertThatThrownBy(() -> shiftService.open(staff.getId(), null, other.getEmail(), "Secret@123", BigDecimal.TEN))
+                .hasMessage(ShiftService.WRONG_MANAGER);
+    }
+
+    @Test
+    void managerApprovalThroughTheWebCountsAgainstTheCallersAddress() throws Exception {
+        User staff = staffOnShift();
+        for (int i = 0; i < 20; i++) {
+            User manager = account(Role.MANAGER);
+            mvc.perform(post("/staff/tickets/NOPE1234/refund").with(csrf()).with(from("10.2.5.1")).cookie(authCookie(staff))
+                    .param("managerEmail", manager.getEmail()).param("managerPassword", "wrong"));
+        }
+        User member = member(20);
+        customerLogin(member.getEmail(), "Secret@123", "10.2.5.1")
+                .andExpect(content().string(containsString(LoginAttemptService.BLOCKED_MESSAGE)));
     }
 }

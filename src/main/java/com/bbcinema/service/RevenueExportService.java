@@ -6,7 +6,6 @@ import com.bbcinema.dto.response.MovieRevenue;
 import com.bbcinema.entity.Booking;
 import com.bbcinema.entity.Payment;
 import com.bbcinema.entity.Showtime;
-import com.bbcinema.entity.enums.BookingStatus;
 import com.bbcinema.entity.enums.PaymentStatus;
 import com.bbcinema.repository.BookingRepository;
 import com.bbcinema.repository.PaymentRepository;
@@ -29,8 +28,9 @@ import java.util.stream.Collectors;
 
 /**
  * Builds the Excel (.xlsx) copy of the revenue report shown on the admin dashboard. The figures come from
- * {@link ReportService}, so the file shows exactly what the page shows: only bookings still paid count as
- * revenue; refunded orders are listed on their own sheet and are not added to the totals.
+ * {@link ReportService}, so the file shows exactly what the page shows: only bookings paid in the range and still
+ * paid count as revenue. Orders refunded in the range (whenever they were paid) are listed on their own sheet and
+ * are not added to the totals.
  */
 @Service
 @RequiredArgsConstructor
@@ -58,10 +58,13 @@ public class RevenueExportService {
         DashboardStats stats = reportService.dashboard();
         List<DailyRevenue> daily = reportService.dailyRevenue(from, to);
         List<MovieRevenue> byMovie = reportService.revenueByMovie(from, to);
-        List<Booking> bookings = bookingRepository.findPaidOrRefundedBetween(from.atStartOfDay(), to.plusDays(1).atStartOfDay());
-        List<Booking> paid = bookings.stream().filter(b -> b.getStatus() == BookingStatus.PAID).toList();
-        List<Booking> refunded = bookings.stream().filter(b -> b.getStatus() == BookingStatus.CANCELLED).toList();
-        List<Long> ids = bookings.stream().map(Booking::getId).toList();
+        LocalDateTime start = from.atStartOfDay();
+        LocalDateTime end = to.plusDays(1).atStartOfDay();
+        // Revenue: paid in the range and still paid (as on the page). Refunds: refunded in the range.
+        List<Booking> paid = bookingRepository.findPaidWithDetailsBetween(start, end);
+        List<Booking> refunded = bookingRepository.findRefundedBetween(start, end);
+        List<Long> ids = new ArrayList<>(paid.stream().map(Booking::getId).toList());
+        ids.addAll(refunded.stream().map(Booking::getId).toList());
         Map<Long, List<Payment>> payments = paymentsByBooking(ids);
         Map<Long, Long> seatCounts = seatCounts(paid.stream().map(Booking::getId).toList());
 
@@ -109,8 +112,8 @@ public class RevenueExportService {
         BigDecimal counter = sumByChannel(paid, com.bbcinema.entity.enums.SalesChannel.COUNTER);
         r = moneyRow(sheet, r, "Doanh thu bán trực tuyến (đ)", online, st);
         r = moneyRow(sheet, r, "Doanh thu bán tại quầy (đ)", counter, st);
-        r = numberRow(sheet, r, "Số đơn đã hoàn tiền (không tính vào doanh thu)", refunded.size(), st);
-        r = moneyRow(sheet, r, "Số tiền đã hoàn (đ)", sum(refunded), st);
+        r = numberRow(sheet, r, "Đơn hoàn tiền trong kỳ (không tính vào doanh thu)", refunded.size(), st);
+        r = moneyRow(sheet, r, "Số tiền đã hoàn trong kỳ (đ)", sum(refunded), st);
         r++;
 
         Row head2 = sheet.createRow(r++);
@@ -192,7 +195,7 @@ public class RevenueExportService {
 
     private void refundSheet(Workbook wb, Styles st, List<Booking> refunded, Map<Long, List<Payment>> payments) {
         Sheet sheet = wb.createSheet("Đã hoàn tiền");
-        header(sheet, st, "Mã đơn", "Thanh toán lúc", "Huỷ / hoàn lúc", "Rạp", "Phim", "Suất chiếu", "Kênh bán",
+        header(sheet, st, "Mã đơn", "Thanh toán lúc", "Hoàn lúc", "Rạp", "Phim", "Suất chiếu", "Kênh bán",
                 "Phương thức", "Số tiền hoàn (đ)", "Trạng thái");
         int r = 1;
         for (Booking b : refunded) {
@@ -200,7 +203,7 @@ public class RevenueExportService {
             Row row = sheet.createRow(r++);
             cell(row, 0, b.getCode(), null);
             dateTimeCell(row, 1, b.getPaidAt(), st);
-            dateTimeCell(row, 2, b.getCancelledAt(), st);
+            dateTimeCell(row, 2, refundedAt(b, payments.get(b.getId())), st);
             cell(row, 3, s.getRoom().getCinema().getName(), null);
             cell(row, 4, s.getMovie().getTitle(), null);
             dateTimeCell(row, 5, s.getStartTime(), st);
@@ -255,6 +258,20 @@ public class RevenueExportService {
                 .map(p -> p.getMethod().getLabel())
                 .distinct()
                 .collect(Collectors.joining(", "));
+    }
+
+    /** When the money was handed back: the refund time on the payment, else when the booking was cancelled. */
+    private static LocalDateTime refundedAt(Booking booking, List<Payment> payments) {
+        if (payments != null) {
+            Optional<LocalDateTime> refunded = payments.stream()
+                    .filter(p -> p.getStatus() == PaymentStatus.REFUNDED && p.getRefundedAt() != null)
+                    .map(Payment::getRefundedAt)
+                    .max(Comparator.naturalOrder());
+            if (refunded.isPresent()) {
+                return refunded.get();
+            }
+        }
+        return booking.getCancelledAt();
     }
 
     private static BigDecimal sum(List<Booking> bookings) {

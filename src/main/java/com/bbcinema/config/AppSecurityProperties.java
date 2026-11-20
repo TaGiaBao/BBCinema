@@ -20,7 +20,8 @@ public record AppSecurityProperties(
         @DefaultValue Login login) {
 
     /**
-     * @param maxFailuresPerAccount failed logins in a row for one email before it is blocked
+     * @param maxFailuresPerAccount failed logins for one account (or unknown email) within {@code window} before it
+     *                              is blocked; a successful login starts the count again
      * @param maxFailuresPerIp      failed logins from one client address within {@code window} before it is blocked
      * @param window                failures older than this are forgotten
      * @param lockDuration          how long a blocked email or address stays blocked

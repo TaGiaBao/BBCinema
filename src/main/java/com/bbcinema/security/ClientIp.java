@@ -4,6 +4,9 @@ import com.bbcinema.config.AppSecurityProperties;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
+import org.springframework.web.context.request.RequestAttributes;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 
 /**
  * The address of the client that sent a request. X-Forwarded-For is read only when app.security.trust-forwarded-for
@@ -28,5 +31,11 @@ public class ClientIp {
             }
         }
         return request.getRemoteAddr();
+    }
+
+    /** The client address of the web request this thread is handling, or null outside a request. */
+    public String ofCurrentRequest() {
+        RequestAttributes attributes = RequestContextHolder.getRequestAttributes();
+        return attributes instanceof ServletRequestAttributes servlet ? of(servlet.getRequest()) : null;
     }
 }

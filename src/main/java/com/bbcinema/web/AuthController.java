@@ -3,7 +3,9 @@ package com.bbcinema.web;
 import com.bbcinema.dto.request.RegisterForm;
 import com.bbcinema.entity.enums.Role;
 import com.bbcinema.exception.BusinessException;
+import com.bbcinema.exception.LoginBlockedException;
 import com.bbcinema.security.AppUserPrincipal;
+import com.bbcinema.security.ClientIp;
 import com.bbcinema.security.LoginAttemptService;
 import com.bbcinema.security.TokenCookies;
 import com.bbcinema.service.GoogleLoginService;
@@ -14,16 +16,15 @@ import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
-import org.springframework.security.authentication.DisabledException;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
-
 
 /**
  * Login and registration pages. A successful login stores the JWT in an HttpOnly cookie.
@@ -33,13 +34,15 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 @RequiredArgsConstructor
 public class AuthController {
 
+    private static final String WRONG_CREDENTIALS = "Email hoặc mật khẩu không đúng";
+
     private final AuthenticationManager authenticationManager;
     private final UserService userService;
     private final PasswordResetService passwordResetService;
     private final com.bbcinema.service.EmailVerificationService emailVerificationService;
     private final TokenCookies tokenCookies;
-    private final com.bbcinema.security.LoginAttemptService loginAttempts;
-    private final com.bbcinema.security.ClientIp clientIp;
+    private final LoginAttemptService loginAttempts;
+    private final ClientIp clientIp;
     private final org.springframework.beans.factory.ObjectProvider<
             org.springframework.security.oauth2.client.registration.ClientRegistrationRepository> googleClients;
 
@@ -218,30 +221,38 @@ public class AuthController {
 
     /**
      * Checks the password, then that the account belongs to the area it signs in to.
-     * The cookie is written only when both checks pass. After too many failures for the email or the client
-     * address, every attempt is refused for a while without even checking the password.
+     * The cookie is written only when both checks pass. After too many failures for the account or the client
+     * address, every attempt is refused for a while without even checking the password; the attempt is reserved
+     * before the check, so parallel requests cannot get more guesses than the limit.
      */
     private LoginResult signIn(String email, String password, boolean internalArea,
                                HttpServletRequest request, HttpServletResponse response) {
-        String ip = clientIp.of(request);
-        if (loginAttempts.isBlocked(email, ip)) {
+        LoginAttemptService.Attempt attempt;
+        try {
+            attempt = loginAttempts.begin(email, clientIp.of(request));
+        } catch (LoginBlockedException e) {
             return new LoginResult(null, LoginAttemptService.BLOCKED_MESSAGE);
+        } catch (AuthenticationException e) {
+            return new LoginResult(null, WRONG_CREDENTIALS);
         }
         AppUserPrincipal user;
         try {
             Authentication auth = authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(email.trim(), password));
+            if (!attempt.succeeded()) {
+                return new LoginResult(null, LoginAttemptService.BLOCKED_MESSAGE);
+            }
             user = (AppUserPrincipal) auth.getPrincipal();
         } catch (AuthenticationException e) {
-            loginAttempts.recordFailure(email, ip);
-            if (loginAttempts.isBlocked(email, ip)) {
+            if (attempt.failed()) {
                 return new LoginResult(null, LoginAttemptService.BLOCKED_MESSAGE);
             }
             return new LoginResult(null, e instanceof DisabledException
                     ? "Tài khoản của bạn đã bị khoá. Vui lòng liên hệ rạp."
-                    : "Email hoặc mật khẩu không đúng");
+                    : WRONG_CREDENTIALS);
+        } finally {
+            attempt.close();
         }
-        loginAttempts.recordSuccess(email);
         if (internalArea && !isInternal(user.getRole())) {
             return new LoginResult(null, "Trang này chỉ dành cho nhân viên và quản trị viên. "
                     + "Thành viên vui lòng đăng nhập tại trang chủ.");
