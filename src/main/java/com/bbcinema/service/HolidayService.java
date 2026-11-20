@@ -63,10 +63,17 @@ public class HolidayService {
         return result;
     }
 
-    @Transactional
+    /**
+     * Adds a holiday, then re-prices the free seats of that day's showtimes that have not started.
+     * Not one transaction on purpose: the holiday is committed first, so the re-pricing (one short
+     * transaction per showtime) sees it.
+     */
     public Change add(LocalDate date, String name) {
         if (date == null) {
             throw new BusinessException("Vui lòng chọn ngày");
+        }
+        if (date.isBefore(LocalDate.now(clock))) {
+            throw new BusinessException("Không thể thêm ngày lễ đã qua");
         }
         String cleanName = name == null ? "" : name.trim();
         if (cleanName.isEmpty()) {
@@ -84,12 +91,11 @@ public class HolidayService {
         return new Change(holiday, repriced);
     }
 
-    @Transactional
+    /** Removes a holiday, then re-prices the free seats of that day's showtimes (see {@link #add}). */
     public Change delete(Long id) {
         Holiday holiday = holidayRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Không tìm thấy ngày lễ #" + id));
-        holidayRepository.delete(holiday);
-        holidayRepository.flush();
+        holidayRepository.deleteById(id);
         int repriced = pricingService.repriceAvailableSeatsOn(List.of(holiday.getDate()));
         log.info("Holiday {} {} removed, {} free seats re-priced", holiday.getDate(), holiday.getName(), repriced);
         return new Change(holiday, repriced);

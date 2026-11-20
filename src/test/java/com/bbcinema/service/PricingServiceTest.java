@@ -15,12 +15,14 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.transaction.PlatformTransactionManager;
 
 import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -47,6 +49,9 @@ class PricingServiceTest {
     @Mock
     ShowtimeSeatRepository showtimeSeatRepository;
 
+    @Mock
+    PlatformTransactionManager transactionManager;
+
     PricingService service;
 
     /** "Now" for these tests: Friday 20/11/2026, 10:00. */
@@ -55,7 +60,7 @@ class PricingServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new PricingService(repository, holidayRepository, showtimeRepository, showtimeSeatRepository, CLOCK);
+        service = new PricingService(repository, holidayRepository, showtimeRepository, showtimeSeatRepository, CLOCK, transactionManager);
     }
 
     @Test
@@ -257,5 +262,72 @@ class PricingServiceTest {
         service.ensureAllPricesExist(BigDecimal.valueOf(80_000));
 
         verify(repository, never()).save(argThat(p -> p.getDayType() == DayType.HOLIDAY));
+    }
+
+    // ------------------------------------------------------------------ re-pricing only when holiday shows are affected
+
+    private static final LocalDate TODAY = LocalDate.of(2026, 11, 20);
+
+    @Test
+    void weekdayPriceChangeDoesNotRepriceHolidayShows() {
+        TicketPrice weekday = new TicketPrice(SeatType.STANDARD, ScreenFormat.TWO_D, DayType.WEEKDAY, TimeSlot.FROM_17, BigDecimal.valueOf(70_000));
+        when(repository.findById(1L)).thenReturn(Optional.of(weekday));
+
+        assertThat(service.updatePrices(Map.of(1L, BigDecimal.valueOf(75_000)))).isZero();
+
+        assertThat(weekday.getPrice()).isEqualByComparingTo("75000");
+        verify(holidayRepository, never()).findDatesFrom(any());
+    }
+
+    @Test
+    void unchangedHolidayAndWeekendPricesDoNotReprice() {
+        TicketPrice weekend = new TicketPrice(SeatType.STANDARD, ScreenFormat.TWO_D, DayType.WEEKEND, TimeSlot.FROM_17, BigDecimal.valueOf(90_000));
+        TicketPrice holiday = new TicketPrice(SeatType.STANDARD, ScreenFormat.TWO_D, DayType.HOLIDAY, TimeSlot.FROM_17, BigDecimal.valueOf(99_000));
+        when(repository.findById(2L)).thenReturn(Optional.of(weekend));
+        when(repository.findById(3L)).thenReturn(Optional.of(holiday));
+
+        service.updatePrices(Map.of(2L, BigDecimal.valueOf(90_000), 3L, BigDecimal.valueOf(99_000)));
+
+        verify(holidayRepository, never()).findDatesFrom(any());
+    }
+
+    @Test
+    void weekendPriceChangeRepricesHolidayShowsBecauseHolidaysFallBackToIt() {
+        TicketPrice weekend = new TicketPrice(SeatType.VIP, ScreenFormat.TWO_D, DayType.WEEKEND, TimeSlot.FROM_17, BigDecimal.valueOf(100_000));
+        when(repository.findById(2L)).thenReturn(Optional.of(weekend));
+        when(holidayRepository.findDatesFrom(TODAY)).thenReturn(List.of());
+
+        service.updatePrices(Map.of(2L, BigDecimal.valueOf(105_000)));
+
+        verify(holidayRepository).findDatesFrom(TODAY);
+    }
+
+    @Test
+    void emptyHolidayPriceDeletesTheRowAndReprices() {
+        TicketPrice holiday = new TicketPrice(SeatType.STANDARD, ScreenFormat.TWO_D, DayType.HOLIDAY, TimeSlot.FROM_17, BigDecimal.valueOf(99_000));
+        when(repository.findById(3L)).thenReturn(Optional.of(holiday));
+        when(holidayRepository.findDatesFrom(TODAY)).thenReturn(List.of());
+        Map<Long, BigDecimal> prices = new HashMap<>();
+        prices.put(3L, null);
+
+        service.updatePrices(prices);
+
+        verify(repository).delete(holiday);
+        verify(holidayRepository).findDatesFrom(TODAY);
+    }
+
+    @Test
+    void emptyWeekdayOrWeekendPriceIsRejected() {
+        for (DayType day : List.of(DayType.WEEKDAY, DayType.WEEKEND)) {
+            TicketPrice row = new TicketPrice(SeatType.STANDARD, ScreenFormat.TWO_D, day, TimeSlot.FROM_17, BigDecimal.valueOf(80_000));
+            when(repository.findById(4L)).thenReturn(Optional.of(row));
+            Map<Long, BigDecimal> prices = new HashMap<>();
+            prices.put(4L, null);
+
+            assertThatThrownBy(() -> service.updatePrices(prices))
+                    .isInstanceOf(BusinessException.class)
+                    .hasMessage("Giá vé phải là số");
+        }
+        verify(repository, never()).delete(any());
     }
 }

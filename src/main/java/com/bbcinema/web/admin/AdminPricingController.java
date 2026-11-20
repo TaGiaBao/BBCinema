@@ -10,9 +10,11 @@ import com.bbcinema.exception.BusinessException;
 import com.bbcinema.exception.NotFoundException;
 import com.bbcinema.service.ComboService;
 import com.bbcinema.service.HolidayService;
+import com.bbcinema.service.InventoryService;
 import com.bbcinema.service.PricingService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -31,6 +33,7 @@ import java.util.List;
 import java.util.Map;
 
 /** Ticket price table, public holidays and snack combos. */
+@Slf4j
 @Controller
 @RequestMapping("/admin")
 @RequiredArgsConstructor
@@ -38,7 +41,7 @@ public class AdminPricingController {
 
     private final PricingService pricingService;
     private final ComboService comboService;
-    private final com.bbcinema.service.InventoryService inventoryService;
+    private final InventoryService inventoryService;
     private final HolidayService holidayService;
     private final Clock clock;
 
@@ -58,20 +61,27 @@ public class AdminPricingController {
         try {
             params.forEach((key, value) -> {
                 if (key.startsWith("price_")) {
-                    prices.put(Long.parseLong(key.substring(6)), parsePrice(value));
+                    // Empty: allowed only on a holiday price, which then goes back to the weekend price.
+                    prices.put(Long.parseLong(key.substring(6)), value == null || value.isBlank() ? null : parsePrice(value));
                 } else if (key.startsWith(NEW_HOLIDAY_PREFIX) && value != null && !value.isBlank()) {
                     newHolidayPrices.put(holidayCell(key.substring(NEW_HOLIDAY_PREFIX.length())), parsePrice(value));
                 }
             });
             int repriced = pricingService.updatePrices(prices, newHolidayPrices);
-            redirect.addFlashAttribute("success", "Đã lưu bảng giá. Giá ngày thường và cuối tuần áp dụng cho các suất chiếu tạo sau; "
-                    + "giá ngày lễ đã cập nhật cho " + repriced + " ghế còn trống của các suất chiếu ngày lễ sắp tới.");
+            String message = "Đã lưu bảng giá. Giá ngày thường và cuối tuần áp dụng cho các suất chiếu tạo sau.";
+            if (repriced > 0) {
+                message += " Đã cập nhật giá cho " + repriced + " ghế còn trống của các suất chiếu ngày lễ sắp tới.";
+            }
+            redirect.addFlashAttribute("success", message);
         } catch (NumberFormatException e) {
             redirect.addFlashAttribute("error", "Giá vé phải là số");
-        } catch (IllegalArgumentException e) {
-            redirect.addFlashAttribute("error", "Ô giá ngày lễ không hợp lệ");
         } catch (BusinessException e) {
             redirect.addFlashAttribute("error", e.getMessage());
+        } catch (DataIntegrityViolationException e) {
+            // e.g. a database created before holiday prices whose day_type column does not accept HOLIDAY yet
+            log.warn("Saving the price table failed: {}", e.getMostSpecificCause().getMessage());
+            redirect.addFlashAttribute("error", "Không lưu được bảng giá do cơ sở dữ liệu chưa được cập nhật. "
+                    + "Vui lòng khởi động lại ứng dụng rồi thử lại.");
         }
         return "redirect:/admin/prices";
     }
@@ -93,7 +103,7 @@ public class AdminPricingController {
                 }
             }
         }
-        throw new IllegalArgumentException("Unknown price cell " + key);
+        throw new BusinessException("Ô giá ngày lễ không hợp lệ");
     }
 
     // ------------------------------------------------------------------ public holidays

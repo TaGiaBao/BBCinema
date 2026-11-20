@@ -2,11 +2,13 @@ package com.bbcinema.repository;
 
 import com.bbcinema.entity.ShowtimeSeat;
 import com.bbcinema.entity.enums.SeatStatus;
+import com.bbcinema.entity.enums.SeatType;
 import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.List;
@@ -23,35 +25,41 @@ public interface ShowtimeSeatRepository extends JpaRepository<ShowtimeSeat, Long
     /**
      * Loads the requested seats with a row lock (SELECT ... FOR UPDATE). A second buyer asking
      * for the same seats waits here until the first transaction commits, then sees the new status.
+     * Rows are locked in id order, so two transactions locking overlapping seats (two holds, or a
+     * hold and a holiday re-pricing) wait for each other instead of deadlocking.
      */
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("""
             select ss from ShowtimeSeat ss join fetch ss.seat
             where ss.showtime.id = :showtimeId and ss.id in :ids
+            order by ss.id
             """)
     List<ShowtimeSeat> findForUpdate(Long showtimeId, Collection<Long> ids);
 
     /**
-     * Every seat of a showtime, row-locked (SELECT ... FOR UPDATE) in id order. Used to re-price seats
-     * without racing a customer who is holding them: whoever locks first wins, the other one waits
-     * and then sees the committed status and price.
+     * Ids of the seats of a showtime a customer can pick now: free ones, and held ones whose hold ran
+     * out but has not been released yet (like {@code ShowtimeService.effectiveStatus}). No lock.
      */
-    @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("""
-            select ss from ShowtimeSeat ss join fetch ss.seat
+            select ss.id from ShowtimeSeat ss
             where ss.showtime.id = :showtimeId
+              and (ss.status = com.bbcinema.entity.enums.SeatStatus.AVAILABLE
+                   or (ss.status = com.bbcinema.entity.enums.SeatStatus.HELD and ss.holdExpiresAt < :now))
             order by ss.id
             """)
-    List<ShowtimeSeat> findAllOfShowtimeForUpdate(Long showtimeId);
+    List<Long> findFreeSeatIds(Long showtimeId, LocalDateTime now);
 
-    /** The different prices of the free seats of one type in a showtime, leaving out the given seats. */
+    /**
+     * The different prices of the seats of one type in a showtime a customer can pick now (free, or
+     * held past the hold time), leaving out the given seats.
+     */
     @Query("""
             select distinct ss.price from ShowtimeSeat ss
-            where ss.showtime.id = :showtimeId and ss.seat.type = :seatType
-              and ss.status = com.bbcinema.entity.enums.SeatStatus.AVAILABLE and ss.id not in :excludedIds
+            where ss.showtime.id = :showtimeId and ss.seat.type = :seatType and ss.id not in :excludedIds
+              and (ss.status = com.bbcinema.entity.enums.SeatStatus.AVAILABLE
+                   or (ss.status = com.bbcinema.entity.enums.SeatStatus.HELD and ss.holdExpiresAt < :now))
             """)
-    List<java.math.BigDecimal> findFreeSeatPrices(Long showtimeId, com.bbcinema.entity.enums.SeatType seatType,
-                                                  Collection<Long> excludedIds);
+    List<BigDecimal> findFreeSeatPrices(Long showtimeId, SeatType seatType, Collection<Long> excludedIds, LocalDateTime now);
 
     long countByShowtimeIdAndStatus(Long showtimeId, SeatStatus status);
 

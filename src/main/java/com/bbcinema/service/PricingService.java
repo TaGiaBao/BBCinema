@@ -16,7 +16,10 @@ import com.bbcinema.repository.TicketPriceRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.math.BigDecimal;
 import java.time.Clock;
@@ -46,6 +49,7 @@ public class PricingService {
     private final ShowtimeRepository showtimeRepository;
     private final ShowtimeSeatRepository showtimeSeatRepository;
     private final Clock clock;
+    private final PlatformTransactionManager transactionManager;
 
     /** A cell of the holiday price column: the holiday price of one seat type, format and time slot. */
     public record HolidayCell(SeatType seatType, ScreenFormat format, TimeSlot timeSlot) {
@@ -164,42 +168,81 @@ public class PricingService {
     }
 
     /** Saves the prices typed in the admin price table: price id -> new price. */
-    @Transactional
     public int updatePrices(Map<Long, BigDecimal> prices) {
         return updatePrices(prices, Map.of());
     }
 
     /**
      * Saves the admin price table: existing rows by id, plus holiday prices typed in for the first
-     * time. Then re-prices the free seats of upcoming holiday showtimes, because their price was
-     * fixed when they were created and a holiday price (or the weekend price it falls back to)
-     * may just have changed. Weekday and weekend showtimes already created keep their prices.
+     * time. An empty (null) value on a stored holiday row deletes it, so that cell goes back to the
+     * weekend price; an empty weekday or weekend price is refused.
+     * <p>
+     * Weekday and weekend showtimes already created keep their prices. Holiday showtimes are
+     * different: when a holiday price, or a weekend price a holiday falls back to, really changed,
+     * the free seats of the upcoming holiday showtimes are re-priced after the new prices are
+     * committed (see {@link #repriceAvailableSeatsOn}).
      *
      * @return the number of seats whose price changed
      */
-    @Transactional
     public int updatePrices(Map<Long, BigDecimal> prices, Map<HolidayCell, BigDecimal> newHolidayPrices) {
-        prices.forEach((id, price) -> {
-            checkPrice(price);
+        Boolean holidayPricesChanged = transactionTemplate(TransactionDefinition.PROPAGATION_REQUIRED)
+                .execute(status -> savePrices(prices, newHolidayPrices));
+        if (!Boolean.TRUE.equals(holidayPricesChanged)) {
+            return 0;
+        }
+        return repriceAvailableSeatsOn(holidayRepository.findDatesFrom(LocalDate.now(clock)));
+    }
+
+    /** @return true when a price a holiday show uses (a holiday or a weekend price) changed */
+    private boolean savePrices(Map<Long, BigDecimal> prices, Map<HolidayCell, BigDecimal> newHolidayPrices) {
+        boolean holidayPricesChanged = false;
+        for (Map.Entry<Long, BigDecimal> entry : prices.entrySet()) {
+            Long id = entry.getKey();
+            BigDecimal price = entry.getValue();
+            if (price != null) {
+                checkPrice(price);
+            }
             TicketPrice ticketPrice = ticketPriceRepository.findById(id)
                     .orElseThrow(() -> new BusinessException("Không tìm thấy dòng giá #" + id));
             if (!isEditable(ticketPrice.getSeatType())) {
                 throw coupleNotTypedIn();
             }
-            ticketPrice.setPrice(price);
-        });
-        newHolidayPrices.forEach((cell, price) -> {
+            if (price == null && ticketPrice.getDayType() == DayType.HOLIDAY) {
+                ticketPriceRepository.delete(ticketPrice); // back to the weekend price
+                holidayPricesChanged = true;
+                continue;
+            }
+            if (price == null) {
+                throw new BusinessException("Giá vé phải là số");
+            }
+            if (ticketPrice.getPrice().compareTo(price) != 0) {
+                ticketPrice.setPrice(price);
+                holidayPricesChanged |= ticketPrice.getDayType() != DayType.WEEKDAY;
+            }
+        }
+        for (Map.Entry<HolidayCell, BigDecimal> entry : newHolidayPrices.entrySet()) {
+            HolidayCell cell = entry.getKey();
+            BigDecimal price = entry.getValue();
             checkPrice(price);
             if (!isEditable(cell.seatType())) {
                 throw coupleNotTypedIn();
             }
-            ticketPriceRepository.findBySeatTypeAndFormatAndDayTypeAndTimeSlot(
-                            cell.seatType(), cell.format(), DayType.HOLIDAY, cell.timeSlot())
-                    .ifPresentOrElse(existing -> existing.setPrice(price),
-                            () -> ticketPriceRepository.save(new TicketPrice(cell.seatType(), cell.format(),
-                                    DayType.HOLIDAY, cell.timeSlot(), price)));
-        });
-        return repriceAvailableSeatsOn(holidayRepository.findDatesFrom(LocalDate.now(clock)));
+            Optional<TicketPrice> existing = ticketPriceRepository.findBySeatTypeAndFormatAndDayTypeAndTimeSlot(
+                    cell.seatType(), cell.format(), DayType.HOLIDAY, cell.timeSlot());
+            if (existing.isPresent()) {
+                if (existing.get().getPrice().compareTo(price) != 0) {
+                    existing.get().setPrice(price);
+                    holidayPricesChanged = true;
+                }
+            } else {
+                ticketPriceRepository.save(new TicketPrice(cell.seatType(), cell.format(), DayType.HOLIDAY, cell.timeSlot(), price));
+                holidayPricesChanged = true;
+            }
+        }
+        // Flush here so a database that refuses a HOLIDAY row fails inside this method, through the
+        // repository's exception translation (DataIntegrityViolationException).
+        ticketPriceRepository.flush();
+        return holidayPricesChanged;
     }
 
     private static void checkPrice(BigDecimal price) {
@@ -216,15 +259,18 @@ public class PricingService {
     /**
      * Sets the current price on the free seats of the showtimes starting on these dates that have
      * not started yet. Seats a customer holds or has bought keep the price they were shown, and so
-     * do the bookings. Each showtime's seats are row-locked first (as when a customer holds seats),
-     * so a hold either commits before (the seat is HELD and left alone) or waits and then holds the
-     * seat at its new price, which the order summary shows before payment.
+     * do the bookings; a hold that has run out but was not released yet counts as free, as it does
+     * when a customer picks seats.
+     * <p>
+     * Call it outside a transaction, once the change it reacts to is committed: each showtime is
+     * re-priced in its own short transaction, so a busy holiday never keeps many seat rows locked
+     * at once.
      *
      * @return the number of seats whose price changed
      */
-    @Transactional
     public int repriceAvailableSeatsOn(Collection<LocalDate> dates) {
         LocalDateTime now = LocalDateTime.now(clock);
+        TransactionTemplate perShowtime = transactionTemplate(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
         int changed = 0;
         for (LocalDate date : new TreeSet<>(dates)) {
             LocalDateTime from = date.atStartOfDay().isAfter(now) ? date.atStartOfDay() : now;
@@ -233,7 +279,8 @@ public class PricingService {
                 continue;
             }
             for (Showtime showtime : showtimeRepository.findActiveStartingBetween(from, to)) {
-                changed += reprice(showtime);
+                Integer count = perShowtime.execute(status -> reprice(showtime));
+                changed += count == null ? 0 : count;
             }
         }
         if (changed > 0) {
@@ -242,11 +289,22 @@ public class PricingService {
         return changed;
     }
 
+    /**
+     * Re-prices the free seats of one showtime. The free seat ids are read without a lock, then
+     * locked with {@link ShowtimeSeatRepository#findForUpdate} (the query a customer's hold uses, in
+     * the same id order, so the two cannot deadlock) and checked again: a seat held in between is
+     * left alone, and a hold that was waiting for the lock then takes the seat at its new price.
+     */
     private int reprice(Showtime showtime) {
+        LocalDateTime now = LocalDateTime.now(clock);
+        List<Long> freeIds = showtimeSeatRepository.findFreeSeatIds(showtime.getId(), now);
+        if (freeIds.isEmpty()) {
+            return 0;
+        }
         Map<SeatType, BigDecimal> priceByType = new EnumMap<>(SeatType.class);
         int changed = 0;
-        for (ShowtimeSeat ss : showtimeSeatRepository.findAllOfShowtimeForUpdate(showtime.getId())) {
-            if (ss.getStatus() != SeatStatus.AVAILABLE) {
+        for (ShowtimeSeat ss : showtimeSeatRepository.findForUpdate(showtime.getId(), freeIds)) {
+            if (ShowtimeService.effectiveStatus(ss, now) != SeatStatus.AVAILABLE) {
                 continue;
             }
             BigDecimal price = priceByType.computeIfAbsent(ss.getSeat().getType(),
@@ -257,6 +315,12 @@ public class PricingService {
             }
         }
         return changed;
+    }
+
+    private TransactionTemplate transactionTemplate(int propagation) {
+        TransactionTemplate template = new TransactionTemplate(transactionManager);
+        template.setPropagationBehavior(propagation);
+        return template;
     }
 
     /**

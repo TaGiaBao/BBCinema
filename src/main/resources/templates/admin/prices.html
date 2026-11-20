@@ -6,14 +6,15 @@
 <section class="p-4" style="max-width: 1100px">
     <div class="d-flex flex-wrap justify-content-between align-items-start gap-2">
         <h1 class="h4">Bảng giá vé</h1>
-        <a class="btn btn-sm btn-outline-navy" href="/admin/prices/holidays"><i class="bi bi-calendar-heart"></i> Ngày lễ</a>
+        <a class="btn btn-sm btn-outline-navy" th:href="@{/admin/prices/holidays}"><i class="bi bi-calendar-heart"></i> Ngày lễ</a>
     </div>
-    <p class="text-muted small">Giá ngày thường và cuối tuần chỉ áp dụng cho suất chiếu tạo sau khi lưu. Vé đã tạo giữ nguyên giá cũ.
+    <p class="text-muted small">Giá ngày thường và cuối tuần áp dụng cho các suất chiếu tạo sau khi lưu; suất đã tạo giữ nguyên giá.
         Giá ghế đôi (cho hai người) được tính tự động bằng 2 lần giá ghế VIP cùng định dạng, ngày và khung giờ.</p>
     <p class="text-muted small">Cột <strong>Ngày lễ</strong> áp dụng cho suất chiếu bắt đầu vào một ngày trong
-        <a href="/admin/prices/holidays">danh sách ngày lễ</a> (kể cả ngày lễ rơi vào thứ 7, chủ nhật).
-        Ô chưa đặt giá ngày lễ thì bán theo <strong>giá cuối tuần</strong>. Khi lưu, ghế còn trống của các suất chiếu ngày lễ
-        sắp tới được cập nhật giá mới; ghế đang giữ hoặc đã bán giữ nguyên giá.</p>
+        <a th:href="@{/admin/prices/holidays}">danh sách ngày lễ</a> (kể cả ngày lễ rơi vào thứ 7, chủ nhật).
+        Ô chưa đặt giá ngày lễ thì bán theo <strong>giá cuối tuần</strong>; xoá trống một ô giá ngày lễ để quay về giá cuối tuần.
+        Khi giá ngày lễ (hoặc giá cuối tuần mà ngày lễ đang dùng thay) thay đổi, ghế còn trống của các suất chiếu ngày lễ
+        sắp tới cũng được cập nhật giá mới; ghế đang giữ hoặc đã bán giữ nguyên giá.</p>
     <form method="post" th:action="@{/admin/prices}" class="panel">
         <div class="table-responsive">
             <table class="table align-middle">

@@ -21,6 +21,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.support.TransactionTemplate;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.*;
 import java.util.*;
 
@@ -208,7 +209,7 @@ public class DataSeeder implements ApplicationRunner {
     /** Demo holiday price: the weekend price plus 10%, rounded to 1,000đ. */
     static BigDecimal holidayPriceFrom(BigDecimal weekendPrice) {
         return weekendPrice.multiply(BigDecimal.valueOf(11)).divide(BigDecimal.valueOf(10))
-                .divide(BigDecimal.valueOf(1000)).setScale(0, java.math.RoundingMode.HALF_UP).multiply(BigDecimal.valueOf(1000));
+                .divide(BigDecimal.valueOf(1000)).setScale(0, RoundingMode.HALF_UP).multiply(BigDecimal.valueOf(1000));
     }
 
     /**

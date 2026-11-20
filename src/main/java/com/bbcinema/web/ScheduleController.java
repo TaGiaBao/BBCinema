@@ -1,6 +1,7 @@
 package com.bbcinema.web;
 
 import com.bbcinema.entity.Cinema;
+import com.bbcinema.service.HolidayService;
 import com.bbcinema.service.ShowtimeService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -20,7 +21,7 @@ import java.util.List;
 public class ScheduleController {
 
     private final ShowtimeService showtimeService;
-    private final com.bbcinema.service.HolidayService holidayService;
+    private final HolidayService holidayService;
     private final Clock clock;
 
     @GetMapping("/schedule")

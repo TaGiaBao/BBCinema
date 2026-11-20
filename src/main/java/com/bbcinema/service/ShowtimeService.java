@@ -12,6 +12,7 @@ import com.bbcinema.entity.enums.MovieStatus;
 import com.bbcinema.entity.enums.ScreenFormat;
 import com.bbcinema.entity.enums.ShowLanguage;
 import com.bbcinema.entity.enums.SeatStatus;
+import com.bbcinema.entity.enums.SeatType;
 import com.bbcinema.exception.BusinessException;
 import com.bbcinema.exception.NotFoundException;
 import com.bbcinema.repository.ShowtimeRepository;
@@ -22,6 +23,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.*;
 import java.time.format.DateTimeParseException;
 import java.util.*;
@@ -204,8 +206,7 @@ public class ShowtimeService {
         showtime = showtimeRepository.save(showtime);
 
         List<ShowtimeSeat> seats = new ArrayList<>();
-        java.util.Map<com.bbcinema.entity.enums.SeatType, java.math.BigDecimal> priceByType =
-                new java.util.EnumMap<>(com.bbcinema.entity.enums.SeatType.class);
+        Map<SeatType, BigDecimal> priceByType = new EnumMap<>(SeatType.class);
         for (Seat seat : roomService.getSeats(room.getId())) {
             if (!seat.isActive()) {
                 continue;

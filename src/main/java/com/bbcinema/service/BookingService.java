@@ -575,19 +575,25 @@ public class BookingService {
     /**
      * A seat that was held or sold while its showtime was re-priced (a holiday added or removed) kept
      * the old price. When it comes back on sale it takes the price the other free seats of the same
-     * type in that showtime now have, if they all agree; otherwise it keeps its own.
+     * type in that showtime now have, if they all agree; otherwise (they disagree, or none is free)
+     * it keeps its own.
+     * <p>
+     * Seats are grouped by their current type. If the room layout changed a seat's type after the
+     * showtime was created (the showtime seat does not record the type it was priced with), the
+     * released seat takes the price of its new type; the holiday re-pricing does the same.
      */
     private void alignReleasedSeatPrices(List<ShowtimeSeat> released) {
         if (released.isEmpty()) {
             return;
         }
+        LocalDateTime now = LocalDateTime.now(clock);
         List<Long> releasedIds = released.stream().map(ShowtimeSeat::getId).toList();
         Map<String, List<BigDecimal>> freePrices = new HashMap<>();
         for (ShowtimeSeat ss : released) {
             Long showtimeId = ss.getShowtime().getId();
             SeatType type = ss.getSeat().getType();
             List<BigDecimal> prices = freePrices.computeIfAbsent(showtimeId + "_" + type,
-                    key -> showtimeSeatRepository.findFreeSeatPrices(showtimeId, type, releasedIds));
+                    key -> showtimeSeatRepository.findFreeSeatPrices(showtimeId, type, releasedIds, now));
             if (prices.size() == 1 && prices.get(0).compareTo(ss.getPrice()) != 0) {
                 ss.setPrice(prices.get(0));
             }

@@ -4,22 +4,28 @@ import com.bbcinema.entity.Booking;
 import com.bbcinema.entity.Holiday;
 import com.bbcinema.entity.Showtime;
 import com.bbcinema.entity.ShowtimeSeat;
+import com.bbcinema.entity.TicketPrice;
 import com.bbcinema.entity.User;
 import com.bbcinema.entity.enums.*;
 import com.bbcinema.repository.HolidayRepository;
 import com.bbcinema.repository.TicketPriceRepository;
+import com.bbcinema.service.PricingService.HolidayCell;
 import jakarta.servlet.http.Cookie;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.math.BigDecimal;
+import java.time.DayOfWeek;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.not;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -43,7 +49,7 @@ class HolidayPricingIntegrationTest extends IntegrationTestBase {
     /** A Thursday far enough ahead that no other test schedules a show on it. */
     private LocalDate quietThursday() {
         LocalDate date = LocalDate.now().plusYears(3).plusWeeks(unique());
-        while (date.getDayOfWeek() != java.time.DayOfWeek.THURSDAY) {
+        while (date.getDayOfWeek() != DayOfWeek.THURSDAY) {
             date = date.plusDays(1);
         }
         return date;
@@ -51,8 +57,8 @@ class HolidayPricingIntegrationTest extends IntegrationTestBase {
 
     private void setHolidayPrices() {
         pricingService.updatePrices(Map.of(), Map.of(
-                new com.bbcinema.service.PricingService.HolidayCell(SeatType.STANDARD, ScreenFormat.TWO_D, TimeSlot.FROM_17), HOLIDAY_STANDARD,
-                new com.bbcinema.service.PricingService.HolidayCell(SeatType.VIP, ScreenFormat.TWO_D, TimeSlot.FROM_17), HOLIDAY_VIP));
+                new HolidayCell(SeatType.STANDARD, ScreenFormat.TWO_D, TimeSlot.FROM_17), HOLIDAY_STANDARD,
+                new HolidayCell(SeatType.VIP, ScreenFormat.TWO_D, TimeSlot.FROM_17), HOLIDAY_VIP));
     }
 
     private List<ShowtimeSeat> seats(Long showtimeId) {
@@ -216,9 +222,9 @@ class HolidayPricingIntegrationTest extends IntegrationTestBase {
                 .andExpect(content().string(containsString(">Ngày lễ<")))
                 .andExpect(content().string(containsString("Ngày lễ sắp tới")))
                 .andExpect(content().string(containsString("Ngày lễ công khai")))
-                .andExpect(content().string(containsString(soon.format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy")))))
-                .andExpect(content().string(org.hamcrest.Matchers.not(containsString("Quá xa"))))
-                .andExpect(content().string(org.hamcrest.Matchers.not(containsString("Đã qua"))))
+                .andExpect(content().string(containsString(soon.format(DateTimeFormatter.ofPattern("dd/MM/yyyy")))))
+                .andExpect(content().string(not(containsString("Quá xa"))))
+                .andExpect(content().string(not(containsString("Đã qua"))))
                 .andExpect(content().string(containsString("áp dụng giá cuối tuần")));
     }
 
@@ -234,15 +240,146 @@ class HolidayPricingIntegrationTest extends IntegrationTestBase {
     }
 
     @Test
-    void releasedSeatKeepsItsPriceWhenFreeSeatsDisagree() {
-        // Without any holiday the released seat simply keeps the price every other seat has.
+    void expiredButNotReleasedHoldIsRepricedLikeAFreeSeat() throws Exception {
+        setHolidayPrices();
+        LocalDate date = quietThursday();
+        Showtime st = showtime(AgeRating.P, date.atTime(19, 0));
+        List<Long> free = freeSeats(st.getId(), 2);
+        Booking expired = bookingService.holdSeats(member(25).getId(), st.getId(), List.of(free.get(0)));
+        Booking active = bookingService.holdSeats(member(26).getId(), st.getId(), List.of(free.get(1)));
+        // The hold ran out a minute ago, but the cleanup job has not released it yet.
+        ShowtimeSeat expiredSeat = seat(free.get(0));
+        expiredSeat.setHoldExpiresAt(LocalDateTime.now().minusMinutes(1));
+        showtimeSeatRepository.save(expiredSeat);
+        Booking expiredBooking = bookingRepository.findById(expired.getId()).orElseThrow();
+        expiredBooking.setExpiresAt(LocalDateTime.now().minusMinutes(1));
+        bookingRepository.save(expiredBooking);
+        BigDecimal weekdayStandard = seat(free.get(1)).getPrice();
+
+        Cookie admin = authCookie(account(Role.ADMIN));
+        mvc.perform(post("/admin/prices/holidays").with(csrf()).cookie(admin)
+                        .param("date", date.toString()).param("name", "Ngày lễ thử"))
+                .andExpect(flash().attribute("success", containsString("cho 11 ghế còn trống")));
+
+        assertThat(seat(free.get(0)).getPrice()).isEqualByComparingTo(HOLIDAY_STANDARD); // a customer can pick it now
+        assertThat(seat(free.get(0)).getStatus()).isEqualTo(SeatStatus.HELD);
+        assertThat(seat(free.get(1)).getPrice()).isEqualByComparingTo(weekdayStandard); // still really held
+        assertThat(bookingRepository.findById(active.getId()).orElseThrow().getTicketAmount()).isEqualByComparingTo(weekdayStandard);
+    }
+
+    @Test
+    void clearingAStoredHolidayPriceGoesBackToTheWeekendPrice() throws Exception {
+        setHolidayPrices();
+        LocalDate date = quietThursday();
+        holidayRepository.save(new Holiday(date, "Ngày lễ thử"));
+        Showtime st = showtime(AgeRating.P, date.atTime(19, 0));
+        assertThat(seats(st.getId())).filteredOn(ss -> ss.getSeat().getType() == SeatType.STANDARD)
+                .allSatisfy(ss -> assertThat(ss.getPrice()).isEqualByComparingTo(HOLIDAY_STANDARD));
+        TicketPrice holidayRow = ticketPriceRepository.findBySeatTypeAndFormatAndDayTypeAndTimeSlot(
+                SeatType.STANDARD, ScreenFormat.TWO_D, DayType.HOLIDAY, TimeSlot.FROM_17).orElseThrow();
+        BigDecimal weekendStandard = ticketPriceRepository.findBySeatTypeAndFormatAndDayTypeAndTimeSlot(
+                SeatType.STANDARD, ScreenFormat.TWO_D, DayType.WEEKEND, TimeSlot.FROM_17).orElseThrow().getPrice();
+
+        Cookie admin = authCookie(account(Role.ADMIN));
+        mvc.perform(post("/admin/prices").with(csrf()).cookie(admin).param("price_" + holidayRow.getId(), ""))
+                .andExpect(redirectedUrl("/admin/prices"))
+                .andExpect(flash().attribute("success", containsString("Đã cập nhật giá cho 8 ghế còn trống")));
+
+        assertThat(ticketPriceRepository.findById(holidayRow.getId())).isEmpty();
+        assertThat(seats(st.getId())).filteredOn(ss -> ss.getSeat().getType() == SeatType.STANDARD)
+                .allSatisfy(ss -> assertThat(ss.getPrice()).isEqualByComparingTo(weekendStandard));
+        assertThat(seats(st.getId())).filteredOn(ss -> ss.getSeat().getType() == SeatType.VIP)
+                .allSatisfy(ss -> assertThat(ss.getPrice()).isEqualByComparingTo(HOLIDAY_VIP));
+
+        // An empty weekday or weekend price is still refused, and nothing is saved.
+        TicketPrice weekday = ticketPriceRepository.findBySeatTypeAndFormatAndDayTypeAndTimeSlot(
+                SeatType.STANDARD, ScreenFormat.TWO_D, DayType.WEEKDAY, TimeSlot.FROM_17).orElseThrow();
+        mvc.perform(post("/admin/prices").with(csrf()).cookie(admin).param("price_" + weekday.getId(), " "))
+                .andExpect(flash().attribute("error", "Giá vé phải là số"));
+        assertThat(ticketPriceRepository.findById(weekday.getId()).orElseThrow().getPrice()).isEqualByComparingTo(weekday.getPrice());
+    }
+
+    @Test
+    void savingTheGridWithoutHolidayChangesDoesNotMentionHolidayRepricing() throws Exception {
+        TicketPrice weekday = ticketPriceRepository.findBySeatTypeAndFormatAndDayTypeAndTimeSlot(
+                SeatType.STANDARD, ScreenFormat.TWO_D, DayType.WEEKDAY, TimeSlot.FROM_17).orElseThrow();
+        mvc.perform(post("/admin/prices").with(csrf()).cookie(authCookie(account(Role.ADMIN)))
+                        .param("price_" + weekday.getId(), String.valueOf(weekday.getPrice().longValue())))
+                .andExpect(flash().attribute("success",
+                        "Đã lưu bảng giá. Giá ngày thường và cuối tuần áp dụng cho các suất chiếu tạo sau."));
+    }
+
+    @Test
+    void pastHolidayIsRejectedButTodayIsAllowed() throws Exception {
+        Cookie admin = authCookie(account(Role.ADMIN));
+        mvc.perform(post("/admin/prices/holidays").with(csrf()).cookie(admin)
+                        .param("date", LocalDate.now().minusDays(1).toString()).param("name", "Hôm qua"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Không thể thêm ngày lễ đã qua")));
+        mvc.perform(post("/admin/prices/holidays").with(csrf()).cookie(admin)
+                        .param("date", LocalDate.now().toString()).param("name", "Hôm nay"))
+                .andExpect(redirectedUrl("/admin/prices/holidays"));
+        assertThat(holidayRepository.findAll()).extracting(Holiday::getName).containsExactly("Hôm nay");
+        mvc.perform(get("/admin/prices/holidays").cookie(admin))
+                .andExpect(content().string(containsString("Suất đã bắt đầu không đổi giá.")));
+    }
+
+    // ------------------------------------------------------------------ a seat coming back on sale
+
+    /** Holds a seat, then gives it an old price, as if its showtime was re-priced while it was held. */
+    private Booking holdAtOldPrice(Showtime st, Long seatId, BigDecimal oldPrice) {
+        Booking booking = bookingService.holdSeats(member(30).getId(), st.getId(), List.of(seatId));
+        ShowtimeSeat held = seat(seatId);
+        held.setPrice(oldPrice);
+        showtimeSeatRepository.save(held);
+        return booking;
+    }
+
+    private void cancel(Booking booking) {
+        bookingService.cancel(booking.getCode(), booking.getUser().getId(), Role.USER);
+    }
+
+    @Test
+    void releasedSeatTakesThePriceTheOtherFreeSeatsAgreeOn() {
         Showtime st = showtimeTomorrow();
-        User buyer = member(30);
         Long seatId = freeSeats(st.getId(), 1).get(0);
-        BigDecimal before = seat(seatId).getPrice();
-        Booking booking = bookingService.holdSeats(buyer.getId(), st.getId(), List.of(seatId));
-        bookingService.cancel(booking.getCode(), buyer.getId(), Role.USER);
-        assertThat(seat(seatId).getPrice()).isEqualByComparingTo(before);
+        BigDecimal current = seat(seatId).getPrice();
+        Booking booking = holdAtOldPrice(st, seatId, BigDecimal.valueOf(12_345));
+
+        cancel(booking);
+
+        assertThat(seat(seatId).getPrice()).isEqualByComparingTo(current);
         assertThat(seat(seatId).getStatus()).isEqualTo(SeatStatus.AVAILABLE);
+    }
+
+    @Test
+    void releasedSeatKeepsItsPriceWhenFreeSeatsDisagree() {
+        Showtime st = showtimeTomorrow();
+        List<Long> ids = freeSeats(st.getId(), 2);
+        Booking booking = holdAtOldPrice(st, ids.get(0), BigDecimal.valueOf(12_345));
+        ShowtimeSeat other = seat(ids.get(1));
+        other.setPrice(BigDecimal.valueOf(11_111));
+        showtimeSeatRepository.save(other);
+
+        cancel(booking);
+
+        assertThat(seat(ids.get(0)).getPrice()).isEqualByComparingTo("12345");
+    }
+
+    @Test
+    void releasedSeatKeepsItsPriceWhenNoOtherSeatOfItsTypeIsFree() {
+        Showtime st = showtimeTomorrow();
+        Long seatId = freeSeats(st.getId(), 1).get(0);
+        Booking booking = holdAtOldPrice(st, seatId, BigDecimal.valueOf(12_345));
+        for (ShowtimeSeat ss : seats(st.getId())) {
+            if (!ss.getId().equals(seatId) && ss.getSeat().getType() == SeatType.STANDARD) {
+                ss.markBooked();
+                showtimeSeatRepository.save(ss);
+            }
+        }
+
+        cancel(booking);
+
+        assertThat(seat(seatId).getPrice()).isEqualByComparingTo("12345");
     }
 }

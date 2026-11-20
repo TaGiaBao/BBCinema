@@ -5,6 +5,7 @@ import com.bbcinema.entity.enums.MovieStatus;
 import com.bbcinema.service.CinemaService;
 import com.bbcinema.service.ComboService;
 import com.bbcinema.service.ContentService;
+import com.bbcinema.service.HolidayService;
 import com.bbcinema.service.MovieService;
 import com.bbcinema.service.PricingService;
 import jakarta.servlet.http.HttpServletResponse;
@@ -27,7 +28,7 @@ public class HomeController {
     private final CinemaService cinemaService;
     private final PricingService pricingService;
     private final ComboService comboService;
-    private final com.bbcinema.service.HolidayService holidayService;
+    private final HolidayService holidayService;
 
     @GetMapping("/")
     public String home(@ModelAttribute("currentCinema") Cinema currentCinema, Model model) {
