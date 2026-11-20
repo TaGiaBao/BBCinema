@@ -1,12 +1,15 @@
 package com.bbcinema.integration;
 
+import com.bbcinema.entity.Cinema;
 import com.bbcinema.entity.User;
+import java.math.BigDecimal;
 import jakarta.servlet.http.Cookie;
 import com.bbcinema.entity.enums.Role;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.MediaType;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.not;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
@@ -15,6 +18,8 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 class SecurityIntegrationTest extends IntegrationTestBase {
+
+    @org.springframework.beans.factory.annotation.Autowired com.bbcinema.service.InventoryService inventoryService;
 
     @Test
     void publicPagesAreOpen() throws Exception {
@@ -202,7 +207,7 @@ class SecurityIntegrationTest extends IntegrationTestBase {
     @Test
     void staffCannotLogOutDuringAShiftAndTheManagerClosesItWithTheDrawerCount() throws Exception {
         User staff = account(Role.STAFF);
-        User manager = account(Role.ADMIN);
+        User manager = account(Role.MANAGER);
         Cookie cookie = authCookie(staff);
         mvc.perform(post("/staff/shift/open").with(csrf()).cookie(cookie).param("openingFloat", "500000")
                         .param("managerEmail", manager.getEmail()).param("managerPassword", "wrong"))
@@ -231,8 +236,8 @@ class SecurityIntegrationTest extends IntegrationTestBase {
                 .andExpect(content().string(containsString("Khớp")));
         assertThat(shiftService.findOpen(staff.getId())).isEmpty();
 
-        // The manager sees the shift in the admin area.
-        Cookie admin = authCookie(manager);
+        // Managers see the shift in the admin area.
+        Cookie admin = authCookie(account(Role.ADMIN));
         mvc.perform(get("/admin/shifts").cookie(admin))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString(staff.getFullName())));
@@ -243,32 +248,136 @@ class SecurityIntegrationTest extends IntegrationTestBase {
     }
 
     @Test
-    void managerClosesAShiftFromTheAdminAreaWhenTheStaffMemberHasLeft() throws Exception {
+    void counterManagerClosesAShiftLeftOpenAtTheCounterAndTheGeneralManagerCannot() throws Exception {
+        Cinema cinema = showtimeTomorrow().getRoom().getCinema();
         User staff = account(Role.STAFF);
-        openShift(staff, 300_000);
-        Long id = shiftService.findOpen(staff.getId()).orElseThrow().getId();
-        Cookie admin = authCookie(account(Role.ADMIN));
+        User manager = account(Role.MANAGER);
+        manager.setCinema(cinema);
+        userRepository.save(manager);
+        User otherManager = account(Role.MANAGER);
+        Cinema other = new Cinema();
+        other.setName("Rạp khác " + unique());
+        other.setAddress("Hà Nội");
+        otherManager.setCinema(cinemaRepository.save(other));
+        userRepository.save(otherManager);
+        // The shift is opened at this cinema's counter by its counter manager; another cinema's manager cannot.
+        assertThatThrownBy(() -> shiftService.open(staff.getId(), cinema.getId(), otherManager.getEmail(), "Secret@123", BigDecimal.ZERO))
+                .hasMessageContaining("rạp khác");
+        Long id = shiftService.open(staff.getId(), cinema.getId(), manager.getEmail(), "Secret@123", BigDecimal.valueOf(300_000)).getId();
 
-        mvc.perform(get("/admin/shifts").cookie(admin))
-                .andExpect(content().string(containsString("href=\"/admin/shifts/" + id + "/close\"")));
-        mvc.perform(get("/admin/shifts/" + id + "/close").cookie(admin))
+        // No closing from the admin area, for anyone.
+        Cookie general = authCookie(account(Role.ADMIN));
+        mvc.perform(get("/admin/shifts").cookie(general))
+                .andExpect(content().string(not(containsString("/close"))));
+        mvc.perform(post("/admin/shifts/" + id + "/close").with(csrf()).cookie(general).param("countedCash", "0"))
+                .andExpect(status().is4xxClientError());
+        // The general manager never works the till.
+        mvc.perform(get("/staff/shifts").cookie(general)).andExpect(status().isForbidden());
+
+        // The counter manager, signed in on the counter computer, counts the drawer and closes it.
+        Cookie counter = authCookie(manager);
+        mvc.perform(get("/staff").cookie(counter)).andExpect(redirectedUrl("/staff/shifts"));
+        mvc.perform(get("/staff/shifts").cookie(counter))
+                .andExpect(content().string(containsString("href=\"/staff/shifts/" + id + "/close\"")));
+        mvc.perform(get("/staff/shifts").cookie(authCookie(otherManager)))
+                .andExpect(content().string(not(containsString("/staff/shifts/" + id + "/close"))));
+        mvc.perform(get("/staff/shifts/" + id + "/close").cookie(counter))
                 .andExpect(status().isOk())
-                .andExpect(content().string(containsString("action=\"/admin/shifts/" + id + "/close\"")))
                 .andExpect(content().string(not(containsString("name=\"managerPassword\""))));
-        mvc.perform(post("/admin/shifts/" + id + "/close").with(csrf()).cookie(admin).param("countedCash", "290000")
+        mvc.perform(post("/staff/shifts/" + id + "/close").with(csrf()).cookie(counter).param("countedCash", "290000")
                         .param("note", "Nhân viên bỏ về không bàn giao"))
-                .andExpect(redirectedUrl("/admin/shifts"))
+                .andExpect(redirectedUrl("/staff/shifts"))
                 .andExpect(flash().attribute("success", containsString("Đã kết ca #" + id)));
-
         var closed = shiftService.getDetailed(id);
         assertThat(closed.isOpen()).isFalse();
+        assertThat(closed.getClosedBy().getId()).isEqualTo(manager.getId());
         assertThat(closed.getDifference()).isEqualByComparingTo("-10000");
-        // Closing twice is refused; staff coming back must have a new shift opened.
-        mvc.perform(post("/admin/shifts/" + id + "/close").with(csrf()).cookie(admin).param("countedCash", "0"))
-                .andExpect(flash().attribute("error", containsString("đã kết")));
         mvc.perform(get("/staff").cookie(authCookie(staff))).andExpect(redirectedUrl("/staff/shift/open"));
-        // Staff cannot use the admin close.
-        mvc.perform(post("/admin/shifts/" + id + "/close").with(csrf()).cookie(authCookie(staff)).param("countedCash", "0"))
+        // Counter managers only see their own cinema's shift reports.
+        mvc.perform(get("/admin/shifts/" + id).cookie(counter)).andExpect(status().isOk());
+        mvc.perform(get("/admin/shifts/" + id).cookie(authCookie(otherManager))).andExpect(status().isNotFound());
+    }
+
+    @Test
+    void counterManagerHasTheDayToDayPagesAndTheGeneralManagerTheRest() throws Exception {
+        User manager = account(Role.MANAGER);
+        Cookie counter = authCookie(manager);
+        for (String page : new String[]{"/admin", "/admin/bookings", "/admin/movies", "/admin/showtimes", "/admin/showtimes/auto",
+                "/admin/reviews", "/admin/shifts", "/admin/inventory", "/staff/checkin"}) {
+            mvc.perform(get(page).cookie(counter)).andExpect(status().isOk());
+        }
+        for (String page : new String[]{"/admin/cinemas", "/admin/prices", "/admin/combos", "/admin/promotions", "/admin/posts",
+                "/admin/banners", "/admin/users"}) {
+            mvc.perform(get(page).cookie(counter)).andExpect(status().isForbidden());
+        }
+        mvc.perform(get("/api/admin/reports/revenue?from=2026-01-01&to=2026-01-02").header("Authorization", bearer(manager)))
                 .andExpect(status().isForbidden());
+        Cookie general = authCookie(account(Role.ADMIN));
+        mvc.perform(get("/admin/users").cookie(general)).andExpect(status().isOk());
+        mvc.perform(get("/staff").cookie(general)).andExpect(status().isForbidden());
+        mvc.perform(post("/internal/login").with(csrf()).param("email", manager.getEmail()).param("password", "Secret@123"))
+                .andExpect(redirectedUrl("/admin"));
+    }
+
+    @Test
+    void generalManagerGivesOutInternalAccounts() throws Exception {
+        Cinema cinema = showtimeTomorrow().getRoom().getCinema();
+        Cookie general = authCookie(account(Role.ADMIN));
+        String email = "ql" + unique() + "@bbcinema.vn";
+        mvc.perform(post("/admin/users/new").with(csrf()).cookie(general).param("email", email).param("fullName", "Quản lý mới")
+                        .param("password", "Secret@123").param("role", "MANAGER"))
+                .andExpect(flash().attribute("error", containsString("phải thuộc một rạp")));
+        mvc.perform(post("/admin/users/new").with(csrf()).cookie(general).param("email", email).param("fullName", "Quản lý mới")
+                        .param("password", "Secret@123").param("role", "MANAGER").param("cinemaId", cinema.getId().toString()))
+                .andExpect(flash().attribute("success", containsString(email)));
+        User created = userRepository.findByEmailIgnoreCase(email).orElseThrow();
+        assertThat(created.getRole()).isEqualTo(Role.MANAGER);
+        assertThat(created.getCinema().getId()).isEqualTo(cinema.getId());
+        mvc.perform(post("/admin/users/new").with(csrf()).cookie(general).param("email", "x" + email).param("fullName", "Khách")
+                        .param("password", "Secret@123").param("role", "USER"))
+                .andExpect(flash().attribute("error", containsString("Chỉ cấp tài khoản")));
+        mvc.perform(post("/admin/users/new").with(csrf()).cookie(authCookie(account(Role.MANAGER))).param("email", "y" + email)
+                        .param("fullName", "X").param("password", "Secret@123").param("role", "STAFF"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void counterManagerRequestsStockAndTheGeneralManagerApprovesIt() throws Exception {
+        Cinema cinema = showtimeTomorrow().getRoom().getCinema();
+        User manager = account(Role.MANAGER);
+        manager.setCinema(cinema);
+        userRepository.save(manager);
+        Cookie counter = authCookie(manager);
+        Cookie general = authCookie(account(Role.ADMIN));
+        String itemName = "Ngô test " + unique();
+        // Only the general manager keeps the item list.
+        mvc.perform(post("/admin/inventory/items").with(csrf()).cookie(counter).param("name", itemName).param("unit", "kg"))
+                .andExpect(status().isForbidden());
+        mvc.perform(post("/admin/inventory/items").with(csrf()).cookie(general).param("name", itemName).param("unit", "kg"))
+                .andExpect(flash().attribute("success", containsString(itemName)));
+        Long itemId = inventoryService.items().stream().filter(i -> i.getName().equals(itemName)).findFirst().orElseThrow().getId();
+
+        mvc.perform(post("/admin/inventory/requests").with(csrf()).cookie(counter).param("note", "trống"))
+                .andExpect(flash().attribute("error", containsString("ít nhất một mặt hàng")));
+        mvc.perform(post("/admin/inventory/requests").with(csrf()).cookie(counter).param("qty_" + itemId, "25").param("note", "NCC A"))
+                .andExpect(flash().attribute("success", containsString("cho quản lý tổng duyệt")));
+        var request = inventoryService.requestsFor(manager).get(0);
+        // Waiting for approval: no stock yet; the counter manager cannot approve their own note.
+        assertThat(inventoryService.stockOf(cinema.getId()).entrySet().stream()
+                .filter(e -> e.getKey().getId().equals(itemId)).findFirst().orElseThrow().getValue()).isZero();
+        mvc.perform(post("/admin/inventory/requests/" + request.getId() + "/review").with(csrf()).cookie(counter).param("decision", "approve"))
+                .andExpect(status().isForbidden());
+        mvc.perform(post("/admin/inventory/requests/" + request.getId() + "/review").with(csrf()).cookie(general).param("decision", "reject"))
+                .andExpect(flash().attribute("error", containsString("lý do")));
+        mvc.perform(post("/admin/inventory/requests/" + request.getId() + "/review").with(csrf()).cookie(general).param("decision", "approve"))
+                .andExpect(flash().attribute("success", containsString("Đã duyệt")));
+        assertThat(inventoryService.stockOf(cinema.getId()).entrySet().stream()
+                .filter(e -> e.getKey().getId().equals(itemId)).findFirst().orElseThrow().getValue()).isEqualTo(25);
+        mvc.perform(post("/admin/inventory/requests/" + request.getId() + "/review").with(csrf()).cookie(general).param("decision", "approve"))
+                .andExpect(flash().attribute("error", containsString("đã được xử lý")));
+        mvc.perform(get("/admin/inventory").cookie(counter)).andExpect(status().isOk())
+                .andExpect(content().string(containsString("Gửi quản lý tổng duyệt")));
+        mvc.perform(get("/admin/inventory").cookie(general)).andExpect(status().isOk())
+                .andExpect(content().string(containsString("Thêm mặt hàng")));
     }
 }

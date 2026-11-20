@@ -96,8 +96,15 @@ public class SecurityConfig {
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/movies/**", "/api/cinemas/**", "/api/showtimes/**",
                                 "/api/ticket-prices", "/api/combos").permitAll()
-                        .requestMatchers("/admin/**", "/api/admin/**").hasRole("ADMIN")
-                        .requestMatchers("/staff/**").hasAnyRole("STAFF", "ADMIN")
+                        // General manager only: the chain set-up, prices, marketing, accounts, stock approvals.
+                        .requestMatchers("/api/admin/**", "/admin/cinemas/**", "/admin/prices/**", "/admin/combos/**",
+                                "/admin/promotions/**", "/admin/posts/**", "/admin/banners/**", "/admin/users/**",
+                                "/admin/inventory/items/**", "/admin/inventory/requests/*/review").hasRole("ADMIN")
+                        // Shared with the counter manager: day-to-day running (movies, showtimes, reviews, shifts, stock).
+                        .requestMatchers("/admin/**").hasAnyRole("ADMIN", "MANAGER")
+                        // The counter: staff sell and check tickets; the counter manager works the till in person.
+                        // The general manager works online only, never at the till.
+                        .requestMatchers("/staff/**").hasAnyRole("STAFF", "MANAGER")
                         .anyRequest().authenticated())
                 .exceptionHandling(ex -> ex
                         .authenticationEntryPoint((request, response, e) -> onUnauthenticated(request, response))

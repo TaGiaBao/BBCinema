@@ -22,6 +22,7 @@ public class AdminUserController {
 
     private final UserService userService;
     private final BookingService bookingService;
+    private final com.bbcinema.service.CinemaService cinemaService;
 
     @GetMapping("/users")
     public String users(@RequestParam(required = false) String q,
@@ -32,17 +33,34 @@ public class AdminUserController {
         model.addAttribute("q", q);
         model.addAttribute("role", role);
         model.addAttribute("roles", Role.values());
+        model.addAttribute("internalRoles", java.util.Arrays.stream(Role.values()).filter(Role::isInternal).toList());
+        model.addAttribute("allCinemas", cinemaService.findActive());
         model.addAttribute("menu", "users");
         return "admin/users";
+    }
+
+    /** The general manager gives out internal accounts: staff, counter managers (with their cinema), managers. */
+    @PostMapping("/users/new")
+    public String createUser(@RequestParam String email, @RequestParam String fullName, @RequestParam String password,
+                             @RequestParam Role role, @RequestParam(required = false) Long cinemaId,
+                             RedirectAttributes redirect) {
+        try {
+            userService.createInternalAccount(email, fullName, password, role, cinemaId);
+            redirect.addFlashAttribute("success", "Đã cấp tài khoản " + email.trim() + " (" + role.getLabel() + ")");
+        } catch (BusinessException e) {
+            redirect.addFlashAttribute("error", e.getMessage());
+        }
+        return "redirect:/admin/users";
     }
 
     @PostMapping("/users/{id}")
     public String updateUser(@PathVariable Long id, @RequestParam Role role,
                              @RequestParam(defaultValue = "false") boolean enabled,
+                             @RequestParam(required = false) Long cinemaId,
                              @AuthenticationPrincipal AppUserPrincipal admin,
                              RedirectAttributes redirect) {
         try {
-            userService.updateByAdmin(admin.getId(), id, role, enabled);
+            userService.updateByAdmin(admin.getId(), id, role, enabled, cinemaId);
             redirect.addFlashAttribute("success", "Đã cập nhật tài khoản");
         } catch (BusinessException e) {
             redirect.addFlashAttribute("error", e.getMessage());

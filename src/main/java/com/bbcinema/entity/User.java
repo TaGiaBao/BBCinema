@@ -40,6 +40,11 @@ public class User {
     @Column(nullable = false, length = 20)
     private Role role = Role.USER;
 
+    /** The cinema a counter manager (or staff member) works at; null for the general manager and members. */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "cinema_id")
+    private Cinema cinema;
+
     @Column(nullable = false)
     private boolean enabled = true;
 

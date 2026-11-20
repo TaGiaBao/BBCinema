@@ -55,9 +55,9 @@ abstract class IntegrationTestBase {
         return userRepository.save(user);
     }
 
-    /** A new manager (ADMIN, password Secret@123) opens a till shift for the staff member. */
+    /** A new counter manager (MANAGER, password Secret@123) opens a till shift for the staff member. */
     protected com.bbcinema.entity.CounterShift openShift(User staff, long openingFloat) {
-        User manager = account(Role.ADMIN);
+        User manager = account(Role.MANAGER);
         return shiftService.open(staff.getId(), null, manager.getEmail(), "Secret@123", BigDecimal.valueOf(openingFloat));
     }
 

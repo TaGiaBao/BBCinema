@@ -20,28 +20,38 @@
             <a class="bb-logo" href="/"><span class="mark">BB</span><span class="word">BB<span>Cinema</span></span></a>
         </div>
         <nav>
-            <div sec:authorize="hasRole('ADMIN')" class="contents">
+            <!-- General manager (ADMIN) and counter manager (MANAGER): day-to-day running. -->
+            <div sec:authorize="hasAnyRole('ADMIN', 'MANAGER')" class="contents">
                 <div class="group">Tổng quan</div>
                 <a href="/admin" th:classappend="${menu == 'dashboard'} ? 'active'"><i class="bi bi-graph-up"></i> Thống kê</a>
                 <a href="/admin/bookings" th:classappend="${menu == 'bookings'} ? 'active'"><i class="bi bi-receipt"></i> Đơn đặt vé</a>
                 <a href="/admin/shifts" th:classappend="${menu == 'shifts'} ? 'active'"><i class="bi bi-cash-stack"></i> Ca bán vé</a>
-                <div class="group">Rạp chiếu</div>
+                <a href="/admin/inventory" th:classappend="${menu == 'inventory'} ? 'active'"><i class="bi bi-box-seam"></i> Kho bắp nước</a>
+                <div class="group">Chương trình chiếu</div>
                 <a href="/admin/movies" th:classappend="${menu == 'movies'} ? 'active'"><i class="bi bi-film"></i> Phim</a>
-                <a href="/admin/cinemas" th:classappend="${menu == 'cinemas'} ? 'active'"><i class="bi bi-building"></i> Rạp và phòng</a>
                 <a href="/admin/showtimes" th:classappend="${menu == 'showtimes'} ? 'active'"><i class="bi bi-calendar3"></i> Suất chiếu</a>
+                <a href="/admin/reviews" th:classappend="${menu == 'reviews'} ? 'active'"><i class="bi bi-star-half"></i> Đánh giá phim</a>
+            </div>
+            <!-- General manager only: the chain, prices, marketing and accounts. -->
+            <div sec:authorize="hasRole('ADMIN')" class="contents">
+                <div class="group">Chuỗi rạp</div>
+                <a href="/admin/cinemas" th:classappend="${menu == 'cinemas'} ? 'active'"><i class="bi bi-building"></i> Rạp và phòng</a>
                 <a href="/admin/prices" th:classappend="${menu == 'prices'} ? 'active'"><i class="bi bi-cash-coin"></i> Bảng giá vé</a>
                 <a href="/admin/combos" th:classappend="${menu == 'combos'} ? 'active'"><i class="bi bi-cup-straw"></i> Combo bắp nước</a>
                 <div class="group">Marketing</div>
                 <a href="/admin/promotions" th:classappend="${menu == 'promotions'} ? 'active'"><i class="bi bi-percent"></i> Mã giảm giá</a>
                 <a href="/admin/posts" th:classappend="${menu == 'posts'} ? 'active'"><i class="bi bi-newspaper"></i> Tin tức, ưu đãi</a>
                 <a href="/admin/banners" th:classappend="${menu == 'banners'} ? 'active'"><i class="bi bi-images"></i> Banner</a>
-                <a href="/admin/reviews" th:classappend="${menu == 'reviews'} ? 'active'"><i class="bi bi-star-half"></i> Đánh giá phim</a>
                 <div class="group">Hệ thống</div>
                 <a href="/admin/users" th:classappend="${menu == 'users'} ? 'active'"><i class="bi bi-people"></i> Tài khoản</a>
             </div>
-            <div class="group">Quầy vé</div>
-            <a href="/staff" th:classappend="${menu == 'staff'} ? 'active'"><i class="bi bi-shop"></i> Bán vé tại quầy</a>
-            <a href="/staff/checkin" th:classappend="${menu == 'checkin'} ? 'active'"><i class="bi bi-qr-code-scan"></i> Soát vé</a>
+            <!-- The counter: staff sell and check tickets; the counter manager looks after the shifts in person. -->
+            <div sec:authorize="hasAnyRole('STAFF', 'MANAGER')" class="contents">
+                <div class="group">Quầy vé</div>
+                <a href="/staff" sec:authorize="hasRole('STAFF')" th:classappend="${menu == 'staff'} ? 'active'"><i class="bi bi-shop"></i> Bán vé tại quầy</a>
+                <a href="/staff/shifts" sec:authorize="hasRole('MANAGER')" th:classappend="${menu == 'shifts-open'} ? 'active'"><i class="bi bi-unlock"></i> Ca đang mở</a>
+                <a href="/staff/checkin" th:classappend="${menu == 'checkin'} ? 'active'"><i class="bi bi-qr-code-scan"></i> Soát vé</a>
+            </div>
             <div class="group">Khác</div>
             <a href="/swagger-ui.html"><i class="bi bi-braces"></i> Tài liệu API</a>
             <a href="/demo/mailbox" target="_blank" th:if="${@demoMailbox.enabled}"><i class="bi bi-envelope"></i> Hộp thư demo</a>

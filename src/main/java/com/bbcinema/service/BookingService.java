@@ -465,9 +465,9 @@ public class BookingService {
         if (!booking.isPaid()) {
             throw new BusinessException("Đơn " + booking.getCode() + " " + booking.getStatus().getLabel().toLowerCase());
         }
-        if (viewerRole == Role.STAFF) {
-            // Counter staff only take money in; giving it back needs a manager (refundAtCounter).
-            throw new BusinessException("Nhân viên quầy không được hoàn tiền. Cần quản lý duyệt huỷ vé tại quầy.");
+        if (viewerRole == Role.STAFF || viewerRole == Role.MANAGER) {
+            // At the counter money only comes in; a refund goes through refundAtCounter in a shift, approved by the manager.
+            throw new BusinessException("Nhân viên quầy không được hoàn tiền. Cần quản lý quầy duyệt huỷ vé tại quầy.");
         }
         boolean admin = viewerRole == Role.ADMIN;
         if (!admin && now.isAfter(cancelDeadline(booking))) {
@@ -560,7 +560,10 @@ public class BookingService {
         }
         User staff = userService.getById(staffId);
         CounterShift shift = counterShiftRepository.findFirstByStaffIdAndClosedAtIsNullOrderByOpenedAtDesc(staffId).orElse(null);
-        if (shift == null && staff.getRole() == Role.STAFF) {
+        if (staff.getRole() != Role.STAFF) {
+            throw new BusinessException("Chỉ nhân viên quầy đang trong ca mới bán vé tại quầy");
+        }
+        if (shift == null) {
             throw new BusinessException("Bạn chưa vào ca. Nhờ quản lý mở ca trước khi bán vé.");
         }
         Showtime showtime = showtimeService.getDetailed(showtimeId);
@@ -659,7 +662,7 @@ public class BookingService {
     // ------------------------------------------------------------------ helpers
 
     private static void checkOwner(Booking booking, Long viewerId, Role viewerRole) {
-        if (viewerRole == Role.STAFF || viewerRole == Role.ADMIN) {
+        if (viewerRole.isInternal()) {
             return;
         }
         if (booking.getUser() == null || !booking.getUser().getId().equals(viewerId)) {

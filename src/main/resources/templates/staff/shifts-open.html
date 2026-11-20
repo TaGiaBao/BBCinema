@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/admin :: layout(~{::title}, ~{::section}, ~{::scripts})}">
+<head><title>Ca đang mở · BBCinema</title></head>
+<body>
+<section class="p-4">
+    <h1 class="h4">Ca đang mở tại quầy</h1>
+    <p class="text-muted small" style="max-width: 800px">
+        Nhân viên kết ca bằng nút <strong>Kết ca</strong> trên máy của họ, quản lý quầy nhập tài khoản để xác nhận.
+        Nếu nhân viên đã rời quầy mà ca vẫn mở, quản lý quầy đếm két và kết ca ngay tại đây.
+    </p>
+    <p class="text-muted" th:if="${#lists.isEmpty(shifts)}">Không có ca nào đang mở.</p>
+    <div class="d-grid gap-3">
+        <div class="panel d-flex flex-wrap justify-content-between align-items-center gap-3" th:each="s : ${shifts}">
+            <div>
+                <div class="fw-semibold" th:text="${s.shift.staff.fullName}">Tên</div>
+                <div class="small text-muted" th:text="'Ca #' + ${s.shift.id} + ' · vào ca ' + ${#temporals.format(s.shift.openedAt, 'HH:mm dd/MM')}
+                     + ' · quỹ đầu ca ' + ${@fmt.money(s.shift.openingFloat)}">Ca</div>
+                <div class="small" th:text="'Tiền mặt phải có trong két: ' + ${@fmt.money(s.expectedCash())}">Két</div>
+            </div>
+            <a class="btn btn-amber" th:href="@{/staff/shifts/{id}/close(id=${s.shift.id})}"><i class="bi bi-lock"></i> Đếm két và kết ca</a>
+        </div>
+    </div>
+</section>
+<th:block th:fragment="scripts"></th:block>
+</body>
+</html>

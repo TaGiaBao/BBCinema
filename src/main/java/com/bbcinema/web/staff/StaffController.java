@@ -43,6 +43,9 @@ public class StaffController {
                         @ModelAttribute("currentCinema") Cinema cinema,
                         @AuthenticationPrincipal AppUserPrincipal staff,
                         Model model) {
+        if (staff.getRole() == com.bbcinema.entity.enums.Role.MANAGER) {
+            return "redirect:/staff/shifts"; // counter managers do not sell; they look after the shifts
+        }
         LocalDate today = LocalDate.now(clock);
         LocalDate selected = date == null ? today : date;
         model.addAttribute("today", today);

@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/admin :: layout(~{::title}, ~{::section}, ~{::scripts})}">
+<head><title>Kho bắp nước · Quản trị BBCinema</title></head>
+<body>
+<section class="p-4">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+        <h1 class="h4 mb-0">Kho bắp nước
+            <span class="text-muted fw-normal" th:if="${selectedCinema != null}" th:text="'· ' + ${selectedCinema.name}">· Rạp</span></h1>
+        <form class="d-flex gap-2" method="get" th:if="${isAdmin}">
+            <select class="form-select form-select-sm" name="cinemaId" aria-label="Rạp" onchange="this.form.submit()">
+                <option th:each="c : ${allCinemas}" th:value="${c.id}" th:text="${c.name}"
+                        th:selected="${selectedCinema != null and c.id == selectedCinema.id}">Rạp</option>
+            </select>
+        </form>
+    </div>
+    <p class="text-muted small" style="max-width: 900px">
+        Quản lý quầy nhập số hàng nhận được vào phiếu nhập kho; phiếu được gửi cho quản lý tổng duyệt.
+        Tồn kho chỉ tăng khi phiếu đã được duyệt.
+    </p>
+    <div class="alert alert-warning" th:if="${!isAdmin and selectedCinema == null}">
+        Tài khoản của bạn chưa được gắn rạp. Nhờ quản lý tổng gắn rạp ở mục Tài khoản.</div>
+
+    <div class="row g-4">
+        <div class="col-lg-5">
+            <div class="panel mb-4">
+                <h2 class="h6">Tồn kho</h2>
+                <table class="table table-sm small mb-0" data-role="stock">
+                    <thead><tr><th>Mặt hàng</th><th class="text-end">Tồn</th><th>Đơn vị</th></tr></thead>
+                    <tbody>
+                    <tr th:each="e : ${stock}">
+                        <td th:text="${e.key.name}" th:classappend="${!e.key.active} ? 'text-muted'">Bắp</td>
+                        <td class="text-end tabular fw-semibold" th:text="${e.value}">0</td>
+                        <td th:text="${e.key.unit}">kg</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Counter manager: enter a delivery. -->
+            <form class="panel mb-4" method="post" th:action="@{/admin/inventory/requests}" th:if="${!isAdmin and selectedCinema != null}">
+                <h2 class="h6">Phiếu nhập kho mới</h2>
+                <div class="d-flex justify-content-between align-items-center py-1" th:each="i : ${activeItems}">
+                    <label class="small" th:for="'qty_' + ${i.id}" th:text="${i.name} + ' (' + ${i.unit} + ')'">Bắp (kg)</label>
+                    <input class="form-control form-control-sm text-end" style="width: 110px" type="number" min="0" max="100000"
+                           th:id="'qty_' + ${i.id}" th:name="'qty_' + ${i.id}" placeholder="0">
+                </div>
+                <input class="form-control form-control-sm mt-2" name="note" maxlength="255" placeholder="Ghi chú (nhà cung cấp, số hoá đơn...)" aria-label="Ghi chú">
+                <button class="btn btn-amber btn-sm w-100 mt-2" type="submit"><i class="bi bi-send"></i> Gửi quản lý tổng duyệt</button>
+            </form>
+
+            <!-- General manager: the item list. -->
+            <form class="panel" method="post" th:action="@{/admin/inventory/items}" th:if="${isAdmin}">
+                <h2 class="h6">Thêm mặt hàng</h2>
+                <div class="d-flex gap-2">
+                    <input class="form-control form-control-sm" name="name" maxlength="100" placeholder="Tên mặt hàng" aria-label="Tên mặt hàng" required>
+                    <input class="form-control form-control-sm" style="width: 110px" name="unit" maxlength="20" placeholder="Đơn vị" aria-label="Đơn vị" required>
+                    <button class="btn btn-navy btn-sm" type="submit">Thêm</button>
+                </div>
+            </form>
+        </div>
+
+        <div class="col-lg-7">
+            <div class="panel">
+                <h2 class="h6">Phiếu nhập kho</h2>
+                <p class="text-muted small mb-0" th:if="${#lists.isEmpty(requests)}">Chưa có phiếu nào.</p>
+                <div class="border-bottom py-2" th:each="r : ${requests}">
+                    <div class="d-flex justify-content-between align-items-start gap-2">
+                        <div class="small">
+                            <strong th:text="'#' + ${r.id}">#1</strong>
+                            <span th:text="' · ' + ${r.cinema.name} + ' · ' + ${r.requestedBy.fullName} + ' · ' + ${#temporals.format(r.requestedAt, 'HH:mm dd/MM')}">· Rạp</span>
+                            <div th:each="l : ${r.lines}" th:text="'• ' + ${l.item.name} + ': ' + ${l.quantity} + ' ' + ${l.item.unit}">• Bắp: 10 kg</div>
+                            <div class="text-muted" th:if="${r.note != null}" th:text="'Ghi chú: ' + ${r.note}">Ghi chú</div>
+                            <div class="text-muted" th:if="${r.reviewedBy != null}"
+                                 th:text="${r.status.label} + ' bởi ' + ${r.reviewedBy.fullName} + ' lúc ' + ${#temporals.format(r.reviewedAt, 'HH:mm dd/MM')}
+                                          + (${r.reviewNote != null} ? ' · ' + ${r.reviewNote} : '')">Đã duyệt</div>
+                        </div>
+                        <span class="badge" th:classappend="${r.status.name() == 'PENDING'} ? 'text-bg-warning' : (${r.status.name() == 'APPROVED'} ? 'text-bg-success' : 'text-bg-danger')"
+                              th:text="${r.status.label}">Chờ duyệt</span>
+                    </div>
+                    <form class="d-flex gap-2 mt-2" method="post" th:if="${isAdmin and r.pending}"
+                          th:action="@{/admin/inventory/requests/{id}/review(id=${r.id})}">
+                        <input class="form-control form-control-sm" name="reviewNote" maxlength="255" placeholder="Ghi chú / lý do từ chối" aria-label="Ghi chú duyệt">
+                        <button class="btn btn-sm btn-success" type="submit" name="decision" value="approve">Duyệt</button>
+                        <button class="btn btn-sm btn-outline-danger" type="submit" name="decision" value="reject">Từ chối</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+<th:block th:fragment="scripts"></th:block>
+</body>
+</html>

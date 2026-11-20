@@ -26,6 +26,7 @@ import java.util.Locale;
 public class UserService {
 
     private final UserRepository userRepository;
+    private final com.bbcinema.repository.CinemaRepository cinemaRepository;
     private final PasswordEncoder passwordEncoder;
     private final Clock clock;
 
@@ -70,6 +71,42 @@ public class UserService {
         return userRepository.save(user);
     }
 
+    /**
+     * The general manager gives out an internal account (staff, counter manager or general manager).
+     * A counter manager must belong to a cinema; members sign up themselves.
+     */
+    @Transactional
+    public User createInternalAccount(String email, String fullName, String rawPassword, Role role, Long cinemaId) {
+        if (role == null || !role.isInternal()) {
+            throw new BusinessException("Chỉ cấp tài khoản nhân viên, quản lý quầy hoặc quản lý tổng");
+        }
+        if (email == null || !email.trim().matches("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$")) {
+            throw new BusinessException("Email không hợp lệ");
+        }
+        if (fullName == null || fullName.isBlank()) {
+            throw new BusinessException("Nhập họ tên");
+        }
+        if (rawPassword == null || rawPassword.length() < 8) {
+            throw new BusinessException("Mật khẩu tối thiểu 8 ký tự");
+        }
+        if (userRepository.existsByEmailIgnoreCase(email.trim())) {
+            throw new BusinessException("Email " + email.trim() + " đã có tài khoản");
+        }
+        User user = createAccount(email.trim(), fullName.trim(), rawPassword, role);
+        user.setCinema(cinemaFor(role, cinemaId));
+        return user;
+    }
+
+    private com.bbcinema.entity.Cinema cinemaFor(Role role, Long cinemaId) {
+        if (role == Role.MANAGER && cinemaId == null) {
+            throw new BusinessException("Quản lý quầy phải thuộc một rạp");
+        }
+        if (cinemaId == null || role == Role.ADMIN || role == Role.USER) {
+            return null;
+        }
+        return cinemaRepository.findById(cinemaId).orElseThrow(() -> new NotFoundException("Không tìm thấy rạp"));
+    }
+
     @Transactional
     public void updateProfile(Long userId, ProfileForm form) {
         User user = getById(userId);
@@ -102,13 +139,19 @@ public class UserService {
         return userRepository.search(TextUtil.blankToNull(keyword), role, pageable);
     }
 
-    /** Admin action: change role or lock/unlock. An admin cannot lock or demote their own account. */
+    /** Admin action: change role, cinema, or lock/unlock. An admin cannot lock or demote their own account. */
     @Transactional
     public void updateByAdmin(Long adminId, Long userId, Role role, boolean enabled) {
+        updateByAdmin(adminId, userId, role, enabled, getById(userId).getCinema() == null ? null : getById(userId).getCinema().getId());
+    }
+
+    @Transactional
+    public void updateByAdmin(Long adminId, Long userId, Role role, boolean enabled, Long cinemaId) {
         User user = getById(userId);
         if (user.getId().equals(adminId) && (role != Role.ADMIN || !enabled)) {
             throw new BusinessException("Bạn không thể tự khoá hoặc tự hạ quyền tài khoản của mình");
         }
+        user.setCinema(cinemaFor(role, cinemaId));
         user.setRole(role);
         user.setEnabled(enabled);
     }

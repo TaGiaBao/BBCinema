@@ -77,7 +77,7 @@ class WebPagesIntegrationTest extends IntegrationTestBase {
         String[] pages = {"/admin", "/admin/movies", "/admin/movies/new", "/admin/movies/" + st.getMovie().getId() + "/edit",
                 "/admin/cinemas", "/admin/cinemas/rooms/" + st.getRoom().getId(), "/admin/showtimes", "/admin/prices",
                 "/admin/combos", "/admin/promotions", "/admin/posts", "/admin/posts/new", "/admin/banners", "/admin/users",
-                "/admin/bookings", "/staff", "/staff/checkin", "/staff/sell/" + st.getId()};
+                "/admin/bookings", "/admin/shifts", "/admin/inventory"};
         for (String page : pages) {
             mvc.perform(get(page).cookie(admin)).andExpect(status().isOk());
         }
@@ -358,5 +358,13 @@ class WebPagesIntegrationTest extends IntegrationTestBase {
         mvc.perform(get("/movies/" + st.getMovie().getSlug()).param("date", day)
                         .cookie(new Cookie("BB_CINEMA", st.getRoom().getCinema().getId().toString())))
                 .andExpect(content().string(containsString("2D Lồng tiếng")));
+    }
+
+    @Test
+    void notFoundPagesRenderWithTheLayout() throws Exception {
+        // The error view uses the site layout; it must get the header data too, or a 404 turns into a 500.
+        mvc.perform(get("/movies/phim-khong-ton-tai-" + unique()))
+                .andExpect(status().isNotFound())
+                .andExpect(content().string(containsString("BBCinema")));
     }
 }

@@ -38,6 +38,9 @@ public class ShiftController {
 
     @GetMapping(OPEN_PATH)
     public String openPage(@AuthenticationPrincipal AppUserPrincipal staff, Model model) {
+        if (staff.getRole() != com.bbcinema.entity.enums.Role.STAFF) {
+            return "redirect:/staff/shifts"; // the counter manager does not sell, they look after the shifts
+        }
         if (shiftService.findOpen(staff.getId()).isPresent()) {
             return "redirect:/staff";
         }
@@ -93,6 +96,47 @@ public class ShiftController {
         model.addAttribute("shift", shiftService.getDetailed(shift.getId()));
         model.addAttribute("loggedOut", true);
         return "staff/shift-report";
+    }
+
+    /** Counter manager at the counter: the open shifts of their cinema, e.g. one a staff member left open. */
+    @GetMapping("/staff/shifts")
+    public String openShifts(@AuthenticationPrincipal AppUserPrincipal manager, Model model) {
+        if (manager.getRole() != com.bbcinema.entity.enums.Role.MANAGER) {
+            return "redirect:/staff";
+        }
+        model.addAttribute("shifts", shiftService.openAtCinemaOf(manager.getId()).stream().map(shiftService::summary).toList());
+        model.addAttribute("menu", "shifts-open");
+        return "staff/shifts-open";
+    }
+
+    @GetMapping("/staff/shifts/{id}/close")
+    public String closeShiftPage(@PathVariable Long id, @AuthenticationPrincipal AppUserPrincipal manager,
+                                 Model model, RedirectAttributes redirect) {
+        CounterShift shift = shiftService.getDetailed(id);
+        if (manager.getRole() != com.bbcinema.entity.enums.Role.MANAGER || !shift.isOpen()) {
+            redirect.addFlashAttribute("error", "Ca #" + id + " không còn mở");
+            return "redirect:/staff/shifts";
+        }
+        model.addAttribute("summary", shiftService.summary(shift));
+        model.addAttribute("closeAction", "/staff/shifts/" + id + "/close");
+        model.addAttribute("askManager", false); // the counter manager is the one signed in
+        model.addAttribute("menu", "shifts-open");
+        return "staff/shift-close";
+    }
+
+    @PostMapping("/staff/shifts/{id}/close")
+    public String closeShift(@PathVariable Long id, @AuthenticationPrincipal AppUserPrincipal manager,
+                             @RequestParam(required = false) BigDecimal countedCash,
+                             @RequestParam(required = false) String note,
+                             RedirectAttributes redirect) {
+        try {
+            shiftService.closeAtCounter(id, manager.getId(), countedCash, note);
+            redirect.addFlashAttribute("success", "Đã kết ca #" + id + ". Biên bản xem ở mục Ca bán vé.");
+            return "redirect:/staff/shifts";
+        } catch (BusinessException e) {
+            redirect.addFlashAttribute("error", e.getMessage());
+            return "redirect:/staff/shifts/" + id + "/close";
+        }
     }
 
     /** Cancelling a paid ticket at the counter: the manager approves, the cash comes out of this shift. */

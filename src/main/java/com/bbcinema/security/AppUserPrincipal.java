@@ -45,7 +45,7 @@ public class AppUserPrincipal implements UserDetails {
     }
 
     public boolean isStaff() {
-        return role == Role.STAFF || role == Role.ADMIN;
+        return role.isInternal();
     }
 
     @Override

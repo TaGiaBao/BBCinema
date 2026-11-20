@@ -28,9 +28,10 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * Till shifts at the counter. Staff only take money in: a manager (an ADMIN account) types their e-mail and
- * password to open a shift with the opening float, to approve a refund, and to close the shift after counting
- * the drawer. Closing freezes the shift's totals so the money of one shift is never mixed with the next.
+ * Till shifts at the counter. Staff only take money in: the counter manager (a MANAGER account of that cinema),
+ * standing at the counter, types their e-mail and password to open a shift with the opening float, to approve a
+ * refund, and to close the shift after counting the drawer. The general manager (ADMIN) works online and never
+ * opens or closes a shift. Closing freezes the shift's totals so one shift's money is never mixed with the next.
  */
 @Slf4j
 @Service
@@ -38,7 +39,7 @@ import java.util.Optional;
 @Transactional(readOnly = true)
 public class ShiftService {
 
-    public static final String WRONG_MANAGER = "Email hoặc mật khẩu quản lý không đúng";
+    public static final String WRONG_MANAGER = "Email hoặc mật khẩu quản lý quầy không đúng";
 
     private final CounterShiftRepository shiftRepository;
     private final PaymentRepository paymentRepository;
@@ -81,6 +82,33 @@ public class ShiftService {
         return shiftRepository.findTop100ByOrderByOpenedAtDesc();
     }
 
+    /** Shifts a viewer may see: the general manager sees every cinema, a counter manager only their own. */
+    public List<CounterShift> recentFor(Long viewerId) {
+        User viewer = userRepository.findById(viewerId).orElseThrow(() -> new NotFoundException("Không tìm thấy tài khoản"));
+        if (viewer.getRole() == Role.ADMIN) {
+            return recent();
+        }
+        Long cinemaId = viewer.getCinema() == null ? null : viewer.getCinema().getId();
+        return recent().stream().filter(s -> sameCinema(s, cinemaId)).toList();
+    }
+
+    /** Open shifts at a counter manager's cinema, to close one a staff member left behind. */
+    public List<CounterShift> openAtCinemaOf(Long managerId) {
+        User manager = requireManagerAccount(managerId);
+        Long cinemaId = manager.getCinema() == null ? null : manager.getCinema().getId();
+        return recent().stream().filter(CounterShift::isOpen).filter(s -> sameCinema(s, cinemaId)).toList();
+    }
+
+    public boolean canView(CounterShift shift, Long viewerId) {
+        User viewer = userRepository.findById(viewerId).orElse(null);
+        return viewer != null && (viewer.getRole() == Role.ADMIN
+                || viewer.getRole() == Role.MANAGER && sameCinema(shift, viewer.getCinema() == null ? null : viewer.getCinema().getId()));
+    }
+
+    private static boolean sameCinema(CounterShift shift, Long cinemaId) {
+        return cinemaId == null || shift.getCinema() == null || shift.getCinema().getId().equals(cinemaId);
+    }
+
     /** The float of the last shift, offered as the default when the next one opens. */
     public BigDecimal suggestedFloat() {
         return shiftRepository.findFirstByOrderByOpenedAtDesc().map(CounterShift::getOpeningFloat).orElse(BigDecimal.valueOf(1_000_000));
@@ -89,6 +117,7 @@ public class ShiftService {
     @Transactional
     public CounterShift open(Long staffId, Long cinemaId, String managerEmail, String managerPassword, BigDecimal openingFloat) {
         User manager = verifyManager(managerEmail, managerPassword);
+        checkCinema(manager, cinemaId);
         if (openingFloat == null || openingFloat.signum() < 0) {
             throw new BusinessException("Nhập quỹ đầu ca (từ 0đ trở lên)");
         }
@@ -96,6 +125,9 @@ public class ShiftService {
             throw new BusinessException("Nhân viên này đang có ca chưa kết");
         }
         User staff = userRepository.findById(staffId).orElseThrow(() -> new NotFoundException("Không tìm thấy nhân viên"));
+        if (staff.getRole() != Role.STAFF) {
+            throw new BusinessException("Chỉ mở ca cho tài khoản nhân viên quầy");
+        }
         Cinema cinema = cinemaId == null ? null : cinemaRepository.findById(cinemaId).orElse(null);
         CounterShift shift = new CounterShift();
         shift.setStaff(staff);
@@ -139,22 +171,23 @@ public class ShiftService {
     @Transactional
     public CounterShift close(Long staffId, String managerEmail, String managerPassword, BigDecimal countedCash, String note) {
         User manager = verifyManager(managerEmail, managerPassword);
-        return close(requireOpen(staffId), manager, countedCash, note);
+        CounterShift shift = requireOpen(staffId);
+        checkCinema(manager, shift.getCinema() == null ? null : shift.getCinema().getId());
+        return close(shift, manager, countedCash, note);
     }
 
     /**
-     * A manager signed in to the admin area closes a shift, whether or not the staff member is still at the
-     * counter (closing is the manager's job). A staff member still signed in is sent back to "open shift".
+     * The counter manager, signed in on the counter computer, closes a shift a staff member left open.
+     * Only a MANAGER of the shift's cinema can do this; the general manager cannot close shifts.
      */
     @Transactional
-    public CounterShift closeByManager(Long shiftId, Long managerId, BigDecimal countedCash, String note) {
-        User manager = userRepository.findById(managerId)
-                .filter(u -> u.getRole() == Role.ADMIN)
-                .orElseThrow(() -> new BusinessException("Chỉ quản lý mới kết ca được"));
+    public CounterShift closeAtCounter(Long shiftId, Long managerId, BigDecimal countedCash, String note) {
+        User manager = requireManagerAccount(managerId);
         CounterShift shift = getDetailed(shiftId);
         if (!shift.isOpen()) {
             throw new BusinessException("Ca #" + shiftId + " đã kết lúc " + shift.getClosedAt().toLocalTime().withNano(0));
         }
+        checkCinema(manager, shift.getCinema() == null ? null : shift.getCinema().getId());
         return close(shift, manager, countedCash, note);
     }
 
@@ -189,20 +222,34 @@ public class ShiftService {
     public Booking refund(Long staffId, String code, String managerEmail, String managerPassword) {
         User manager = verifyManager(managerEmail, managerPassword);
         CounterShift shift = requireOpen(staffId);
+        checkCinema(manager, shift.getCinema() == null ? null : shift.getCinema().getId());
         return bookingService.refundAtCounter(code.trim().toUpperCase(java.util.Locale.ROOT), manager, shift);
     }
 
-    /** The account must be an active ADMIN (the cinema manager) and the password must match. */
+    /** The account must be an active counter manager (MANAGER) and the password must match. */
     public User verifyManager(String email, String password) {
         if (email == null || password == null || email.isBlank() || password.isEmpty()) {
             throw new BusinessException("Cần quản lý nhập email và mật khẩu");
         }
         User manager = userRepository.findByEmailIgnoreCase(email.trim())
-                .filter(u -> u.getRole() == Role.ADMIN && u.isEnabled())
+                .filter(u -> u.getRole() == Role.MANAGER && u.isEnabled())
                 .orElseThrow(() -> new BusinessException(WRONG_MANAGER));
         if (!passwordEncoder.matches(password, manager.getPasswordHash())) {
             throw new BusinessException(WRONG_MANAGER);
         }
         return manager;
+    }
+
+    private User requireManagerAccount(Long managerId) {
+        return userRepository.findById(managerId)
+                .filter(u -> u.getRole() == Role.MANAGER && u.isEnabled())
+                .orElseThrow(() -> new BusinessException("Chỉ quản lý quầy mới kết ca được"));
+    }
+
+    /** A counter manager only works the tills of their own cinema. */
+    private static void checkCinema(User manager, Long cinemaId) {
+        if (manager.getCinema() != null && cinemaId != null && !manager.getCinema().getId().equals(cinemaId)) {
+            throw new BusinessException("Quản lý quầy của " + manager.getCinema().getName() + " không duyệt được ca của rạp khác");
+        }
     }
 }

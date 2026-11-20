@@ -214,7 +214,11 @@ class BookingFlowIntegrationTest extends IntegrationTestBase {
     @Test
     void staffCannotRefundAManagerApprovesAndTheShiftClosesWithItsOwnMoney() {
         User staff = account(Role.STAFF);
-        User manager = account(Role.ADMIN);
+        User manager = account(Role.MANAGER);
+        // The general manager works online only: not a till approver.
+        User general = account(Role.ADMIN);
+        assertThatThrownBy(() -> shiftService.open(staff.getId(), null, general.getEmail(), "Secret@123", BigDecimal.ZERO))
+                .hasMessageContaining(ShiftService.WRONG_MANAGER);
         CounterShift shift = shiftService.open(staff.getId(), null, manager.getEmail(), "Secret@123", BigDecimal.valueOf(500_000));
         assertThatThrownBy(() -> shiftService.open(staff.getId(), null, manager.getEmail(), "Secret@123", BigDecimal.ZERO))
                 .hasMessageContaining("ca chưa kết");

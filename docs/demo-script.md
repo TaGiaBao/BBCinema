@@ -16,7 +16,7 @@ dữ liệu thật: khách đặt vé, nhân viên soát vé, quản trị xem d
 | VNPay | Trang đăng ký sandbox của VNPay (`/devreg/`) đã đóng (20/11/2026), nên không có mã riêng. Demo bằng *Thanh toán thử*; phần VNPay trình bày ở mục 5. Nếu sau này có mã thì ghi vào `.env` (`VNPAY_TMN_CODE`, `VNPAY_HASH_SECRET`). |
 
 Tài khoản: `user@bbcinema.vn / User@123`, `teen@bbcinema.vn / Teen@123` (14 tuổi),
-`staff@bbcinema.vn / Staff@123`, `admin@bbcinema.vn / Admin@123`. Mã giảm giá: `BBCINEMA10`, `THANHVIEN20`, `HETHAN`.
+`staff@bbcinema.vn / Staff@123`, quản lý quầy `manager@bbcinema.vn / Manager@123`, quản lý tổng `admin@bbcinema.vn / Admin@123`. Mã giảm giá: `BBCINEMA10`, `THANHVIEN20`, `HETHAN`.
 
 ## 1. Khách chưa đăng nhập (2 phút)
 
@@ -51,7 +51,7 @@ Tài khoản: `user@bbcinema.vn / User@123`, `teen@bbcinema.vn / Teen@123` (14 t
 
 1. Trình duyệt 3: `/internal/login` bằng `staff@...`.
    > "Khách và nội bộ tách hẳn: trang khách không có link nào sang đây; tài khoản khách không vào được."
-   Hệ thống bắt **vào ca**: quản lý nhập quỹ đầu ca (ví dụ 1.000.000đ) và `admin@bbcinema.vn / Admin@123` để mở ca.
+   Hệ thống bắt **vào ca**: quản lý quầy nhập quỹ đầu ca (ví dụ 1.000.000đ) và `manager@bbcinema.vn / Manager@123` để mở ca.
    > "Nhân viên chỉ được thu tiền vào: không có nút đăng xuất, không tự hoàn tiền; mở ca, hoàn tiền, kết ca đều cần quản lý."
 2. **Bán vé tại quầy**: chọn suất, chọn ghế, chọn hình thức thanh toán:
    - **Tiền mặt**: nhập số tiền khách đưa (hoặc bấm mệnh giá gợi ý) → hiện tiền thừa trả khách hoặc số còn thiếu.
@@ -64,9 +64,14 @@ Tài khoản: `user@bbcinema.vn / User@123`, `teen@bbcinema.vn / Teen@123` (14 t
    tiền đếm được và tài khoản → hệ thống báo két khớp/thừa/thiếu, in biên bản ca và tự đăng xuất.
    > "Mỗi ca chốt tiền riêng: quỹ đầu ca giữ lại, chỉ tính các khoản thu sau khi mở ca, không lẫn với ca sau."
 
+   > "Mở ca, kết ca chỉ làm tại quầy, do quản lý quầy của đúng rạp đó. Quản lý tổng làm online, không mở hay kết ca."
+6. **Quản lý quầy** (`manager@...`): mục *Ca đang mở* để kết ca nhân viên bỏ dở; *Kho bắp nước* → nhập phiếu nhập kho
+   (bao nhiêu ngô, ly, siro) → gửi quản lý tổng duyệt. Không thấy các mục Rạp, Giá vé, Khuyến mãi, Tài khoản.
+
 ## 4. Quản trị (4 phút)
 
-1. Đăng xuất, đăng nhập `admin@...`.
+1. Đăng xuất, đăng nhập quản lý tổng `admin@...`. **Kho bắp nước**: duyệt hoặc từ chối phiếu nhập (tồn kho chỉ tăng khi duyệt).
+   **Tài khoản**: cấp tài khoản nhân viên, quản lý quầy (gắn rạp).
 2. **Thống kê**: doanh thu hôm nay, tháng, biểu đồ theo ngày, theo phim. **Ca bán vé**: danh sách ca, chênh lệch két, biên bản.
 3. **Rạp và phòng** → mở một phòng: trình chỉnh sơ đồ ghế kéo thả.
 4. **Suất chiếu → Tạo lịch tự động**: chọn rạp, một ngày sau 15 ngày tới, bấm *Tạo lịch đề xuất*.

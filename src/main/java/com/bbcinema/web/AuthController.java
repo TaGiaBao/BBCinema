@@ -242,12 +242,12 @@ public class AuthController {
     }
 
     private static boolean isInternal(Role role) {
-        return role == Role.STAFF || role == Role.ADMIN;
+        return role.isInternal();
     }
 
     private static String homeFor(Role role) {
         return switch (role) {
-            case ADMIN -> "/admin";
+            case ADMIN, MANAGER -> "/admin";
             case STAFF -> "/staff";
             default -> "/";
         };

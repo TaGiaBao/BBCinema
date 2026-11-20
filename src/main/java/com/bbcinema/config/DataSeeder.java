@@ -62,6 +62,7 @@ public class DataSeeder implements ApplicationRunner {
     private final BookingService bookingService;
     private final BookingRepository bookingRepository;
     private final TransactionTemplate transactionTemplate;
+    private final com.bbcinema.service.InventoryService inventoryService;
     private final Clock clock;
 
     @Override
@@ -80,11 +81,12 @@ public class DataSeeder implements ApplicationRunner {
                 seedMovies();
             });
             seedCinemas();
+            transactionTemplate.executeWithoutResult(status -> seedManagersAndStock());
             seedSpecialShowtimes();
             ensureUpcomingShowtimes();
             seedSampleBookings();
             seedReviews();
-            log.info("Demo data ready. Admin: admin@bbcinema.vn / Admin@123");
+            log.info("Demo data ready. General manager: admin@bbcinema.vn / Admin@123, counter manager: manager@bbcinema.vn / Manager@123");
         } else {
             ensureUpcomingShowtimes();
         }
@@ -116,6 +118,38 @@ public class DataSeeder implements ApplicationRunner {
             User u = userService.createAccount(o[0], o[1], "User@123", Role.USER);
             u.setBirthDate(LocalDate.of(1998, 3, 2));
         }
+    }
+
+    /**
+     * One counter manager per cinema, the snack-bar item list, and goods-received notes: one approved
+     * (so there is stock) and one waiting for the general manager.
+     */
+    private void seedManagersAndStock() {
+        List<Cinema> cinemas = cinemaRepository.findAll().stream().sorted(java.util.Comparator.comparing(Cinema::getId)).toList();
+        User manager = userService.createAccount("manager@bbcinema.vn", "Lê Quản Lý", "Manager@123", Role.MANAGER);
+        manager.setCinema(cinemas.get(0));
+        User staff = userRepository.findByEmailIgnoreCase("staff@bbcinema.vn").orElseThrow();
+        staff.setCinema(cinemas.get(0));
+        if (cinemas.size() > 1) {
+            User second = userService.createAccount("manager.hd@bbcinema.vn", "Phạm Quản Lý", "Manager@123", Role.MANAGER);
+            second.setCinema(cinemas.get(1));
+        }
+        String[][] items = {{"Ngô hạt rang bắp", "kg"}, {"Bơ caramel", "kg"}, {"Ly bắp giấy", "cái"},
+                {"Ly nước nhựa", "cái"}, {"Siro nước ngọt", "bình"}, {"Snack khoai tây", "gói"}};
+        Map<Long, Integer> first = new HashMap<>();
+        Map<Long, Integer> pending = new HashMap<>();
+        int[] received = {50, 10, 800, 800, 12, 200};
+        for (int i = 0; i < items.length; i++) {
+            Long id = inventoryService.addItem(items[i][0], items[i][1]).getId();
+            first.put(id, received[i]);
+            if (i % 2 == 0) {
+                pending.put(id, received[i] / 2);
+            }
+        }
+        User admin = userRepository.findByEmailIgnoreCase("admin@bbcinema.vn").orElseThrow();
+        var approved = inventoryService.request(manager.getId(), first, "Nhập đầu tháng, NCC Phương Nam");
+        inventoryService.review(approved.getId(), admin.getId(), true, "Đã kiểm hàng");
+        inventoryService.request(manager.getId(), pending, "Bổ sung cuối tuần");
     }
 
     // ------------------------------------------------------------------ prices, combos, promotions

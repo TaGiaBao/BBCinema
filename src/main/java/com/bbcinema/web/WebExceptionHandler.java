@@ -12,13 +12,18 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 /** Turns service errors into friendly pages for the Thymeleaf part of the site. */
 @ControllerAdvice(basePackages = "com.bbcinema.web")
 @Order(1)
+@lombok.RequiredArgsConstructor
 public class WebExceptionHandler {
+
+    private final GlobalModelAdvice layoutModel;
+    private final jakarta.servlet.http.HttpServletRequest request;
 
     @ExceptionHandler(NotFoundException.class)
     public String notFound(NotFoundException e, Model model, HttpServletResponse response) {
         response.setStatus(HttpServletResponse.SC_NOT_FOUND);
         model.addAttribute("status", 404);
         model.addAttribute("message", e.getMessage());
+        layoutModel.addTo(model, request);
         return "error/message";
     }
 
@@ -27,6 +32,7 @@ public class WebExceptionHandler {
         response.setStatus(HttpServletResponse.SC_FORBIDDEN);
         model.addAttribute("status", 403);
         model.addAttribute("message", e.getMessage());
+        layoutModel.addTo(model, request);
         return "error/message";
     }
 
@@ -35,6 +41,7 @@ public class WebExceptionHandler {
         response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
         model.addAttribute("status", 400);
         model.addAttribute("message", e.getMessage());
+        layoutModel.addTo(model, request);
         return "error/message";
     }
 }

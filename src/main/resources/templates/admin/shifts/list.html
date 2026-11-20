@@ -7,8 +7,8 @@
     <h1 class="h4">Ca bán vé tại quầy</h1>
     <p class="text-muted small" style="max-width: 900px">
         Mỗi ca do quản lý mở (nhập quỹ đầu ca) và kết (đếm két). Tiền của ca chỉ gồm các khoản thu sau khi mở ca;
-        quỹ đầu ca được giữ lại trong két. Ca đang mở hiển thị số liệu tạm tính; quản lý có thể bấm <strong>Kết ca</strong>
-        để đếm két và chốt ca ngay tại đây, kể cả khi nhân viên đã rời quầy.
+        quỹ đầu ca được giữ lại trong két. Ca đang mở hiển thị số liệu tạm tính. Mở ca và kết ca chỉ làm tại quầy,
+        do quản lý quầy của rạp trực tiếp đếm két; trang này chỉ để xem và in biên bản.
     </p>
     <p class="text-muted" th:if="${#lists.isEmpty(shifts)}">Chưa có ca nào.</p>
     <div class="panel table-responsive" th:unless="${#lists.isEmpty(shifts)}">
@@ -38,7 +38,6 @@
                           th:text="${s.difference.signum() == 0} ? 'Khớp' : (${s.difference.signum() > 0} ? '+' : '−') + ${@fmt.money(s.difference.abs())}">Khớp</span>
                 </td>
                 <td class="text-nowrap">
-                    <a class="btn btn-sm btn-amber" th:if="${s.open}" th:href="@{/admin/shifts/{id}/close(id=${s.id})}">Kết ca</a>
                     <a th:href="@{/admin/shifts/{id}(id=${s.id})}">Biên bản</a>
                 </td>
             </tr>

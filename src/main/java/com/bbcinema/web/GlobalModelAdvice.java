@@ -91,4 +91,34 @@ public class GlobalModelAdvice {
     public String currentPath(HttpServletRequest request) {
         return request.getRequestURI();
     }
+
+    /**
+     * Spring does not run the @ModelAttribute methods for @ExceptionHandler views, but the error page uses the
+     * same layout: fill the model by hand so a "not found" page renders instead of failing.
+     */
+    public void addTo(org.springframework.ui.Model model, HttpServletRequest request) {
+        Long cinemaId = null;
+        if (request.getCookies() != null) {
+            for (jakarta.servlet.http.Cookie c : request.getCookies()) {
+                if (CINEMA_COOKIE.equals(c.getName())) {
+                    try {
+                        cinemaId = Long.valueOf(c.getValue());
+                    } catch (NumberFormatException ignored) {
+                        // a bad cookie is the same as none
+                    }
+                }
+            }
+        }
+        var auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+        AppUserPrincipal principal = auth != null && auth.getPrincipal() instanceof AppUserPrincipal p ? p : null;
+        model.addAttribute("cinemas", cinemas());
+        model.addAttribute("currentCinema", currentCinema(cinemaId));
+        model.addAttribute("cinemaChosen", cinemaChosen(cinemaId));
+        model.addAttribute("currentUser", principal);
+        model.addAttribute("openShift", openShift(principal));
+        model.addAttribute("bookingDays", bookingDays());
+        model.addAttribute("lang", lang());
+        model.addAttribute("jsMessages", jsMessages());
+        model.addAttribute("currentPath", currentPath(request));
+    }
 }
