@@ -9,7 +9,6 @@ import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.ObjectProvider;
-import org.springframework.core.io.ByteArrayResource;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.scheduling.annotation.Async;
@@ -37,7 +36,6 @@ public class MailService {
     private final ObjectProvider<JavaMailSender> mailSender;
     private final BookingRepository bookingRepository;
     private final QrCodeService qrCodeService;
-    private final TicketWatermark ticketWatermark;
     private final TemplateEngine templateEngine;
     private final AppProperties properties;
     private final DemoMailbox demoMailbox;
@@ -64,22 +62,19 @@ public class MailService {
             Context context = new Context();
             context.setVariable("booking", booking);
             context.setVariable("baseUrl", properties.baseUrl());
+            context.setVariable("qr", qrCodeService.modules(booking.getCode()));
             String html = templateEngine.process("mail/ticket", context);
             String subject = "[BBCinema] Vé xem phim " + booking.getShowtime().getMovie().getTitle() + " - " + booking.getCode();
-            byte[] qr = qrCodeService.png(booking.getCode(), 240);
-            byte[] watermark = ticketWatermark.png();
-            demoMailbox.keep(to, subject, html, Map.of("qr", qr, "watermark", watermark));
+            demoMailbox.keep(to, subject, html, Map.of());
             if (!sending) {
                 return;
             }
             MimeMessage message = sender.createMimeMessage();
-            MimeMessageHelper helper = new MimeMessageHelper(message, true, StandardCharsets.UTF_8.name());
+            MimeMessageHelper helper = new MimeMessageHelper(message, false, StandardCharsets.UTF_8.name());
             helper.setFrom(properties.mail().from());
             helper.setTo(to);
             helper.setSubject(subject);
             helper.setText(html, true);
-            helper.addInline("qr", new ByteArrayResource(qr), "image/png");
-            helper.addInline("watermark", new ByteArrayResource(watermark), "image/png");
             sender.send(message);
             log.info("Ticket {} sent to {}", booking.getCode(), to);
         } catch (Exception e) {

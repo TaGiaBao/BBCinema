@@ -20,6 +20,12 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class DemoPolishIntegrationTest extends IntegrationTestBase {
 
     @Autowired BannerRepository bannerRepository;
+    @Autowired com.bbcinema.config.AppProperties properties;
+
+    @Test
+    void testsNeverSendRealMailEvenWhenDotEnvTurnsItOn() {
+        assertThat(properties.mail().enabled()).isFalse();
+    }
 
     @Test
     void bannerTextIsWrittenOverThePictureInTheVisitorsLanguage() throws Exception {

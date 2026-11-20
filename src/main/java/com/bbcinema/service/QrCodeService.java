@@ -16,6 +16,26 @@ import java.util.Map;
 @Service
 public class QrCodeService {
 
+    /**
+     * The QR code as rows of dark (true) and light modules, with a 2-module quiet zone. E-mails draw it as an HTML
+     * table, because mail apps (Gmail on phones especially) do not reliably show embedded pictures.
+     */
+    public boolean[][] modules(String text) {
+        try {
+            BitMatrix matrix = new QRCodeWriter().encode(text, BarcodeFormat.QR_CODE, 0, 0,
+                    Map.of(EncodeHintType.MARGIN, 2));
+            boolean[][] rows = new boolean[matrix.getHeight()][matrix.getWidth()];
+            for (int y = 0; y < matrix.getHeight(); y++) {
+                for (int x = 0; x < matrix.getWidth(); x++) {
+                    rows[y][x] = matrix.get(x, y);
+                }
+            }
+            return rows;
+        } catch (WriterException e) {
+            throw new IllegalStateException("Cannot create QR code", e);
+        }
+    }
+
     public byte[] png(String text, int size) {
         try {
             BitMatrix matrix = new QRCodeWriter().encode(text, BarcodeFormat.QR_CODE, size, size,

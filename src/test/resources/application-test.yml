@@ -8,6 +8,10 @@ spring:
       ddl-auto: create-drop
 app:
   seed-data: false
+  # The developer's .env may turn real mail on; tests must never send e-mails.
+  mail:
+    enabled: false
+  demo-mailbox: false
   upload:
     dir: target/test-uploads
   booking:

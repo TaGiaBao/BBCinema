@@ -1,15 +1,16 @@
 package com.bbcinema.integration;
 
+import com.bbcinema.entity.Booking;
+import com.bbcinema.entity.Showtime;
+import com.bbcinema.entity.User;
 import com.bbcinema.service.DemoMailbox;
 import com.bbcinema.service.MailService;
 import com.bbcinema.service.event.PasswordResetRequestedEvent;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.TestPropertySource;
-import org.springframework.test.web.servlet.MockMvc;
+
+import java.util.function.Predicate;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
@@ -18,25 +19,29 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /** With the demo mailbox on and real mail off, sent e-mails can be read at /demo/mailbox. */
-@SpringBootTest
-@AutoConfigureMockMvc
-@ActiveProfiles("test")
 @TestPropertySource(properties = "app.demo-mailbox=true")
-class DemoMailboxIntegrationTest {
+class DemoMailboxIntegrationTest extends IntegrationTestBase {
 
-    @Autowired MockMvc mvc;
     @Autowired MailService mailService;
     @Autowired DemoMailbox mailbox;
+
+    /** The listeners run in the background, after the transaction commits. */
+    private DemoMailbox.DemoMail waitFor(Predicate<DemoMailbox.DemoMail> match) throws InterruptedException {
+        for (int i = 0; i < 100; i++) {
+            var found = mailbox.all().stream().filter(match).findFirst();
+            if (found.isPresent()) {
+                return found.get();
+            }
+            Thread.sleep(50);
+        }
+        throw new AssertionError("No such e-mail in the demo mailbox");
+    }
 
     @Test
     void passwordResetMailIsKeptAndShownWithoutAMailServer() throws Exception {
         mailService.onPasswordResetRequested(new PasswordResetRequestedEvent(
                 "demo@test.vn", "Khách Demo", "http://localhost:8080/reset-password?token=abc"));
-        for (int i = 0; i < 100 && mailbox.all().isEmpty(); i++) {
-            Thread.sleep(50); // the listener runs in the background
-        }
-        assertThat(mailbox.all()).isNotEmpty();
-        long id = mailbox.all().get(0).id();
+        long id = waitFor(m -> m.to().equals("demo@test.vn")).id();
 
         mvc.perform(get("/demo/mailbox"))
                 .andExpect(status().isOk())
@@ -46,5 +51,20 @@ class DemoMailboxIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("reset-password?token=abc")));
         mvc.perform(get("/demo/mailbox/999999")).andExpect(status().isNotFound());
+    }
+
+    @Test
+    void ticketMailDrawsTheQrCodeAsATableWithNoEmbeddedPictures() throws Exception {
+        User user = member(25);
+        Showtime st = showtimeTomorrow();
+        Booking booking = bookingService.holdSeats(user.getId(), st.getId(), freeSeats(st.getId(), 1));
+        bookingService.payWithMock(booking.getCode(), user.getId());
+
+        DemoMailbox.DemoMail mail = waitFor(m -> m.subject().contains(booking.getCode()));
+        assertThat(mail.to()).isEqualTo(user.getEmail());
+        assertThat(mail.html())
+                .contains("Cảm ơn bạn đã đặt vé!", booking.getCode(), "bgcolor=\"#000000\"")
+                .doesNotContain("cid:", "<img");
+        assertThat(mail.html().length()).as("Gmail cuts mails over ~100 KB").isLessThan(60_000);
     }
 }
