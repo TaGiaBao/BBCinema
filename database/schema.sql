@@ -120,7 +120,7 @@ SET NAMES utf8mb4;
         paid_at datetime(6),
         gateway_transaction_no varchar(60),
         transaction_ref varchar(60),
-        method enum ('CASH','MOCK','VNPAY') not null,
+        method enum ('BANK_QR','CARD','CASH','MOCK','MOMO','VNPAY') not null,
         status enum ('FAILED','PENDING','REFUNDED','SUCCESS') not null,
         primary key (id)
     ) engine=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

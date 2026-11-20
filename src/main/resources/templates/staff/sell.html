@@ -35,12 +35,47 @@
                     <div class="small text-muted">Tiền bắp nước được cộng khi xác nhận.</div>
                     <div class="alert alert-warning small mt-2 mb-0" th:if="${showtime.movie.ageRating.minAge > 0}">
                         Kiểm tra giấy tờ: phim <strong th:text="${showtime.movie.ageRating.name()}">T16</strong>.</div>
-                    <button id="seatSubmit" class="btn btn-amber w-100 mt-3" type="submit" disabled><i class="bi bi-cash"></i> Thu tiền mặt và in vé</button>
+                    <!-- How the customer pays. Card: the cinema's POS terminal, staff type its approval code.
+                         Bank transfer: the next page shows a VietQR code for the customer to scan. -->
+                    <fieldset class="mt-3 pay-methods">
+                        <legend class="small fw-semibold mb-1">Hình thức thanh toán</legend>
+                        <div class="form-check"><input class="form-check-input" type="radio" th:field="*{paymentMethod}" value="CASH" id="payCash">
+                            <label class="form-check-label" for="payCash"><i class="bi bi-cash"></i> Tiền mặt</label></div>
+                        <div class="form-check"><input class="form-check-input" type="radio" th:field="*{paymentMethod}" value="CARD" id="payCard">
+                            <label class="form-check-label" for="payCard"><i class="bi bi-credit-card"></i> Thẻ ngân hàng (máy POS)</label></div>
+                        <div class="ms-4 mb-1" data-role="card-approval">
+                            <input class="form-control form-control-sm" th:field="*{cardApprovalCode}" maxlength="12"
+                                   placeholder="Mã chuẩn chi trên hoá đơn POS" aria-label="Mã chuẩn chi">
+                        </div>
+                        <div class="form-check"><input class="form-check-input" type="radio" th:field="*{paymentMethod}" value="BANK_QR" id="payQr"
+                                                       th:disabled="${!bankQrEnabled}">
+                            <label class="form-check-label" for="payQr"><i class="bi bi-qr-code"></i> Chuyển khoản QR
+                                <span class="small text-muted" th:unless="${bankQrEnabled}">(chưa cấu hình tài khoản)</span></label></div>
+                        <div class="form-check"><input class="form-check-input" type="radio" value="MOMO" id="payMomo" disabled>
+                            <label class="form-check-label text-muted" for="payMomo"><i class="bi bi-wallet2"></i> Ví MoMo <span class="small">(chưa kết nối)</span></label></div>
+                        <div class="form-check"><input class="form-check-input" type="radio" value="VNPAY" id="payVnpay" disabled>
+                            <label class="form-check-label text-muted" for="payVnpay"><i class="bi bi-wallet2"></i> VNPay <span class="small">(chưa kết nối)</span></label></div>
+                    </fieldset>
+                    <button id="seatSubmit" class="btn btn-amber w-100 mt-3" type="submit" disabled><i class="bi bi-check2-circle"></i> Bán vé</button>
                 </div>
             </div>
         </div>
     </form>
 </section>
-<th:block th:fragment="scripts"><script src="/js/seat-map.js"></script></th:block>
+<th:block th:fragment="scripts"><script src="/js/seat-map.js"></script>
+<script>
+  // The approval code box only matters for card payments.
+  (function () {
+    const box = document.querySelector('[data-role="card-approval"]');
+    const radios = document.querySelectorAll('input[name="paymentMethod"]');
+    function sync() {
+      const card = document.getElementById('payCard').checked;
+      box.classList.toggle('d-none', !card);
+      box.querySelector('input').required = card;
+    }
+    radios.forEach(r => r.addEventListener('change', sync));
+    sync();
+  })();
+</script></th:block>
 </body>
 </html>

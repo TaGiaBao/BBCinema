@@ -109,6 +109,18 @@ app:
     hash-secret: ${VNPAY_HASH_SECRET:}
     pay-url: https://sandbox.vnpayment.vn/paymentv2/vpcpay.html
     return-path: /payment/vnpay-return
+  # Bank transfer by VietQR. Fill in .env: BANK_CODE (MB, VCB, ACB...), BANK_ACCOUNT_NO, BANK_ACCOUNT_NAME.
+  # With SEPAY_API_TOKEN (my.sepay.vn > API Access) incoming transfers confirm bookings automatically.
+  bank-qr:
+    bank-code: ${BANK_CODE:}
+    bank-bin: ${BANK_BIN:}
+    account-no: ${BANK_ACCOUNT_NO:}
+    account-name: ${BANK_ACCOUNT_NAME:}
+    sepay-api-token: ${SEPAY_API_TOKEN:}
+    sepay-api-url: https://userapi.sepay.vn/v2/transactions
+    poll-interval-ms: 5000
+    # Shows a "the bank reports the money" button on the QR page. Demo only.
+    demo-confirm: ${DEMO_BANK_CONFIRM:false}
 
 logging:
   level:
@@ -137,3 +149,5 @@ spring:
 # Demo on a laptop: e-mails (ticket, password reset) can be read at /demo/mailbox without a real mailbox.
 app:
   demo-mailbox: ${DEMO_MAILBOX:true}
+  bank-qr:
+    demo-confirm: ${DEMO_BANK_CONFIRM:true}

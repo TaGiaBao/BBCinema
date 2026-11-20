@@ -33,12 +33,19 @@
                 <div class="panel">
                     <h2 class="h5 mb-3">[[#{ui.phuong_thuc_thanh_toan}]]</h2>
                     <form method="post" th:action="@{/booking/{code}/pay(code=${booking.code})}" class="d-grid gap-2">
-                        <label class="border rounded-3 p-3 d-flex gap-3 align-items-center">
+                        <label class="border rounded-3 p-3 d-flex gap-3 align-items-center" th:if="${bankQrEnabled}">
+                            <input class="form-check-input mt-0" type="radio" name="method" value="BANK_QR" checked>
+                            <span><strong>[[#{checkout.bankQr}]]</strong> <i class="bi bi-qr-code"></i><br>
+                                <span class="small text-muted">[[#{checkout.bankQrNote}]]</span></span>
+                        </label>
+                        <!-- Only when the cinema has set up no real way to pay (fresh install) -->
+                        <label class="border rounded-3 p-3 d-flex gap-3 align-items-center" th:if="${mockAllowed}">
                             <input class="form-check-input mt-0" type="radio" name="method" value="MOCK" checked>
                             <span><strong>[[#{ui.thanh_toan_thu}]]</strong><br><span class="small text-muted">[[#{ui.dung_cho_ban_demo_don}]]</span></span>
                         </label>
                         <label class="border rounded-3 p-3 d-flex gap-3 align-items-center" th:classappend="${!vnpayEnabled} ? 'opacity-50'">
-                            <input class="form-check-input mt-0" type="radio" name="method" value="VNPAY" th:disabled="${!vnpayEnabled}">
+                            <input class="form-check-input mt-0" type="radio" name="method" value="VNPAY" th:disabled="${!vnpayEnabled}"
+                                   th:checked="${vnpayEnabled and !bankQrEnabled}">
                             <span><strong>[[#{page.booking_checkout.vnpay}]]</strong> [[#{ui.atm_visa_qr_ngan_hang}]]<br>
                                 <span class="small text-muted" th:text="${vnpayEnabled} ? #{checkout.vnpayOn} : #{checkout.vnpayOff}">VNPay</span></span>
                         </label>

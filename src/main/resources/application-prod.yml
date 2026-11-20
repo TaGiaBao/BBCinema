@@ -49,6 +49,8 @@ app:
   base-url: ${APP_BASE_URL}
   seed-data: ${SEED_DATA:false}
   demo-mailbox: false
+  bank-qr:
+    demo-confirm: false
   jwt:
     secret: ${JWT_SECRET}
 

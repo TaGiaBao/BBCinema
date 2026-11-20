@@ -25,4 +25,10 @@ public class CounterSaleForm {
 
     @Email(message = "Email không hợp lệ")
     private String customerEmail;
+
+    private com.bbcinema.entity.enums.PaymentMethod paymentMethod = com.bbcinema.entity.enums.PaymentMethod.CASH;
+
+    /** Printed on the POS terminal's slip when the customer pays by card. */
+    @Size(max = 12)
+    private String cardApprovalCode;
 }

@@ -334,6 +334,49 @@ public class BookingService {
     }
 
     /**
+     * Starts a bank transfer: the booking waits for the money, with a pending payment the QR page refers to.
+     * Members may only start it for their own booking; staff for any (counter sales).
+     */
+    @Transactional
+    public Booking startBankTransfer(String code, Long viewerId, Role viewerRole) {
+        Booking booking = getByCode(code);
+        checkOwner(booking, viewerId, viewerRole);
+        ensurePayable(booking);
+        String ref = bankTransferRef(booking.getCode());
+        Payment payment = paymentRepository.findByTransactionRef(ref).orElseGet(Payment::new);
+        payment.setBooking(booking);
+        payment.setMethod(PaymentMethod.BANK_QR);
+        payment.setAmount(booking.getTotalAmount());
+        payment.setTransactionRef(ref);
+        if (payment.getCreatedAt() == null) {
+            payment.setCreatedAt(LocalDateTime.now(clock));
+        }
+        paymentRepository.save(payment);
+        return booking;
+    }
+
+    /**
+     * The bank received a transfer for this booking (reported by SePay, by a member of staff, or by the demo
+     * button). Less money than the total is refused; a second report of the same booking changes nothing.
+     */
+    @Transactional
+    public Booking confirmBankTransfer(String code, BigDecimal amountReceived, String bankReference) {
+        Booking booking = getByCode(code);
+        if (booking.isPaid()) {
+            return booking;
+        }
+        if (amountReceived.compareTo(booking.getTotalAmount()) < 0) {
+            throw new BusinessException("Đơn " + code + " cần " + booking.getTotalAmount().toPlainString()
+                    + "đ nhưng chỉ nhận được " + amountReceived.toPlainString() + "đ");
+        }
+        return confirmPayment(booking, PaymentMethod.BANK_QR, bankTransferRef(code), bankReference);
+    }
+
+    public static String bankTransferRef(String bookingCode) {
+        return "QR-" + bookingCode;
+    }
+
+    /**
      * Marks a booking as paid: seats become BOOKED, the promotion use and the points are recorded,
      * and a ticket e-mail is sent after the transaction commits. Calling it twice is harmless.
      * A payment that arrives after the hold time is refused even if the cleanup job has not released
@@ -469,9 +512,24 @@ public class BookingService {
 
     // ------------------------------------------------------------------ counter sales and check-in
 
-    /** A staff member sells tickets at the counter; the customer pays cash at once. */
+    /**
+     * A staff member sells tickets at the counter. Cash and card (POS terminal, with its approval code) are paid
+     * at once. A bank transfer leaves the booking pending until the money arrives; e-wallets need their merchant
+     * account and are refused until one is set up.
+     */
     @Transactional
     public Booking sellAtCounter(Long staffId, Long showtimeId, CounterSaleForm form) {
+        PaymentMethod method = form.getPaymentMethod() == null ? PaymentMethod.CASH : form.getPaymentMethod();
+        String approval = form.getCardApprovalCode() == null ? "" : form.getCardApprovalCode().trim().toUpperCase(Locale.ROOT);
+        switch (method) {
+            case CASH, BANK_QR -> { }
+            case CARD -> {
+                if (!approval.matches("[A-Z0-9]{4,12}")) {
+                    throw new BusinessException("Nhập mã chuẩn chi in trên hoá đơn máy POS (4-12 chữ hoặc số)");
+                }
+            }
+            default -> throw new BusinessException(method.getLabel() + " chưa được kết nối ở quầy");
+        }
         User staff = userService.getById(staffId);
         Showtime showtime = showtimeService.getDetailed(showtimeId);
         LocalDateTime now = LocalDateTime.now(clock);
@@ -491,7 +549,11 @@ public class BookingService {
         lockAndHoldSeats(booking, form.getShowtimeSeatIds(), now);
         applyCombos(booking, form.getComboQuantities());
         recalculate(booking);
-        return confirmPayment(booking, PaymentMethod.CASH, "CASH-" + booking.getCode(), null);
+        return switch (method) {
+            case CARD -> confirmPayment(booking, PaymentMethod.CARD, "CARD-" + booking.getCode(), approval);
+            case BANK_QR -> startBankTransfer(booking.getCode(), staffId, Role.STAFF);
+            default -> confirmPayment(booking, PaymentMethod.CASH, "CASH-" + booking.getCode(), null);
+        };
     }
 
     /** Ticket check at the cinema entrance. */

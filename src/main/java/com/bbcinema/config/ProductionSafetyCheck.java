@@ -37,6 +37,9 @@ public class ProductionSafetyCheck implements EnvironmentPostProcessor, Ordered 
                 read(environment, "spring.datasource.username"),
                 read(environment, "spring.datasource.password"),
                 read(environment, "app.base-url"));
+        if ("true".equalsIgnoreCase(read(environment, "app.bank-qr.demo-confirm"))) {
+            problems.add("DEMO_BANK_CONFIRM must be off: it lets anyone mark a bank transfer as received");
+        }
         if ("true".equalsIgnoreCase(read(environment, "app.demo-mailbox"))) {
             problems.add("DEMO_MAILBOX must be off: the demo mailbox shows every e-mail, password reset links included");
         }

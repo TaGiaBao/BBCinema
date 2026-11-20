@@ -37,6 +37,7 @@ public class BookingController {
     private final ShowtimeService showtimeService;
     private final ComboService comboService;
     private final VnPayService vnPayService;
+    private final com.bbcinema.service.BankTransferService bankTransferService;
     private final QrCodeService qrCodeService;
     private final MovieService movieService;
     private final Clock clock;
@@ -126,6 +127,8 @@ public class BookingController {
         model.addAttribute("booking", booking);
         model.addAttribute("maxPoints", bookingService.maxRedeemablePoints(booking));
         model.addAttribute("vnpayEnabled", vnPayService.isEnabled());
+        model.addAttribute("bankQrEnabled", bankTransferService.isAvailable());
+        model.addAttribute("mockAllowed", mockAllowed());
         return "booking/checkout";
     }
 
@@ -168,13 +171,20 @@ public class BookingController {
 
     @PostMapping("/{code}/pay")
     public String pay(@PathVariable String code,
-                      @RequestParam(defaultValue = "MOCK") PaymentMethod method,
+                      @RequestParam(defaultValue = "BANK_QR") PaymentMethod method,
                       @AuthenticationPrincipal AppUserPrincipal user,
                       HttpServletRequest request,
                       RedirectAttributes redirect) {
         try {
             if (method == PaymentMethod.VNPAY) {
                 return "redirect:" + vnPayService.createPaymentUrl(code, user.getId(), clientIp(request));
+            }
+            if (method == PaymentMethod.BANK_QR && bankTransferService.isAvailable()) {
+                bookingService.startBankTransfer(code, user.getId(), Role.USER);
+                return "redirect:/booking/" + code + "/bank-transfer";
+            }
+            if (!mockAllowed()) {
+                throw new BusinessException("Vui lòng chọn một hình thức thanh toán");
             }
             bookingService.payWithMock(code, user.getId());
             redirect.addFlashAttribute("success", "Thanh toán thành công! Chúc bạn xem phim vui vẻ.");
@@ -211,6 +221,56 @@ public class BookingController {
             redirect.addFlashAttribute("error", e.getMessage());
         }
         return "redirect:/booking/" + code;
+    }
+
+    // ---------- bank transfer by VietQR
+
+    @GetMapping("/{code}/bank-transfer")
+    public String bankTransfer(@PathVariable String code, @AuthenticationPrincipal AppUserPrincipal user, Model model) {
+        Booking booking = bookingService.getForViewer(code, user.getId(), Role.USER);
+        if (!booking.isPending()) {
+            return "redirect:/booking/" + code;
+        }
+        model.addAttribute("booking", booking);
+        model.addAttribute("transfer", bankTransferService.info(booking));
+        model.addAttribute("automatic", bankTransferService.isAutomatic());
+        model.addAttribute("demoConfirm", bankTransferService.isDemoConfirmAllowed());
+        return "booking/bank-transfer";
+    }
+
+    @GetMapping(value = "/{code}/bank-qr.png", produces = MediaType.IMAGE_PNG_VALUE)
+    @ResponseBody
+    public ResponseEntity<byte[]> bankQr(@PathVariable String code, @AuthenticationPrincipal AppUserPrincipal user) {
+        Booking booking = bookingService.getForViewer(code, user.getId(), Role.USER);
+        return ResponseEntity.ok().cacheControl(CacheControl.noStore()).contentType(MediaType.IMAGE_PNG)
+                .body(bankTransferService.qrPng(booking));
+    }
+
+    /** Polled by the QR page every few seconds: PENDING, PAID, EXPIRED... */
+    @GetMapping(value = "/{code}/payment-status", produces = MediaType.APPLICATION_JSON_VALUE)
+    @ResponseBody
+    public Map<String, String> paymentStatus(@PathVariable String code, @AuthenticationPrincipal AppUserPrincipal user) {
+        Booking booking = bookingService.getForViewer(code, user.getId(), user.getRole());
+        return Map.of("status", booking.getStatus().name());
+    }
+
+    @PostMapping("/{code}/bank-transfer/demo-confirm")
+    public String demoConfirm(@PathVariable String code, @AuthenticationPrincipal AppUserPrincipal user,
+                              RedirectAttributes redirect) {
+        bookingService.getForViewer(code, user.getId(), Role.USER);
+        try {
+            bankTransferService.demoConfirm(code);
+            redirect.addFlashAttribute("success", "Thanh toán thành công! Chúc bạn xem phim vui vẻ.");
+            return "redirect:/booking/" + code;
+        } catch (BusinessException e) {
+            redirect.addFlashAttribute("error", e.getMessage());
+            return "redirect:/booking/" + code + "/bank-transfer";
+        }
+    }
+
+    /** "Thanh toán thử" is offered only when the cinema has set up no real way to pay (fresh install, tests). */
+    private boolean mockAllowed() {
+        return !bankTransferService.isAvailable() && !vnPayService.isEnabled();
     }
 
     @GetMapping(value = "/{code}/qr.png", produces = MediaType.IMAGE_PNG_VALUE)

@@ -12,6 +12,20 @@ app:
   mail:
     enabled: false
   demo-mailbox: false
+  # Payment settings from the developer's .env must not leak into tests either; tests that need them set their own.
+  vnpay:
+    tmn-code: ""
+    hash-secret: ""
+  google:
+    client-id: ""
+    client-secret: ""
+  bank-qr:
+    bank-code: ""
+    bank-bin: ""
+    account-no: ""
+    account-name: ""
+    sepay-api-token: ""
+    demo-confirm: false
   upload:
     dir: target/test-uploads
   booking:

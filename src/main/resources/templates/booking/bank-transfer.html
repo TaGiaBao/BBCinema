@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/main :: layout(~{::title}, ~{::main}, ~{::scripts})}">
+<head><title>[[#{bankqr.title}]] · BBCinema</title></head>
+<body>
+<main>
+    <div class="container mt-4">
+        <div th:replace="~{fragments/common :: steps(3)}"></div>
+        <div class="row g-4">
+            <div class="col-lg-8">
+                <!-- The page asks the server every 3 seconds whether the money has arrived, then opens the ticket. -->
+                <div class="panel" id="bankTransfer" th:attr="data-status-url=@{/booking/{c}/payment-status(c=${booking.code})},data-ticket-url=@{/booking/{c}(c=${booking.code})}">
+                    <h2 class="h5 mb-1">[[#{bankqr.title}]]</h2>
+                    <p class="small text-muted mb-4">[[#{bankqr.howto}]]</p>
+                    <div class="row g-4 align-items-center">
+                        <div class="col-md-5 text-center">
+                            <img class="img-fluid border rounded-3 p-2 bg-white" style="max-width: 280px"
+                                 th:src="@{/booking/{c}/bank-qr.png(c=${booking.code})}" th:alt="#{bankqr.qrAlt}">
+                        </div>
+                        <div class="col-md-7">
+                            <dl class="row mb-0 bank-transfer-info">
+                                <dt class="col-5">[[#{bankqr.bank}]]</dt><dd class="col-7" th:text="${transfer.bankCode}">MB</dd>
+                                <dt class="col-5">[[#{bankqr.account}]]</dt><dd class="col-7 font-monospace" th:text="${transfer.accountNo}">0123</dd>
+                                <dt class="col-5">[[#{bankqr.holder}]]</dt><dd class="col-7" th:text="${transfer.accountName}">NGUYEN VAN A</dd>
+                                <dt class="col-5">[[#{bankqr.amount}]]</dt><dd class="col-7 fw-bold fs-5" th:text="${@fmt.money(transfer.amount)}">0đ</dd>
+                                <dt class="col-5">[[#{bankqr.message}]]</dt><dd class="col-7 fw-bold font-monospace" th:text="${transfer.message}">BBC CODE</dd>
+                            </dl>
+                            <div class="alert alert-warning small mt-3 mb-0">[[#{bankqr.keepMessage}]]</div>
+                        </div>
+                    </div>
+                    <div class="d-flex align-items-center gap-2 mt-4" role="status" aria-live="polite">
+                        <span class="spinner-border spinner-border-sm text-warning" aria-hidden="true"></span>
+                        <span data-role="waiting" th:text="${automatic} ? #{bankqr.waitingAuto} : #{bankqr.waitingManual}">Đang chờ</span>
+                    </div>
+                    <form class="mt-3" method="post" th:if="${demoConfirm}"
+                          th:action="@{/booking/{c}/bank-transfer/demo-confirm(c=${booking.code})}">
+                        <button class="btn btn-outline-secondary btn-sm" type="submit"><i class="bi bi-bank"></i> [[#{bankqr.demoButton}]]</button>
+                        <span class="small text-muted ms-2">[[#{bankqr.demoNote}]]</span>
+                    </form>
+                </div>
+            </div>
+            <div class="col-lg-4">
+                <div th:replace="~{fragments/common :: summary(${booking})}"></div>
+                <div class="d-flex justify-content-between mt-2">
+                    <a class="btn btn-link px-0" th:href="@{/booking/{code}/checkout(code=${booking.code})}"><i class="bi bi-arrow-left"></i> [[#{bankqr.otherMethod}]]</a>
+                    <form method="post" th:action="@{/booking/{code}/cancel(code=${booking.code})}">
+                        <button class="btn btn-link text-danger px-0" type="submit">[[#{ui.huy_don}]]</button></form>
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+<th:block th:fragment="scripts">
+    <script src="/js/countdown.js"></script>
+    <script src="/js/bank-transfer.js"></script>
+</th:block>
+</body>
+</html>

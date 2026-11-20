@@ -441,7 +441,7 @@ public class DataSeeder implements ApplicationRunner {
                         return;
                     }
                     Booking booking = bookingService.holdSeats(member.getId(), showtimeId, free);
-                    bookingService.confirmPayment(booking, PaymentMethod.MOCK, "SEED-" + booking.getCode(), null);
+                    bookingService.confirmPayment(booking, PaymentMethod.BANK_QR, BookingService.bankTransferRef(booking.getCode()), "SEED");
                     LocalDateTime paidAt = LocalDateTime.now(clock).minusDays(daysAgo).withHour(9 + random.nextInt(12));
                     booking.setCreatedAt(paidAt.minusMinutes(3));
                     booking.setPaidAt(paidAt);

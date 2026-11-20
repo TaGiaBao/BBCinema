@@ -56,16 +56,18 @@ class ProductionSafetyCheckTest {
     }
 
     @Test
-    void refusesTheDemoMailboxInProduction() {
+    void refusesDemoToolsInProduction() {
         MockEnvironment prod = new MockEnvironment()
                 .withProperty("app.jwt.secret", GOOD_KEY)
                 .withProperty("spring.datasource.username", "bbcinema_app")
                 .withProperty("spring.datasource.password", "S3cure-Long-Pass!")
                 .withProperty("app.base-url", "https://bbcinema.example")
-                .withProperty("app.demo-mailbox", "true");
+                .withProperty("app.demo-mailbox", "true")
+                .withProperty("app.bank-qr.demo-confirm", "true");
         prod.setActiveProfiles("mysql", "prod");
         assertThatThrownBy(() -> new ProductionSafetyCheck().postProcessEnvironment(prod, null))
                 .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("DEMO_MAILBOX");
+                .hasMessageContaining("DEMO_MAILBOX")
+                .hasMessageContaining("DEMO_BANK_CONFIRM");
     }
 }

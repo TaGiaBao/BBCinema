@@ -24,9 +24,11 @@ Các điểm kỹ thuật chính:
 - **Giá vé** theo loại ghế, 2D/3D, ngày thường hay cuối tuần, trước hay sau 17h. Giá được chốt vào từng ghế
   khi tạo suất chiếu.
 - **Kiểm tra độ tuổi** theo ngày sinh với phim T13, T16, T18.
+- **Chuyển khoản QR (VietQR)**: mã QR có sẵn số tài khoản, số tiền, nội dung; nối **SePay** để tự xác nhận khi tiền về.
+  Quầy vé nhận tiền mặt, thẻ (máy POS) và chuyển khoản QR.
 - **VNPay sandbox** (ký HMAC-SHA512), email vé dạng HTML có mã QR (ZXing), gửi bất đồng bộ sau khi thanh toán.
 - **REST API** có tài liệu Swagger, xử lý lỗi tập trung, kiểm tra dữ liệu với Bean Validation.
-- **214 test** (JUnit 5, Mockito, MockMvc, test tích hợp với H2), báo cáo độ phủ JaCoCo.
+- **225 test** (JUnit 5, Mockito, MockMvc, test tích hợp với H2), báo cáo độ phủ JaCoCo.
 
 ## Công nghệ
 

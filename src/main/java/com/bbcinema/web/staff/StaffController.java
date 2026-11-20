@@ -34,6 +34,7 @@ public class StaffController {
     private final ShowtimeService showtimeService;
     private final BookingService bookingService;
     private final ComboService comboService;
+    private final com.bbcinema.service.BankTransferService bankTransferService;
     private final Clock clock;
 
     @GetMapping
@@ -56,6 +57,7 @@ public class StaffController {
         model.addAttribute("showtime", showtime);
         model.addAttribute("seatMap", showtimeService.seatMap(showtimeId));
         model.addAttribute("combos", comboService.findActive());
+        model.addAttribute("bankQrEnabled", bankTransferService.isAvailable());
         if (!model.containsAttribute("form")) {
             model.addAttribute("form", new CounterSaleForm());
         }
@@ -77,12 +79,87 @@ public class StaffController {
         try {
             form.setComboQuantities(com.bbcinema.web.BookingController.comboQuantitiesOf(params));
             Booking booking = bookingService.sellAtCounter(staff.getId(), showtimeId, form);
-            redirect.addFlashAttribute("success", "Đã bán vé " + booking.getCode());
+            if (booking.isPending()) { // bank transfer: wait for the money
+                return "redirect:/staff/bank-transfer/" + booking.getCode();
+            }
+            redirect.addFlashAttribute("success", "Đã bán vé " + booking.getCode() + " (" + form.getPaymentMethod().getLabel() + ")");
             return "redirect:/staff/tickets/" + booking.getCode();
         } catch (BusinessException e) {
             redirect.addFlashAttribute("error", e.getMessage());
             return "redirect:/staff/sell/" + showtimeId;
         }
+    }
+
+    // ---------- bank transfer at the counter: the customer scans the QR on the counter screen
+
+    @GetMapping("/bank-transfer/{code}")
+    public String bankTransfer(@PathVariable String code, Model model) {
+        Booking booking = bookingService.getByCode(code);
+        if (booking.isPaid()) {
+            return "redirect:/staff/tickets/" + code;
+        }
+        model.addAttribute("booking", booking);
+        if (booking.isPending()) {
+            model.addAttribute("transfer", bankTransferService.info(booking));
+        }
+        model.addAttribute("automatic", bankTransferService.isAutomatic());
+        model.addAttribute("demoConfirm", bankTransferService.isDemoConfirmAllowed());
+        model.addAttribute("menu", "staff");
+        return "staff/bank-transfer";
+    }
+
+    @GetMapping(value = "/bank-transfer/{code}/qr.png", produces = org.springframework.http.MediaType.IMAGE_PNG_VALUE)
+    @org.springframework.web.bind.annotation.ResponseBody
+    public org.springframework.http.ResponseEntity<byte[]> bankQr(@PathVariable String code) {
+        return org.springframework.http.ResponseEntity.ok()
+                .cacheControl(org.springframework.http.CacheControl.noStore())
+                .body(bankTransferService.qrPng(bookingService.getByCode(code)));
+    }
+
+    @GetMapping(value = "/bank-transfer/{code}/status", produces = org.springframework.http.MediaType.APPLICATION_JSON_VALUE)
+    @org.springframework.web.bind.annotation.ResponseBody
+    public Map<String, String> bankTransferStatus(@PathVariable String code) {
+        return Map.of("status", bookingService.getByCode(code).getStatus().name());
+    }
+
+    /** Staff saw the money arrive in the cinema's banking app. */
+    @PostMapping("/bank-transfer/{code}/confirm")
+    public String confirmTransfer(@PathVariable String code, @AuthenticationPrincipal AppUserPrincipal staff,
+                                  RedirectAttributes redirect) {
+        try {
+            bankTransferService.confirmByStaff(code, staff.getFullName());
+            redirect.addFlashAttribute("success", "Đã xác nhận chuyển khoản, vé " + code + " đã thanh toán");
+            return "redirect:/staff/tickets/" + code;
+        } catch (BusinessException e) {
+            redirect.addFlashAttribute("error", e.getMessage());
+            return "redirect:/staff/bank-transfer/" + code;
+        }
+    }
+
+    @PostMapping("/bank-transfer/{code}/demo-confirm")
+    public String demoConfirmTransfer(@PathVariable String code, RedirectAttributes redirect) {
+        try {
+            bankTransferService.demoConfirm(code);
+            redirect.addFlashAttribute("success", "Ngân hàng (giả lập) đã báo có, vé " + code + " đã thanh toán");
+            return "redirect:/staff/tickets/" + code;
+        } catch (BusinessException e) {
+            redirect.addFlashAttribute("error", e.getMessage());
+            return "redirect:/staff/bank-transfer/" + code;
+        }
+    }
+
+    /** The customer changed their mind: release the seats. */
+    @PostMapping("/bank-transfer/{code}/cancel")
+    public String cancelTransfer(@PathVariable String code, @AuthenticationPrincipal AppUserPrincipal staff,
+                                 RedirectAttributes redirect) {
+        Booking booking = bookingService.getByCode(code);
+        try {
+            bookingService.cancel(code, staff.getId(), staff.getRole());
+            redirect.addFlashAttribute("success", "Đã huỷ đơn " + code + ", ghế được mở bán lại");
+        } catch (BusinessException e) {
+            redirect.addFlashAttribute("error", e.getMessage());
+        }
+        return "redirect:/staff/sell/" + booking.getShowtime().getId();
     }
 
     @GetMapping("/tickets/{code}")

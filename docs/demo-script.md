@@ -36,8 +36,11 @@ Tài khoản: `user@bbcinema.vn / User@123`, `teen@bbcinema.vn / Teen@123` (14 t
    "đang có người giữ".
    > "Màn hình chỉ là lớp tiện lợi; lớp bảo vệ thật là khoá dòng trong CSDL (mục 5)."
 4. Bắp nước → thanh toán: nhập `BBCINEMA10`, dùng 10 điểm, xem tổng tiền tính lại. Thử `HETHAN` để thấy báo lỗi.
-5. Thanh toán bằng *Thanh toán thử*. Chỉ vào ô VNPay đang tắt:
-   > "Rạp chỉ cần điền hai mã VNPay cấp vào file cấu hình là bật được, không phải sửa code. Phần ký và kiểm chữ ký đã có test (mục 5)."
+5. Chọn **Chuyển khoản QR** → trang hiện mã VietQR, số tiền, nội dung `BBC <mã vé>`, đếm ngược giữ ghế.
+   - Mở app ngân hàng trên điện thoại, quét mã: app hiện đúng tài khoản, số tiền, nội dung.
+   - Có SePay (`SEPAY_API_TOKEN` trong `.env`): chuyển thật, vài giây sau trang **tự chuyển sang vé**.
+   - Không muốn chuyển tiền thật: bấm **Giả lập ngân hàng báo có** (chỉ có ở bản demo).
+   > "Hệ thống hỏi SePay mỗi 5 giây; giao dịch nào có nội dung BBC + mã vé và đủ tiền thì vé được xác nhận. Ô VNPay bật được khi rạp có mã của VNPay."
 6. **Vé điện tử**: mã QR, logo mờ phía sau, nút In vé. Bấm In vé để thấy bản in.
 7. Mở **Hộp thư demo** (`/demo/mailbox`): email vé có QR vừa gửi.
    > "Máy demo không có tài khoản Gmail, nên hệ thống giữ bản sao email để xem. Chế độ này tự tắt khi triển khai thật."
@@ -48,7 +51,9 @@ Tài khoản: `user@bbcinema.vn / User@123`, `teen@bbcinema.vn / Teen@123` (14 t
 
 1. Trình duyệt 3: `/internal/login` bằng `staff@...`.
    > "Khách và nội bộ tách hẳn: trang khách không có link nào sang đây; tài khoản khách không vào được."
-2. **Bán vé tại quầy**: chọn suất, chọn ghế, thu tiền mặt, in vé.
+2. **Bán vé tại quầy**: chọn suất, chọn ghế, chọn hình thức thanh toán:
+   - **Tiền mặt**, hoặc **Thẻ ngân hàng**: nhập mã chuẩn chi in trên hoá đơn máy POS (ví dụ `A1B2C3`).
+   - **Chuyển khoản QR**: màn hình quầy hiện mã cho khách quét; tiền về thì tự in vé, hoặc nhân viên bấm *Đã nhận tiền*.
 3. **Soát vé**: bấm *Bật camera*, đưa mã QR trên điện thoại (vé ở bước 2.6) vào webcam → hiện thông tin vé →
    *Xác nhận vào phòng*. Soát lại lần 2 → báo đã soát.
 
