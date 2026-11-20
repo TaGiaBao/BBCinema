@@ -1,6 +1,5 @@
 package com.bbcinema.web.staff;
 
-import com.bbcinema.config.AppProperties;
 import com.bbcinema.entity.Booking;
 import com.bbcinema.entity.Cinema;
 import com.bbcinema.entity.CounterShift;
@@ -34,7 +33,7 @@ public class ShiftController {
     public static final String CLOSE_PATH = "/staff/shift/close";
 
     private final ShiftService shiftService;
-    private final AppProperties properties;
+    private final com.bbcinema.security.TokenCookies tokenCookies;
 
     @GetMapping(OPEN_PATH)
     public String openPage(@AuthenticationPrincipal AppUserPrincipal staff, Model model) {
@@ -91,7 +90,7 @@ public class ShiftController {
             redirect.addFlashAttribute("error", e.getMessage());
             return "redirect:" + CLOSE_PATH;
         }
-        response.addHeader("Set-Cookie", properties.jwt().cookieName() + "=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax");
+        tokenCookies.clear(response);
         SecurityContextHolder.clearContext();
         model.addAttribute("shift", shiftService.getDetailed(shift.getId()));
         model.addAttribute("loggedOut", true);

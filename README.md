@@ -108,6 +108,12 @@ Chạy với `SPRING_PROFILES_ACTIVE=mysql,prod`. Profile này (file `src/main/r
 | `JWT_SECRET` | Có | kết quả của `openssl rand -base64 32` |
 | `APP_BASE_URL` | Có | `https://bbcinema.example.com` |
 | `SEED_DATA`, `SWAGGER_ENABLED` | Không | `true` để bật |
+| `COOKIE_SECURE` | Không (mặc định `true` ở prod) | `false` chỉ khi buộc phải chạy prod qua http |
+| `TRUST_FORWARDED_FOR` | Không (mặc định `false`) | `true` khi chạy sau reverse proxy (nginx) có ghi `X-Forwarded-For` |
+
+Đăng nhập sai 5 lần trong 15 phút cho cùng một tài khoản, hoặc 20 lần trong 15 phút từ cùng một địa chỉ IP, thì bị chặn 15 phút (cả trang khách, trang nội bộ, `/api/auth/login` và ô mật khẩu quản lý quầy khi mở ca, kết ca, duyệt hoàn tiền; API trả mã 429). Ngưỡng chỉnh ở `app.security.login` trong `application.yml`. Lưu ý: vì chặn theo tài khoản, người khác cố ý nhập sai mật khẩu của một tài khoản có thể làm chủ tài khoản đó tạm không đăng nhập được 15 phút. Đây là đánh đổi có chủ ý để chống dò mật khẩu.
+
+**Chạy sau reverse proxy (nginx):** phải đặt `TRUST_FORWARDED_FOR=true`, nếu không ứng dụng thấy mọi khách cùng một IP (của nginx) và giới hạn theo IP chặn lẫn nhau. Khi đã bật, cổng 8080 của ứng dụng **không được mở ra Internet** (chỉ nginx gọi vào, ví dụ chặn bằng tường lửa hoặc chỉ nghe ở `127.0.0.1`), vì ai gọi thẳng vào 8080 cũng tự ghi được `X-Forwarded-For` để giả IP. Ứng dụng lấy địa chỉ cuối cùng trong header, tức địa chỉ do nginx ghi (cấu hình nginx: `proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;`). Chạy trực tiếp không qua proxy thì để `false`. `COOKIE_SECURE` để `true` (mặc định ở prod) khi trang chạy HTTPS.
 
 ## Tài khoản dùng thử
 

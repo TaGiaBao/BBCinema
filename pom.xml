@@ -103,6 +103,13 @@
             <version>${zxing.version}</version>
         </dependency>
 
+        <!-- Excel export of the revenue report -->
+        <dependency>
+            <groupId>org.apache.poi</groupId>
+            <artifactId>poi-ooxml</artifactId>
+            <version>5.3.0</version>
+        </dependency>
+
         <!-- API documentation -->
         <dependency>
             <groupId>org.springdoc</groupId>

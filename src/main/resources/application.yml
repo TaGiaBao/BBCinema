@@ -98,6 +98,18 @@ app:
     secret: ${JWT_SECRET:Ymljb2luZW1hLWRldmVsb3BtZW50LXNlY3JldC1rZXktY2hhbmdlLW1lLTIwMjY=}
     expiration-hours: 24
     cookie-name: BB_TOKEN
+  security:
+    # Send the login cookie only over HTTPS. Off here so http://localhost works; the prod profile turns it on.
+    cookie-secure: ${COOKIE_SECURE:false}
+    # Read the client address from X-Forwarded-For. Only behind a reverse proxy that sets it; otherwise it can be faked.
+    trust-forwarded-for: ${TRUST_FORWARDED_FOR:false}
+    # Failed logins: block an email after 5 in a row, or a client address after 20 within the window, for 15 minutes.
+    login:
+      max-failures-per-account: 5
+      max-failures-per-ip: 20
+      window: 15m
+      lock-duration: 15m
+      max-tracked-keys: 10000
   upload:
     dir: ${UPLOAD_DIR:uploads}
   mail:
