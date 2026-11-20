@@ -51,6 +51,14 @@ public class Payment {
     @Column(name = "change_amount", precision = 12, scale = 0)
     private BigDecimal changeAmount;
 
+    /** When the money was given back, and which staff member did it (null for refunds asked by the member). */
+    @Column(name = "refunded_at")
+    private LocalDateTime refundedAt;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "refunded_by_id")
+    private User refundedBy;
+
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 

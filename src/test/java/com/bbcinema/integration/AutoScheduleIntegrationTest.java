@@ -245,4 +245,29 @@ class AutoScheduleIntegrationTest extends IntegrationTestBase {
         assertThat(plan).filteredOn(p -> p.movie().getId().equals(a.getId())).allMatch(p -> p.tier() == 1);
         assertThat(countA).isGreaterThan(countB);
     }
+
+    @Test
+    void unreleasedMoviesWaitForTheirReleaseAndSavedShowsKeepThePlannedEnd() {
+        Showtime existing = showtimeTomorrow();
+        LocalDate day = existing.getStartTime().toLocalDate().plusDays(4);
+        Movie soon = movie("Sắp chiếu", 100, AgeRating.P, "Hài");
+        soon.setReleaseDate(day.plusDays(1));
+        movieRepository.save(soon);
+        Movie now = released("Đang chiếu", 100, AgeRating.P, "Hài", 30);
+        AutoScheduleService.Request request = new AutoScheduleService.Request(existing.getRoom().getCinema().getId(),
+                day, day.plusDays(1), LocalTime.of(9, 0), LocalTime.of(22, 30), LocalTime.of(18, 0), LocalTime.of(22, 0),
+                List.of(soon.getId(), now.getId()), 15, Map.of());
+
+        List<Planned> plan = autoScheduleService.plan(request);
+        assertThat(plan).filteredOn(p -> p.movie().getId().equals(soon.getId()))
+                .isNotEmpty()
+                .allMatch(p -> !p.start().toLocalDate().isBefore(soon.getReleaseDate()));
+
+        autoScheduleService.save(request);
+        Planned first = plan.get(0);
+        Showtime saved = showtimeRepository.findOverlapping(first.room().getId(), first.start(), first.start().plusMinutes(1), null).get(0);
+        assertThat(saved.getEndTime()).isEqualTo(first.roomFree());
+        assertThat(first.roomFree()).isEqualTo(first.start().plusMinutes(15 + first.movie().getDurationMinutes()
+                + AutoScheduleService.cleaningMinutes(first.room().getSeats().size())));
+    }
 }

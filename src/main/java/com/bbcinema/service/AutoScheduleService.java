@@ -102,7 +102,7 @@ public class AutoScheduleService {
     }
 
     /** Per movie totals of a plan, so the admin can see whether the shares came out even. */
-    public record MovieShare(Movie movie, int tier, int shows, int goldenShows, double percent) {
+    public record MovieShare(Movie movie, int tier, String tiers, int shows, int goldenShows, double percent) {
     }
 
     @Transactional(readOnly = true)
@@ -121,7 +121,13 @@ public class AutoScheduleService {
         rooms.sort(Comparator.comparingInt(AutoScheduleService::capacity).reversed().thenComparing(Room::getName));
         List<Planned> plan = new ArrayList<>();
         for (LocalDate day = request.from(); !day.isAfter(request.to()); day = day.plusDays(1)) {
-            plan.addAll(new DayPlanner(request, day, movies, rooms).run());
+            LocalDate d = day;
+            // A movie is only scheduled from its release date (early screenings are added by hand as specials).
+            List<Movie> released = movies.stream()
+                    .filter(m -> m.getReleaseDate() == null || !m.getReleaseDate().isAfter(d)).toList();
+            if (!released.isEmpty()) {
+                plan.addAll(new DayPlanner(request, day, released, rooms).run());
+            }
         }
         plan.sort(Comparator.comparing(Planned::start).thenComparing(p -> p.room().getName()));
         return plan;
@@ -133,7 +139,7 @@ public class AutoScheduleService {
         int created = 0;
         for (Planned p : plan(request)) {
             try {
-                showtimeService.create(p.movie(), p.room(), p.start(), p.format(), false);
+                showtimeService.create(p.movie(), p.room(), p.start(), p.format(), null, false, p.roomFree());
                 created++;
             } catch (BusinessException clash) {
                 // Someone added a showtime in the meantime: keep theirs.
@@ -147,7 +153,10 @@ public class AutoScheduleService {
         Map<Movie, List<Planned>> byMovie = new LinkedHashMap<>();
         plan.forEach(p -> byMovie.computeIfAbsent(p.movie(), m -> new ArrayList<>()).add(p));
         return byMovie.values().stream()
-                .map(list -> new MovieShare(list.get(0).movie(), list.get(0).tier(), list.size(),
+                .map(list -> new MovieShare(list.get(0).movie(),
+                        list.stream().mapToInt(Planned::tier).min().orElse(2),
+                        list.stream().map(Planned::tier).distinct().sorted().map(String::valueOf).collect(Collectors.joining("–")),
+                        list.size(),
                         (int) list.stream().filter(Planned::golden).count(), 100.0 * list.size() / plan.size()))
                 .sorted(Comparator.comparingInt(MovieShare::tier).thenComparing(MovieShare::shows, Comparator.reverseOrder()))
                 .toList();
@@ -259,7 +268,7 @@ public class AutoScheduleService {
         /** N = floor((last start - open) / average turnaround) + 1 per room, summed over the rooms. */
         private double estimatedSlots() {
             double avgMovie = movies.stream().mapToInt(Movie::getDurationMinutes).average().orElse(110);
-            double minutes = Math.max(0, Duration.between(day.atTime(request.open()), lastStart).toMinutes());
+            double minutes = Math.max(0, Duration.between(earliest, lastStart).toMinutes());
             double slots = 0;
             for (Room room : rooms) {
                 double turnaround = request.trailerMinutes() + avgMovie + cleaningMinutes(capacity(room));
@@ -278,10 +287,10 @@ public class AutoScheduleService {
                     LocalDateTime from = gap[0];
                     LocalDateTime to = gap[1];
                     if (!anchor.isBefore(from) && anchor.isBefore(to)) {
-                        LocalDateTime firstStart = forward(room, anchor, to, true);
+                        LocalDateTime firstStart = forward(room, anchor, to);
                         mornings.add(() -> backward(room, from, firstStart));
                     } else {
-                        mornings.add(() -> forward(room, from, to, false));
+                        mornings.add(() -> forward(room, from, to));
                     }
                 }
             }
@@ -318,15 +327,15 @@ public class AutoScheduleService {
         }
 
         /**
-         * Fills a gap from {@code t} towards its end. With {@code exact}, the first show starts at {@code t} if any
-         * movie fits there (the anchor). Returns when the first placed show starts (or {@code t} if none).
+         * Fills a gap from {@code t} (the prime-time anchor, or the start of a gap) towards its end.
+         * Returns when the first placed show starts, or the gap end if nothing fits.
          */
-        private LocalDateTime forward(Room room, LocalDateTime t, LocalDateTime gapEnd, boolean exact) {
+        private LocalDateTime forward(Room room, LocalDateTime t, LocalDateTime gapEnd) {
             LocalDateTime first = null;
             Long previous = null;
             t = roundUp(t);
             while (!t.isAfter(lastStart)) {
-                LocalDateTime start = exact && first == null ? t : staggerLater(t);
+                LocalDateTime start = staggerLater(t); // normally the anchor itself, anchors are 15 minutes apart
                 Candidate best = null;
                 for (Movie m : movies) {
                     Candidate c = candidate(room, m, start, previous);
@@ -335,9 +344,6 @@ public class AutoScheduleService {
                     }
                 }
                 if (best == null) {
-                    if (exact && first == null) {
-                        exact = false; // nothing fits right at the anchor: carry on normally
-                    }
                     t = t.plusMinutes(ROUND_TO_MINUTES);
                     continue;
                 }

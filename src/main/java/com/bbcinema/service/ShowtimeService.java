@@ -170,10 +170,23 @@ public class ShowtimeService {
     @Transactional
     public Showtime create(Movie movie, Room room, LocalDateTime start, ScreenFormat format, ShowLanguage language,
                            boolean special) {
+        return create(movie, room, start, format, language, special,
+                start.plusMinutes(movie.getDurationMinutes() + (long) properties.booking().cleaningMinutes()));
+    }
+
+    /**
+     * Creates a showtime that holds its room until {@code end} (movie plus cleaning). The automatic schedule
+     * passes its own end, which also counts the trailers and the cleaning time for the room's size.
+     */
+    @Transactional
+    public Showtime create(Movie movie, Room room, LocalDateTime start, ScreenFormat format, ShowLanguage language,
+                           boolean special, LocalDateTime end) {
         if (!room.isActive()) {
             throw new BusinessException("Phòng " + room.getName() + " đang tạm ngưng");
         }
-        LocalDateTime end = start.plusMinutes(movie.getDurationMinutes() + (long) properties.booking().cleaningMinutes());
+        if (!end.isAfter(start)) {
+            throw new BusinessException("Giờ kết thúc phải sau giờ bắt đầu");
+        }
         List<Showtime> overlaps = showtimeRepository.findOverlapping(room.getId(), start, end, null);
         if (!overlaps.isEmpty()) {
             Showtime other = overlaps.get(0);

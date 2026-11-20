@@ -481,9 +481,14 @@ public class BookingService {
         if (promotion != null && promotion.getUsedCount() > 0) {
             promotion.setUsedCount(promotion.getUsedCount() - 1);
         }
+        User refundedBy = staff ? userService.getById(viewerId) : null;
         paymentRepository.findByBookingIdOrderByCreatedAtDesc(booking.getId()).stream()
                 .filter(p -> p.getStatus() == PaymentStatus.SUCCESS)
-                .forEach(p -> p.setStatus(PaymentStatus.REFUNDED));
+                .forEach(p -> {
+                    p.setStatus(PaymentStatus.REFUNDED);
+                    p.setRefundedAt(now);
+                    p.setRefundedBy(refundedBy);
+                });
         booking.setStatus(BookingStatus.CANCELLED);
         booking.setCancelledAt(now);
         log.info("Booking {} cancelled", booking.getCode());
@@ -571,16 +576,20 @@ public class BookingService {
 
     /** What one staff member took at the counter on a day, per payment method, to count the till against. */
     public record CounterTakings(int cashSales, BigDecimal cashTotal, BigDecimal cashReceived, BigDecimal changeGiven,
-                                 int cardSales, BigDecimal cardTotal, int transferSales, BigDecimal transferTotal) {
+                                 int cardSales, BigDecimal cardTotal, int transferSales, BigDecimal transferTotal,
+                                 int cashRefunds, BigDecimal cashRefunded) {
 
-        /** Cash that should be in the drawer from these sales: received minus change, i.e. the cash total. */
+        /** Cash that should be in the drawer: received, minus change, minus cash handed back for cancelled tickets. */
         public BigDecimal cashInDrawer() {
-            return cashReceived.subtract(changeGiven);
+            return cashReceived.subtract(changeGiven).subtract(cashRefunded);
         }
     }
 
     public CounterTakings counterTakings(Long staffId, LocalDate day) {
-        List<Payment> payments = paymentRepository.findCounterTakings(staffId, day.atStartOfDay(), day.plusDays(1).atStartOfDay());
+        LocalDateTime from = day.atStartOfDay();
+        LocalDateTime to = day.plusDays(1).atStartOfDay();
+        // Sales stay counted after a refund: the money did come in that day. The refund is a separate outflow below.
+        List<Payment> payments = paymentRepository.findCounterTakings(staffId, from, to);
         int cash = 0, card = 0, transfer = 0;
         BigDecimal cashTotal = BigDecimal.ZERO, received = BigDecimal.ZERO, change = BigDecimal.ZERO;
         BigDecimal cardTotal = BigDecimal.ZERO, transferTotal = BigDecimal.ZERO;
@@ -604,7 +613,10 @@ public class BookingService {
                 default -> { }
             }
         }
-        return new CounterTakings(cash, cashTotal, received, change, card, cardTotal, transfer, transferTotal);
+        List<Payment> refunds = paymentRepository.findCashRefunds(staffId, from, to);
+        BigDecimal refunded = refunds.stream().map(Payment::getAmount).reduce(BigDecimal.ZERO, BigDecimal::add);
+        return new CounterTakings(cash, cashTotal, received, change, card, cardTotal, transfer, transferTotal,
+                refunds.size(), refunded);
     }
 
     /**

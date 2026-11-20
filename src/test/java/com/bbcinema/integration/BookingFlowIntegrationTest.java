@@ -202,4 +202,27 @@ class BookingFlowIntegrationTest extends IntegrationTestBase {
         assertThat(booking.getTierDiscount()).isEqualByComparingTo(booking.getTicketAmount().multiply(java.math.BigDecimal.valueOf(0.1)));
         assertThat(booking.getTotalAmount()).isEqualByComparingTo(booking.getTicketAmount().subtract(booking.getTierDiscount()));
     }
+
+    @Test
+    void cashRefundIsTakenFromTheDrawerOfTheStaffWhoHandsItBack() {
+        User seller = account(Role.STAFF);
+        User other = account(Role.STAFF);
+        Showtime st = showtimeTomorrow();
+        CounterSaleForm form = new CounterSaleForm();
+        form.setShowtimeSeatIds(freeSeats(st.getId(), 1));
+        form.setAmountReceived(BigDecimal.valueOf(500_000));
+        Booking sold = bookingService.sellAtCounter(seller.getId(), st.getId(), form);
+
+        bookingService.cancel(sold.getCode(), other.getId(), Role.STAFF);
+
+        LocalDate today = LocalDate.now();
+        BookingService.CounterTakings sellerDay = bookingService.counterTakings(seller.getId(), today);
+        assertThat(sellerDay.cashSales()).isEqualTo(1); // the cash did come in
+        assertThat(sellerDay.cashInDrawer()).isEqualByComparingTo(sold.getTotalAmount());
+        BookingService.CounterTakings otherDay = bookingService.counterTakings(other.getId(), today);
+        assertThat(otherDay.cashRefunds()).isEqualTo(1);
+        assertThat(otherDay.cashInDrawer()).isEqualByComparingTo(sold.getTotalAmount().negate());
+        Payment refunded = paymentRepository.findByTransactionRef("CASH-" + sold.getCode()).orElseThrow();
+        assertThat(refunded.getRefundedAt()).isNotNull();
+    }
 }

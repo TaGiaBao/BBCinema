@@ -21,9 +21,10 @@ public class BrowserOpener {
     private final boolean enabled;
     private final String baseUrl;
 
-    public BrowserOpener(@Value("${app.open-browser:false}") boolean enabled, @Value("${app.base-url}") String baseUrl) {
+    /** Opens the instance just started on this machine, not app.base-url (which may be a public tunnel address). */
+    public BrowserOpener(@Value("${app.open-browser:false}") boolean enabled, @Value("${server.port:8080}") int port) {
         this.enabled = enabled;
-        this.baseUrl = baseUrl;
+        this.baseUrl = "http://localhost:" + port;
     }
 
     @EventListener(ApplicationReadyEvent.class)

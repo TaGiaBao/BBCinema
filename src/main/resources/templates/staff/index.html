@@ -19,6 +19,8 @@
                 <div class="fw-semibold mb-1" th:text="'Tiền mặt · ' + ${takings.cashSales} + ' đơn'">Tiền mặt</div>
                 <div class="summary-row"><span>Khách đưa</span><span class="tabular" th:text="${@fmt.money(takings.cashReceived)}">0đ</span></div>
                 <div class="summary-row"><span>Đã trả lại khách</span><span class="tabular" th:text="'− ' + ${@fmt.money(takings.changeGiven)}">0đ</span></div>
+                <div class="summary-row" th:if="${takings.cashRefunds > 0}"><span th:text="'Hoàn tiền huỷ vé (' + ${takings.cashRefunds} + ')'">Hoàn tiền</span>
+                    <span class="tabular" th:text="'− ' + ${@fmt.money(takings.cashRefunded)}">0đ</span></div>
                 <div class="summary-row"><span>Tiền mặt phải có trong két</span><strong class="tabular" th:text="${@fmt.money(takings.cashInDrawer())}">0đ</strong></div>
             </div>
             <div class="col-md-3">

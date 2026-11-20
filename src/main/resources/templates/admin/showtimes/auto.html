@@ -60,7 +60,8 @@
                                    th:checked="${req.movieIds.contains(m.id)}">
                             <select class="form-select form-select-sm w-auto" th:name="'tier_' + ${m.id}" aria-label="Hạng phim"
                                     th:with="chosen=${req.tiers.get(m.id)}">
-                                <option value="auto" th:text="'Tự động (hạng ' + ${autoTiers.get(m.id)} + ')'">Tự động</option>
+                                <option value="auto" th:text="'Tự động (hạng ' + ${autoTiers.get(m.id)} + ' ngày đầu)'"
+                                        title="Hạng tự động tính lại cho từng ngày theo số tuần kể từ ngày khởi chiếu">Tự động</option>
                                 <option th:each="t : ${ {1, 2, 3} }" th:value="${t}" th:text="'Hạng ' + ${t}"
                                         th:selected="${chosen != null and chosen == t}">Hạng 1</option>
                             </select>
@@ -109,7 +110,7 @@
                 <tbody>
                 <tr th:each="s : ${shares}">
                     <td th:text="${s.movie.title}">Phim</td>
-                    <td th:text="${s.tier}">1</td>
+                    <td th:text="${s.tiers}">1</td>
                     <td class="text-end tabular" th:text="${s.shows}">0</td>
                     <td class="text-end tabular" th:text="${s.goldenShows}">0</td>
                     <td class="text-end tabular" th:text="${#numbers.formatDecimal(s.percent, 1, 0)} + '%'">0%</td>
