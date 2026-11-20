@@ -6,13 +6,22 @@
 <section class="p-4">
     <a href="/admin/showtimes" class="small"><i class="bi bi-arrow-left"></i> Suất chiếu</a>
     <h1 class="h4 mt-2">Tạo lịch chiếu tự động</h1>
-    <p class="text-muted small mb-3" style="max-width: 900px">
-        Hệ thống lấp đầy từng phòng từ giờ mở cửa: mỗi khi phòng trống, phim có điểm cao nhất cho khung giờ đó được xếp vào,
-        rồi chờ dọn phòng và xếp suất tiếp theo. Điểm tính từ 5 yếu tố: <strong>ngày trong tuần</strong> (cuối tuần đông hơn),
-        <strong>thời lượng phim</strong> (phải kết thúc trước giờ đóng cửa), <strong>giờ vàng</strong> (phim hay ưu tiên buổi tối),
-        <strong>đánh giá</strong> của khán giả và phim mới ra, <strong>thể loại</strong> (hoạt hình, gia đình ban ngày; kinh dị buổi tối;
-        T18 không chiếu buổi sáng). Phim lặp lại nhiều trong ngày bị trừ điểm để lịch đa dạng. Suất chiếu đã có được giữ nguyên.
-    </p>
+    <details class="text-muted small mb-3" style="max-width: 900px">
+        <summary class="fw-semibold">Cách hệ thống xếp lịch</summary>
+        <ol class="mt-2 mb-0">
+            <li><strong>Vòng quay phòng</strong> = quảng cáo + thời lượng phim + dọn phòng. Dọn phòng = 10 + 5 × ⌈số ghế / 100⌉ phút
+                (phòng 90 ghế: 15 phút, 120 ghế: 20 phút).</li>
+            <li><strong>Hạng phim:</strong> hạng 1 = ra mắt dưới 2 tuần, hạng 2 = tuần 3–4, hạng 3 = cũ hơn; đánh giá từ 4,2★ lên một hạng,
+                dưới 3★ xuống một hạng. Hạng 1/2/3 nhắm tới 45% / 35% / 20% số suất trong ngày, chia đều cho các phim cùng hạng.
+                Có thể chọn hạng thủ công cho từng phim.</li>
+            <li><strong>Khung giờ:</strong> sáng ưu tiên phim gia đình, hoạt hình và hạng 3; chiều hạng 1–2; giờ vàng dành cho hạng 1 ở phòng lớn nhất;
+                suất khuya ưu tiên kinh dị, hành động, phim 16+/18+. Phim T18 không chiếu trước 12:00.</li>
+            <li><strong>Neo giờ vàng:</strong> mỗi phòng có một suất neo trong giờ vàng (phòng lớn nhất trước, các phòng sau lệch 15 phút),
+                xếp xuôi tới suất khuya rồi xếp ngược về buổi sáng.</li>
+            <li><strong>Giãn cách:</strong> hai phòng không bắt đầu cách nhau dưới 10 phút; hai suất cùng phim ở hai phòng cách nhau ít nhất 45 phút.
+                Giờ chiếu làm tròn 5 phút. Suất chiếu đã có được giữ nguyên (coi như suất đã khoá).</li>
+        </ol>
+    </details>
     <div class="alert alert-danger" th:if="${error != null}" th:text="${error}">Lỗi</div>
 
     <form method="post" th:action="@{/admin/showtimes/auto}" class="panel mb-4" id="autoForm">
@@ -33,6 +42,9 @@
                 <input class="form-control" type="time" id="goldenFrom" name="goldenFrom" th:value="${req.goldenFrom}" required></div>
             <div class="col-6 col-md-2"><label class="form-label small" for="goldenTo">đến</label>
                 <input class="form-control" type="time" id="goldenTo" name="goldenTo" th:value="${req.goldenTo}" required></div>
+            <div class="col-6 col-md-2"><label class="form-label small" for="trailerMinutes">Quảng cáo trước phim (phút)</label>
+                <input class="form-control" type="number" min="0" max="30" id="trailerMinutes" name="trailerMinutes"
+                       th:value="${req.trailerMinutes}" required></div>
             <div class="col-12">
                 <div class="d-flex justify-content-between align-items-center">
                     <span class="form-label small mb-1">Phim được xếp lịch</span>
@@ -43,9 +55,15 @@
                 </div>
                 <div class="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-1">
                     <div class="col" th:each="m : ${movies}">
-                        <div class="form-check">
+                        <div class="form-check d-flex align-items-center gap-2">
                             <input class="form-check-input" type="checkbox" name="movieIds" th:value="${m.id}" th:id="'m' + ${m.id}"
                                    th:checked="${req.movieIds.contains(m.id)}">
+                            <select class="form-select form-select-sm w-auto" th:name="'tier_' + ${m.id}" aria-label="Hạng phim"
+                                    th:with="chosen=${req.tiers.get(m.id)}">
+                                <option value="auto" th:text="'Tự động (hạng ' + ${autoTiers.get(m.id)} + ')'">Tự động</option>
+                                <option th:each="t : ${ {1, 2, 3} }" th:value="${t}" th:text="'Hạng ' + ${t}"
+                                        th:selected="${chosen != null and chosen == t}">Hạng 1</option>
+                            </select>
                             <label class="form-check-label small" th:for="'m' + ${m.id}">
                                 <span th:text="${m.title}">Phim</span>
                                 <span class="text-muted" th:text="' · ' + ${m.durationMinutes} + ' phút · ' + ${m.ageRating.name()}">· 120 phút</span>
@@ -74,15 +92,31 @@
                     <div class="small fw-bold text-muted mb-1" th:text="${room}">Phòng</div>
                     <th:block th:each="p : ${plan}" th:if="${p.start.toLocalDate() == d and p.room.name == room}">
                         <div class="auto-slot" th:classappend="${p.golden} ? 'golden'">
-                            <span class="tabular" th:text="${#temporals.format(p.start, 'HH:mm')} + '–' + ${#temporals.format(p.end.minusMinutes(15), 'HH:mm')}">08:00</span>
+                            <span class="tabular" th:text="${#temporals.format(p.start, 'HH:mm')} + '–' + ${#temporals.format(p.end, 'HH:mm')}">08:00</span>
                             <span class="title" th:text="${p.movie.title}">Phim</span>
-                            <span class="small text-muted" th:text="${p.format.label} + ' · điểm ' + ${#numbers.formatDecimal(p.score, 1, 2, 'COMMA')}">2D</span>
+                            <span class="small text-muted" th:text="'Hạng ' + ${p.tier} + ' · ' + ${p.format.label} + ' · điểm ' + ${#numbers.formatDecimal(p.score, 1, 2, 'COMMA')}">2D</span>
                         </div>
                     </th:block>
                 </div>
             </div>
         </div>
-        <p class="small text-muted mt-2 mb-0"><span class="auto-slot golden d-inline-block px-2">Giờ vàng</span> suất nằm trong khung giờ vàng.</p>
+        <p class="small text-muted mt-2 mb-0"><span class="auto-slot golden d-inline-block px-2">Giờ vàng</span> suất nằm trong khung giờ vàng.
+            Giờ kết thúc là lúc hết phim (đã tính quảng cáo); sau đó phòng cần thêm thời gian dọn.</p>
+        <h3 class="h6 mt-4" th:unless="${#lists.isEmpty(plan)}">Tỷ lệ suất chiếu theo phim</h3>
+        <div class="table-responsive" th:unless="${#lists.isEmpty(plan)}">
+            <table class="table table-sm align-middle small mb-0" data-role="shares">
+                <thead><tr><th>Phim</th><th>Hạng</th><th class="text-end">Số suất</th><th class="text-end">Suất giờ vàng</th><th class="text-end">Tỷ lệ</th></tr></thead>
+                <tbody>
+                <tr th:each="s : ${shares}">
+                    <td th:text="${s.movie.title}">Phim</td>
+                    <td th:text="${s.tier}">1</td>
+                    <td class="text-end tabular" th:text="${s.shows}">0</td>
+                    <td class="text-end tabular" th:text="${s.goldenShows}">0</td>
+                    <td class="text-end tabular" th:text="${#numbers.formatDecimal(s.percent, 1, 0)} + '%'">0%</td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
     </div>
 </section>
 <th:block th:fragment="scripts"></th:block>

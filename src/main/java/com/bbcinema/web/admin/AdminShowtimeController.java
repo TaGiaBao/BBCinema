@@ -23,6 +23,7 @@ import java.time.Clock;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 @Controller
 @RequestMapping("/admin/showtimes")
@@ -120,8 +121,8 @@ public class AdminShowtimeController {
 
     /** Works out a proposal and shows it; nothing is saved yet. */
     @PostMapping("/auto")
-    public String autoPreview(@ModelAttribute AutoScheduleForm form, Model model) {
-        AutoScheduleService.Request request = form.toRequest();
+    public String autoPreview(@ModelAttribute AutoScheduleForm form, @RequestParam Map<String, String> params, Model model) {
+        AutoScheduleService.Request request = form.toRequest(params);
         try {
             return autoForm(model, request, autoScheduleService.plan(request));
         } catch (com.bbcinema.exception.BusinessException e) {
@@ -131,9 +132,10 @@ public class AdminShowtimeController {
     }
 
     @PostMapping("/auto/save")
-    public String autoSave(@ModelAttribute AutoScheduleForm form, RedirectAttributes redirect) {
+    public String autoSave(@ModelAttribute AutoScheduleForm form, @RequestParam Map<String, String> params,
+                           RedirectAttributes redirect) {
         try {
-            int created = autoScheduleService.save(form.toRequest());
+            int created = autoScheduleService.save(form.toRequest(params));
             redirect.addFlashAttribute("success", "Đã tạo " + created + " suất chiếu theo lịch đề xuất");
         } catch (com.bbcinema.exception.BusinessException e) {
             redirect.addFlashAttribute("error", e.getMessage());
@@ -144,10 +146,15 @@ public class AdminShowtimeController {
     private String autoForm(Model model, AutoScheduleService.Request request, List<AutoScheduleService.Planned> plan) {
         model.addAttribute("req", request);
         model.addAttribute("allCinemas", cinemaService.findActive());
-        model.addAttribute("movies", activeMovies().stream()
-                .filter(m -> m.getStatus() != com.bbcinema.entity.enums.MovieStatus.ENDED).toList());
+        List<com.bbcinema.entity.Movie> movies = activeMovies().stream()
+                .filter(m -> m.getStatus() != com.bbcinema.entity.enums.MovieStatus.ENDED).toList();
+        model.addAttribute("movies", movies);
+        LocalDate day = request.from() == null ? LocalDate.now(clock) : request.from();
+        model.addAttribute("autoTiers", movies.stream().collect(java.util.stream.Collectors.toMap(
+                com.bbcinema.entity.Movie::getId, m -> AutoScheduleService.autoTier(m, day))));
         if (plan != null) {
             model.addAttribute("plan", plan);
+            model.addAttribute("shares", AutoScheduleService.shares(plan));
             model.addAttribute("days", plan.stream().map(p -> p.start().toLocalDate()).distinct().sorted().toList());
             model.addAttribute("roomNames", plan.stream().map(p -> p.room().getName()).distinct().sorted().toList());
         }
@@ -171,10 +178,23 @@ public class AdminShowtimeController {
         @DateTimeFormat(pattern = "HH:mm")
         private java.time.LocalTime goldenTo;
         private List<Long> movieIds = new java.util.ArrayList<>();
+        private Integer trailerMinutes;
 
-        AutoScheduleService.Request toRequest() {
+        /** Tiers the admin chose come as tier_{movieId} = 1..3; "auto" or anything else lets the system decide. */
+        AutoScheduleService.Request toRequest(Map<String, String> params) {
+            Map<Long, Integer> tiers = new java.util.HashMap<>();
+            params.forEach((key, value) -> {
+                if (key.startsWith("tier_") && value != null && value.matches("[123]")) {
+                    try {
+                        tiers.put(Long.parseLong(key.substring(5)), Integer.parseInt(value));
+                    } catch (NumberFormatException ignored) {
+                        // not a movie id
+                    }
+                }
+            });
             return new AutoScheduleService.Request(cinemaId, from, to, open, lastStart, goldenFrom, goldenTo,
-                    movieIds == null ? List.of() : movieIds);
+                    movieIds == null ? List.of() : movieIds,
+                    trailerMinutes == null ? AutoScheduleService.DEFAULT_TRAILER_MINUTES : trailerMinutes, tiers);
         }
     }
 }
