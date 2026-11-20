@@ -17,6 +17,8 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     Optional<User> findByResetTokenHash(String resetTokenHash);
 
+    Optional<User> findByVerifyTokenHash(String verifyTokenHash);
+
     long countByRole(Role role);
 
     @Query("""

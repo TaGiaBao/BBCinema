@@ -117,6 +117,39 @@ public class MailService {
         }
     }
 
+    @Async
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    public void onEmailVerificationRequested(com.bbcinema.service.event.EmailVerificationRequestedEvent event) {
+        JavaMailSender sender = mailSender.getIfAvailable();
+        boolean sending = properties.mail().enabled() && sender != null;
+        if (!sending && !demoMailbox.isEnabled()) {
+            log.info("Mail is off. Confirmation link for {}: {}", event.email(), event.link());
+            return;
+        }
+        try {
+            Context context = new Context();
+            context.setVariable("fullName", event.fullName());
+            context.setVariable("link", event.link());
+            context.setVariable("hours", EmailVerificationService.LINK_LIFETIME.toHours());
+            String html = templateEngine.process("mail/verify-email", context);
+            String subject = "[BBCinema] Xác nhận email đăng ký";
+            demoMailbox.keep(event.email(), subject, html, Map.of());
+            if (!sending || isReservedAddress(event.email())) {
+                return;
+            }
+            MimeMessage message = sender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, false, StandardCharsets.UTF_8.name());
+            helper.setFrom(properties.mail().from());
+            helper.setTo(event.email());
+            helper.setSubject(subject);
+            helper.setText(html, true);
+            sender.send(message);
+            log.info("Confirmation mail sent to {}", event.email());
+        } catch (Exception e) {
+            log.error("Could not send confirmation mail to {}: {}", event.email(), e.getMessage());
+        }
+    }
+
     /** Bookings made by the demo data at start-up: their tickets would otherwise be mailed out for real. */
     private boolean isSampleBooking(Booking booking) {
         return paymentRepository.findByBookingIdOrderByCreatedAtDesc(booking.getId()).stream()

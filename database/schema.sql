@@ -239,6 +239,9 @@ SET NAMES utf8mb4;
     create table users (
         reset_token_expires_at datetime(6),
         reset_token_hash varchar(64),
+        email_verified_at datetime(6),
+        verify_token_hash varchar(64),
+        verify_token_expires_at datetime(6),
         birth_date date,
         enabled bit not null,
         points integer not null,

@@ -68,6 +68,11 @@ public class GoogleLoginService {
         if (!user.isEnabled()) {
             throw new GoogleLoginException(LOCKED, "Tài khoản của bạn đã bị khoá");
         }
+        if (!user.isEmailVerified()) {
+            // Google has just proved the member owns this address.
+            user.setEmailVerifiedAt(java.time.LocalDateTime.now());
+            userRepository.save(user);
+        }
         return (AppUserPrincipal) userDetailsService.loadUserByUsername(address);
     }
 }

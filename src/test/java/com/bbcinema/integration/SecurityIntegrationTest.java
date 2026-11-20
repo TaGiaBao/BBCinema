@@ -93,13 +93,13 @@ class SecurityIntegrationTest extends IntegrationTestBase {
     }
 
     @Test
-    void registrationCreatesMemberAndLogsIn() throws Exception {
+    void registrationCreatesMemberWaitingForEmailConfirmation() throws Exception {
         int n = unique();
         mvc.perform(post("/register").with(csrf())
                         .param("fullName", "Người mới").param("email", "new" + n + "@test.vn").param("phone", "0912345678")
                         .param("birthDate", "2001-02-03").param("password", "abc123").param("confirmPassword", "abc123"))
-                .andExpect(status().is3xxRedirection())
-                .andExpect(cookie().exists("BB_TOKEN"));
+                .andExpect(redirectedUrl("/register/check-email"))
+                .andExpect(cookie().doesNotExist("BB_TOKEN"));
         mvc.perform(post("/register").with(csrf())
                         .param("fullName", "Người mới").param("email", "new" + n + "@test.vn")
                         .param("birthDate", "2001-02-03").param("password", "abc123").param("confirmPassword", "abc123"))

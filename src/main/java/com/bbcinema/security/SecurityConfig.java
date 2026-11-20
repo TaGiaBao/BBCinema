@@ -77,7 +77,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/movies/*/reviews").authenticated()
                         .requestMatchers("/", "/movies/**", "/schedule", "/cinemas", "/prices", "/news/**",
                                 "/select-cinema", "/login", "/register", "/internal/login",
-                                "/forgot-password", "/reset-password", "/oauth2/**", "/login/oauth2/**").permitAll()
+                                "/forgot-password", "/reset-password", "/oauth2/**", "/login/oauth2/**",
+                                "/register/check-email", "/verify-email", "/verify-email/resend").permitAll()
                         // Exists only when app.demo-mailbox is on (never in production); 404 otherwise.
                         .requestMatchers("/demo/mailbox", "/demo/mailbox/**").permitAll()
                         .requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**").permitAll()

@@ -47,6 +47,20 @@ public class User {
     @Column(nullable = false)
     private int points = 0;
 
+    /**
+     * When the member opened the link mailed at sign-up; null until then. Members cannot sign in with an
+     * unconfirmed address, because tickets are sent to it. Staff, admins and Google accounts are confirmed at once.
+     */
+    @Column(name = "email_verified_at")
+    private LocalDateTime emailVerifiedAt;
+
+    /** SHA-256 of the one-time sign-up confirmation token, and when that link stops working. */
+    @Column(name = "verify_token_hash", length = 64)
+    private String verifyTokenHash;
+
+    @Column(name = "verify_token_expires_at")
+    private LocalDateTime verifyTokenExpiresAt;
+
     /** SHA-256 of the one-time "forgot password" token, and when that link stops working. */
     @Column(name = "reset_token_hash", length = 64)
     private String resetTokenHash;
@@ -70,5 +84,9 @@ public class User {
             return -1;
         }
         return Period.between(birthDate, date).getYears();
+    }
+
+    public boolean isEmailVerified() {
+        return emailVerifiedAt != null;
     }
 }

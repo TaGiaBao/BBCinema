@@ -26,6 +26,7 @@ public class AuthApiController {
     private final AuthenticationManager authenticationManager;
     private final JwtService jwtService;
     private final UserService userService;
+    private final com.bbcinema.service.EmailVerificationService emailVerificationService;
 
     @Operation(summary = "Đăng nhập, trả về access token")
     @PostMapping("/login")
@@ -33,17 +34,24 @@ public class AuthApiController {
         Authentication auth = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(request.email().trim(), request.password()));
         AppUserPrincipal user = (AppUserPrincipal) auth.getPrincipal();
+        if (!userService.getById(user.getId()).isEmailVerified()) {
+            throw new com.bbcinema.exception.BusinessException(
+                    "Email chưa được xác nhận. Hãy bấm đường dẫn trong email đã gửi khi đăng ký.");
+        }
         return new TokenResponse(jwtService.generateToken(user), "Bearer", jwtService.getLifetimeSeconds(),
                 user.getEmail(), user.getRole().name());
     }
 
-    @Operation(summary = "Đăng ký thành viên mới")
+    /** Answer to a sign-up: the account works after the member opens the link mailed to them. */
+    public record RegisterResponse(String email, String message) {
+    }
+
+    @Operation(summary = "Đăng ký thành viên mới (cần xác nhận email trước khi đăng nhập)")
     @PostMapping("/register")
     @ResponseStatus(HttpStatus.CREATED)
-    public TokenResponse register(@Valid @RequestBody RegisterForm form) {
+    public RegisterResponse register(@Valid @RequestBody RegisterForm form) {
         User user = userService.register(form);
-        AppUserPrincipal principal = new AppUserPrincipal(user);
-        return new TokenResponse(jwtService.generateToken(principal), "Bearer", jwtService.getLifetimeSeconds(),
-                user.getEmail(), user.getRole().name());
+        emailVerificationService.sendLink(user.getId());
+        return new RegisterResponse(user.getEmail(), "Đã gửi đường dẫn xác nhận tới email. Xác nhận xong mới đăng nhập được.");
     }
 }

@@ -35,6 +35,7 @@ public class AuthController {
     private final AuthenticationManager authenticationManager;
     private final UserService userService;
     private final PasswordResetService passwordResetService;
+    private final com.bbcinema.service.EmailVerificationService emailVerificationService;
     private final TokenCookies tokenCookies;
     private final org.springframework.beans.factory.ObjectProvider<
             org.springframework.security.oauth2.client.registration.ClientRegistrationRepository> googleClients;
@@ -79,6 +80,7 @@ public class AuthController {
         }
         model.addAttribute("error", result.error());
         model.addAttribute("email", email);
+        model.addAttribute("unverified", result.unverified());
         model.addAttribute("redirect", SafeRedirect.localPath(redirect, ""));
         return "auth/login";
     }
@@ -164,20 +166,49 @@ public class AuthController {
         if (binding.hasErrors()) {
             return "auth/register";
         }
+        com.bbcinema.entity.User user;
         try {
-            userService.register(form);
+            user = userService.register(form);
         } catch (BusinessException e) {
             binding.reject("register", e.getMessage());
             return "auth/register";
         }
-        Authentication auth = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(form.getEmail().trim(), form.getPassword()));
-        tokenCookies.signIn(response, (AppUserPrincipal) auth.getPrincipal());
-        redirect.addFlashAttribute("success", "Chào mừng " + form.getFullName() + " đến với BBCinema!");
-        return "redirect:/";
+        // The account works once the member opens the link mailed to them: tickets will be sent to this address.
+        emailVerificationService.sendLink(user.getId());
+        redirect.addFlashAttribute("email", user.getEmail());
+        return "redirect:/register/check-email";
     }
 
-    private record LoginResult(AppUserPrincipal user, String error) {
+    @GetMapping("/register/check-email")
+    public String checkEmail() {
+        return "auth/check-email";
+    }
+
+    @GetMapping("/verify-email")
+    public String verifyEmail(@RequestParam(required = false) String token, RedirectAttributes redirect) {
+        try {
+            String email = emailVerificationService.verify(token);
+            redirect.addFlashAttribute("success", "Đã xác nhận email " + email + ". Bạn có thể đăng nhập.");
+            redirect.addFlashAttribute("email", email);
+        } catch (BusinessException e) {
+            redirect.addFlashAttribute("error", e.getMessage());
+        }
+        return "redirect:/login";
+    }
+
+    @PostMapping("/verify-email/resend")
+    public String resendVerification(@RequestParam String email, RedirectAttributes redirect) {
+        emailVerificationService.resend(email);
+        // Same answer whether or not the address has an unconfirmed account.
+        redirect.addFlashAttribute("email", email.trim());
+        redirect.addFlashAttribute("resent", true);
+        return "redirect:/register/check-email";
+    }
+
+    private record LoginResult(AppUserPrincipal user, String error, boolean unverified) {
+        LoginResult(AppUserPrincipal user, String error) {
+            this(user, error, false);
+        }
     }
 
     /**
@@ -201,6 +232,10 @@ public class AuthController {
         }
         if (!internalArea && isInternal(user.getRole())) {
             return new LoginResult(null, "Vui lòng dùng trang đăng nhập nội bộ.");
+        }
+        if (!userService.getById(user.getId()).isEmailVerified()) {
+            return new LoginResult(null, "Email này chưa được xác nhận. Hãy bấm đường dẫn trong email chúng tôi đã gửi, "
+                    + "hoặc gửi lại email xác nhận.", true);
         }
         tokenCookies.signIn(response, user);
         return new LoginResult(user, null);

@@ -82,6 +82,10 @@ public class PasswordResetService {
         user.setPasswordHash(passwordEncoder.encode(newPassword));
         user.setResetTokenHash(null);
         user.setResetTokenExpiresAt(null);
+        if (user.getEmailVerifiedAt() == null) {
+            // Opening a link mailed to the address proves the member owns it.
+            user.setEmailVerifiedAt(LocalDateTime.now(clock));
+        }
         log.info("Password reset for {}", user.getEmail());
     }
 

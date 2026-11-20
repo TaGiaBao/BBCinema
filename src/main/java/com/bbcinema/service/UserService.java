@@ -16,6 +16,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Clock;
+import java.time.LocalDateTime;
 import java.util.Locale;
 
 @Service
@@ -25,6 +27,7 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final Clock clock;
 
     public User getById(Long id) {
         return userRepository.findById(id).orElseThrow(() -> new NotFoundException("Không tìm thấy tài khoản"));
@@ -50,6 +53,8 @@ public class UserService {
         user.setBirthDate(form.getBirthDate());
         user.setPasswordHash(passwordEncoder.encode(form.getPassword()));
         user.setRole(Role.USER);
+        // Not confirmed yet: EmailVerificationService mails the link, and login waits for it.
+        user.setEmailVerifiedAt(null);
         return userRepository.save(user);
     }
 
@@ -60,6 +65,8 @@ public class UserService {
         user.setFullName(fullName);
         user.setPasswordHash(passwordEncoder.encode(rawPassword));
         user.setRole(role);
+        // Accounts made by the cinema (staff, demo data) or vouched for by Google need no confirmation mail.
+        user.setEmailVerifiedAt(LocalDateTime.now(clock));
         return userRepository.save(user);
     }
 
