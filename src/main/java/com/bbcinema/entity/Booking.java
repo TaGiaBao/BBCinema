@@ -113,12 +113,16 @@ public class Booking {
     @Column(name = "checked_in_at")
     private LocalDateTime checkedInAt;
 
-    /** How many times staff printed a paper ticket for this booking at the cinema. */
+    /**
+     * How many times staff printed a paper ticket for this booking at the cinema. Written only by
+     * {@code BookingRepository.incrementPrintCount} (updatable = false), so saving a booking loaded before a print
+     * (check-in, refund...) never writes an old count back.
+     */
     @org.hibernate.annotations.ColumnDefault("0")
-    @Column(name = "print_count", nullable = false)
+    @Column(name = "print_count", nullable = false, updatable = false)
     private int printCount = 0;
 
-    @Column(name = "last_printed_at")
+    @Column(name = "last_printed_at", updatable = false)
     private LocalDateTime lastPrintedAt;
 
     @OneToMany(mappedBy = "booking")

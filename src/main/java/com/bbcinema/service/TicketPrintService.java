@@ -1,6 +1,7 @@
 package com.bbcinema.service;
 
 import com.bbcinema.entity.Booking;
+import com.bbcinema.entity.enums.BookingStatus;
 import com.bbcinema.exception.BusinessException;
 import com.bbcinema.exception.NotFoundException;
 import com.bbcinema.repository.BookingRepository;
@@ -20,21 +21,26 @@ public class TicketPrintService {
     private final BookingRepository bookingRepository;
     private final Clock clock;
 
+    /** The print log of a booking after a print. */
+    public record PrintLog(int printCount, LocalDateTime lastPrintedAt) {
+    }
+
     /**
      * Records one print of the paper ticket of a paid booking. Unpaid, cancelled (refunded) and expired
-     * bookings have no valid ticket, so they cannot be printed.
+     * bookings have no valid ticket, so they cannot be printed. The count goes up in one atomic UPDATE that does
+     * not touch the booking's version, so it never makes a concurrent check-in or refund fail.
      */
     @Transactional
-    public Booking recordPrint(String code) {
+    public PrintLog recordPrint(String code) {
         String normalized = code == null ? "" : code.trim().toUpperCase(Locale.ROOT);
-        Booking booking = bookingRepository.findForUpdateByCode(normalized)
-                .orElseThrow(() -> new NotFoundException("Không tìm thấy đơn đặt vé " + normalized));
-        if (!booking.isPaid()) {
+        int updated = bookingRepository.incrementPrintCount(normalized, BookingStatus.PAID, LocalDateTime.now(clock));
+        if (updated == 0) {
+            Booking booking = bookingRepository.findDetailedByCode(normalized)
+                    .orElseThrow(() -> new NotFoundException("Không tìm thấy đơn đặt vé " + normalized));
             throw new BusinessException("Đơn " + booking.getCode() + " " + booking.getStatus().getLabel().toLowerCase(Locale.ROOT)
                     + ", không thể in vé");
         }
-        booking.setPrintCount(booking.getPrintCount() + 1);
-        booking.setLastPrintedAt(LocalDateTime.now(clock));
-        return booking;
+        BookingRepository.PrintLog log = bookingRepository.findPrintLogByCode(normalized).orElseThrow();
+        return new PrintLog(log.getPrintCount(), log.getLastPrintedAt());
     }
 }

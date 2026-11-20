@@ -7,9 +7,18 @@ import com.bbcinema.entity.enums.AgeRating;
 import com.bbcinema.entity.enums.BookingStatus;
 import com.bbcinema.entity.enums.Role;
 import jakarta.servlet.http.Cookie;
+import com.bbcinema.service.TicketPrintService;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.LocalDateTime;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
@@ -21,6 +30,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 /** Printing paper tickets of online bookings from the check-in page, the print log and the age reminder. */
 class TicketPrintIntegrationTest extends IntegrationTestBase {
+
+    @Autowired TicketPrintService ticketPrintService;
+    @Autowired PlatformTransactionManager transactionManager;
 
     private static final String AGE_WARNING_T16 = "Phim T16: kiểm tra căn cước nếu khách trông chưa đủ 16 tuổi.";
 
@@ -45,7 +57,9 @@ class TicketPrintIntegrationTest extends IntegrationTestBase {
 
         mvc.perform(get("/staff/checkin").param("code", booking.getCode()).cookie(staff))
                 .andExpect(status().isOk())
-                .andExpect(content().string(containsString("href=\"/staff/tickets/" + booking.getCode() + "\"")))
+                .andExpect(content().string(containsString("href=\"/staff/tickets/" + booking.getCode() + "?from=checkin\"")))
+                // Same tab: coming back to check-in reloads the print status.
+                .andExpect(content().string(not(containsString("target=\"_blank\""))))
                 .andExpect(content().string(containsString("data-role=\"print-link\"")))
                 .andExpect(content().string(containsString("Chưa in vé giấy")))
                 .andExpect(content().string(containsString("class=\"age-badge T16\"")))
@@ -97,6 +111,8 @@ class TicketPrintIntegrationTest extends IntegrationTestBase {
                 .andExpect(content().string(containsString("data-print-url=\"/staff/tickets/" + booking.getCode() + "/printed\"")))
                 .andExpect(content().string(containsString("/js/ticket-print.js")))
                 .andExpect(content().string(containsString("Thanh toán online lúc")))
+                .andExpect(content().string(not(containsString(" · Online"))))
+                .andExpect(content().string(containsString("data-role=\"print-warning\"")))
                 .andExpect(content().string(not(containsString("Khách đưa"))))
                 .andExpect(content().string(not(containsString("onclick=\"window.print()\""))));
         assertThat(printCountOf(booking)).isZero(); // opening the page is not a print
@@ -160,5 +176,96 @@ class TicketPrintIntegrationTest extends IntegrationTestBase {
         mvc.perform(post(url).with(csrf()).cookie(authCookie(account(Role.MANAGER))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.printCount").value(1));
+    }
+
+    @Test
+    void kidsRatingShowsCompanionReminderOnly() throws Exception {
+        Cookie staff = authCookie(staffOnShift());
+        Booking k = paidOnline(showtimeTomorrow(AgeRating.K));
+        mvc.perform(get("/staff/checkin").param("code", k.getCode()).cookie(staff))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Phim K: trẻ dưới 13 tuổi cần người lớn đi kèm.")))
+                .andExpect(content().string(not(containsString("kiểm tra căn cước"))))
+                .andExpect(content().string(containsString("Xác nhận vào phòng")));
+
+        Booking p = paidOnline(showtimeTomorrow(AgeRating.P));
+        mvc.perform(get("/staff/checkin").param("code", p.getCode()).cookie(staff))
+                .andExpect(content().string(not(containsString("Phim K:"))));
+    }
+
+    @Test
+    void backToCheckInLinkOnlyWhenComingFromCheckIn() throws Exception {
+        Booking booking = paidOnline(showtimeTomorrow(AgeRating.P));
+        Cookie staff = authCookie(staffOnShift());
+        String back = "href=\"/staff/checkin?code=" + booking.getCode() + "\"";
+
+        mvc.perform(get("/staff/tickets/" + booking.getCode()).param("from", "checkin").cookie(staff))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Quay lại soát vé")))
+                .andExpect(content().string(containsString(back)));
+        mvc.perform(get("/staff/tickets/" + booking.getCode()).cookie(staff))
+                .andExpect(content().string(not(containsString("Quay lại soát vé"))));
+        // Anything else is not a destination, just "no flag".
+        mvc.perform(get("/staff/tickets/" + booking.getCode()).param("from", "https://evil.example.com").cookie(staff))
+                .andExpect(status().isOk())
+                .andExpect(content().string(not(containsString("Quay lại soát vé"))))
+                .andExpect(content().string(not(containsString("evil.example.com"))));
+    }
+
+    @Test
+    void staffWithoutOpenShiftIsSentToOpenShiftAndNothingIsCounted() throws Exception {
+        Booking booking = paidOnline(showtimeTomorrow(AgeRating.P));
+
+        mvc.perform(post("/staff/tickets/" + booking.getCode() + "/printed").with(csrf()).cookie(authCookie(account(Role.STAFF))))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrlPattern("/staff/shift/open*"));
+        assertThat(printCountOf(booking)).isZero();
+    }
+
+    @Test
+    void printDoesNotBumpVersionSoAConcurrentCheckInStillSucceeds() throws Exception {
+        Booking booking = paidOnline(showtime(AgeRating.P, LocalDateTime.now().plusMinutes(30).withSecond(0).withNano(0)));
+        Long versionBefore = bookingRepository.findDetailedByCode(booking.getCode()).orElseThrow().getVersion();
+
+        ticketPrintService.recordPrint(booking.getCode());
+        assertThat(bookingRepository.findDetailedByCode(booking.getCode()).orElseThrow().getVersion()).isEqualTo(versionBefore);
+
+        // Check-in loads the booking, a print commits in another transaction, then check-in commits.
+        ExecutorService other = Executors.newSingleThreadExecutor();
+        try {
+            new TransactionTemplate(transactionManager).executeWithoutResult(tx -> {
+                Booking checked = bookingService.checkIn(booking.getCode());
+                assertThat(checked.getCheckedInAt()).isNotNull();
+                try {
+                    other.submit(() -> ticketPrintService.recordPrint(booking.getCode())).get(10, TimeUnit.SECONDS);
+                } catch (Exception e) {
+                    throw new IllegalStateException(e);
+                }
+            });
+        } finally {
+            other.shutdownNow();
+        }
+
+        Booking stored = bookingRepository.findDetailedByCode(booking.getCode()).orElseThrow();
+        assertThat(stored.getCheckedInAt()).isNotNull();
+        // The check-in did not write its stale count back over the print made meanwhile.
+        assertThat(stored.getPrintCount()).isEqualTo(2);
+    }
+
+    @Test
+    void twoPrintsAtTheSameMomentAreBothCounted() throws Exception {
+        Booking booking = paidOnline(showtimeTomorrow(AgeRating.P));
+        ExecutorService pool = Executors.newFixedThreadPool(2);
+        CountDownLatch start = new CountDownLatch(1);
+        try {
+            Future<TicketPrintService.PrintLog> a = pool.submit(() -> { start.await(); return ticketPrintService.recordPrint(booking.getCode()); });
+            Future<TicketPrintService.PrintLog> b = pool.submit(() -> { start.await(); return ticketPrintService.recordPrint(booking.getCode()); });
+            start.countDown();
+            assertThat(java.util.List.of(a.get(10, TimeUnit.SECONDS).printCount(), b.get(10, TimeUnit.SECONDS).printCount()))
+                    .containsExactlyInAnyOrder(1, 2);
+        } finally {
+            pool.shutdownNow();
+        }
+        assertThat(printCountOf(booking)).isEqualTo(2);
     }
 }

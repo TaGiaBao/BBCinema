@@ -2,11 +2,10 @@ package com.bbcinema.repository;
 
 import com.bbcinema.entity.Booking;
 import com.bbcinema.entity.enums.BookingStatus;
-import jakarta.persistence.LockModeType;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Lock;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 
 import java.math.BigDecimal;
@@ -26,10 +25,27 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
 
     boolean existsByCode(String code);
 
-    /** Loads a booking with a row lock, so two print clicks at the same moment are both counted. */
-    @Lock(LockModeType.PESSIMISTIC_WRITE)
-    @Query("select b from Booking b where b.code = :code")
-    Optional<Booking> findForUpdateByCode(String code);
+    /**
+     * Counts one print of a paid booking in a single atomic UPDATE: concurrent prints are all counted, and the
+     * booking's @Version is left alone, so a check-in or refund running at the same time does not fail.
+     * Returns the number of rows changed (0 when the code is unknown or the booking is not paid).
+     */
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
+    @Query("""
+            update Booking b set b.printCount = b.printCount + 1, b.lastPrintedAt = :now
+            where b.code = :code and b.status = :status
+            """)
+    int incrementPrintCount(String code, BookingStatus status, LocalDateTime now);
+
+    /** The print log read straight from the database (not from the persistence context). */
+    @Query("select b.printCount as printCount, b.lastPrintedAt as lastPrintedAt from Booking b where b.code = :code")
+    Optional<PrintLog> findPrintLogByCode(String code);
+
+    interface PrintLog {
+        int getPrintCount();
+
+        LocalDateTime getLastPrintedAt();
+    }
 
     @Query(value = """
             select b from Booking b

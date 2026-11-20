@@ -151,6 +151,8 @@ public class ShiftController {
                     + money(booking.getTotalAmount()) + ".");
         } catch (BusinessException e) {
             redirect.addFlashAttribute("error", e.getMessage());
+        } catch (org.springframework.orm.ObjectOptimisticLockingFailureException e) {
+            redirect.addFlashAttribute("error", StaffController.CONCURRENT_UPDATE);
         }
         return "redirect:/staff/checkin?code=" + code;
     }

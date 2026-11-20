@@ -13,6 +13,7 @@ import com.bbcinema.service.ShowtimeService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -38,6 +39,9 @@ public class StaffController {
     private final com.bbcinema.service.ShiftService shiftService;
     private final com.bbcinema.service.TicketPrintService ticketPrintService;
     private final Clock clock;
+
+    /** Shown when another action (refund, payment...) changed the booking between loading and saving it. */
+    static final String CONCURRENT_UPDATE = "Vé vừa được cập nhật bởi thao tác khác, vui lòng thử lại.";
 
     private static final java.time.format.DateTimeFormatter PRINT_TIME =
             java.time.format.DateTimeFormatter.ofPattern("HH:mm dd/MM/yyyy");
@@ -168,14 +172,18 @@ public class StaffController {
             redirect.addFlashAttribute("success", "Đã huỷ đơn " + code + ", ghế được mở bán lại");
         } catch (BusinessException e) {
             redirect.addFlashAttribute("error", e.getMessage());
+        } catch (ObjectOptimisticLockingFailureException e) {
+            redirect.addFlashAttribute("error", CONCURRENT_UPDATE);
         }
         return "redirect:/staff/sell/" + booking.getShowtime().getId();
     }
 
     @GetMapping("/tickets/{code}")
-    public String ticket(@PathVariable String code, Model model) {
+    public String ticket(@PathVariable String code, @RequestParam(required = false) String from, Model model) {
         Booking booking = bookingService.getByCode(code);
         model.addAttribute("booking", booking);
+        // Only a flag: the way back is always built from the booking code, never from the request.
+        model.addAttribute("fromCheckin", "checkin".equals(from));
         model.addAttribute("payment", bookingService.paymentOf(booking));
         return "staff/ticket";
     }
@@ -185,10 +193,10 @@ public class StaffController {
     @ResponseBody
     public org.springframework.http.ResponseEntity<Map<String, Object>> ticketPrinted(@PathVariable String code) {
         try {
-            Booking booking = ticketPrintService.recordPrint(code);
+            com.bbcinema.service.TicketPrintService.PrintLog log = ticketPrintService.recordPrint(code);
             return org.springframework.http.ResponseEntity.ok(Map.of(
-                    "printCount", booking.getPrintCount(),
-                    "lastPrintedAt", PRINT_TIME.format(booking.getLastPrintedAt())));
+                    "printCount", log.printCount(),
+                    "lastPrintedAt", PRINT_TIME.format(log.lastPrintedAt())));
         } catch (NotFoundException e) {
             return org.springframework.http.ResponseEntity.status(org.springframework.http.HttpStatus.NOT_FOUND)
                     .body(Map.of("message", e.getMessage()));
@@ -221,6 +229,8 @@ public class StaffController {
                     + booking.getShowtime().getRoom().getName() + " - ghế " + booking.getSeatLabels());
         } catch (BusinessException | NotFoundException e) {
             redirect.addFlashAttribute("error", e.getMessage());
+        } catch (ObjectOptimisticLockingFailureException e) {
+            redirect.addFlashAttribute("error", CONCURRENT_UPDATE);
         }
         return "redirect:/staff/checkin?code=" + normalized;
     }

@@ -19,7 +19,8 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.Mockito.when;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class TicketPrintServiceTest {
@@ -27,57 +28,50 @@ class TicketPrintServiceTest {
     @Mock BookingRepository bookingRepository;
 
     TicketPrintService service;
-    Booking booking;
 
     @BeforeEach
     void setUp() {
         service = new TicketPrintService(bookingRepository, TestFixtures.clock());
-        booking = new Booking();
-        booking.setCode("K7M2QX9P");
-        booking.setStatus(BookingStatus.PAID);
+    }
+
+    private static BookingRepository.PrintLog log(int count, LocalDateTime at) {
+        return new BookingRepository.PrintLog() {
+            public int getPrintCount() { return count; }
+            public LocalDateTime getLastPrintedAt() { return at; }
+        };
     }
 
     @Test
-    void eachPrintIsCountedWithItsTime() {
-        when(bookingRepository.findForUpdateByCode("K7M2QX9P")).thenReturn(Optional.of(booking));
+    void printIsCountedAtomicallyForPaidBookingsAndReadBack() {
+        when(bookingRepository.incrementPrintCount("K7M2QX9P", BookingStatus.PAID, TestFixtures.NOW)).thenReturn(1);
+        when(bookingRepository.findPrintLogByCode("K7M2QX9P")).thenReturn(Optional.of(log(4, TestFixtures.NOW)));
 
-        service.recordPrint("K7M2QX9P");
-        assertThat(booking.getPrintCount()).isEqualTo(1);
-        assertThat(booking.getLastPrintedAt()).isEqualTo(TestFixtures.NOW);
+        TicketPrintService.PrintLog result = service.recordPrint(" k7m2qx9p ");
 
-        Booking again = service.recordPrint(" k7m2qx9p ");
-        assertThat(again.getPrintCount()).isEqualTo(2);
-        assertThat(again.getLastPrintedAt()).isEqualTo(TestFixtures.NOW);
-    }
-
-    @Test
-    void lastPrintTimeMovesForward() {
-        booking.setPrintCount(3);
-        booking.setLastPrintedAt(LocalDateTime.of(2026, 11, 1, 8, 0));
-        when(bookingRepository.findForUpdateByCode("K7M2QX9P")).thenReturn(Optional.of(booking));
-
-        service.recordPrint("K7M2QX9P");
-
-        assertThat(booking.getPrintCount()).isEqualTo(4);
-        assertThat(booking.getLastPrintedAt()).isEqualTo(TestFixtures.NOW);
+        assertThat(result.printCount()).isEqualTo(4);
+        assertThat(result.lastPrintedAt()).isEqualTo(TestFixtures.NOW);
+        verify(bookingRepository, never()).findDetailedByCode(any());
     }
 
     @ParameterizedTest
     @EnumSource(value = BookingStatus.class, names = {"PENDING", "CANCELLED", "EXPIRED"})
     void onlyPaidBookingsCanBePrinted(BookingStatus status) {
+        Booking booking = new Booking();
+        booking.setCode("K7M2QX9P");
         booking.setStatus(status);
-        when(bookingRepository.findForUpdateByCode("K7M2QX9P")).thenReturn(Optional.of(booking));
+        when(bookingRepository.incrementPrintCount("K7M2QX9P", BookingStatus.PAID, TestFixtures.NOW)).thenReturn(0);
+        when(bookingRepository.findDetailedByCode("K7M2QX9P")).thenReturn(Optional.of(booking));
 
         assertThatThrownBy(() -> service.recordPrint("K7M2QX9P"))
                 .isInstanceOf(BusinessException.class)
                 .hasMessageContaining("không thể in vé");
-        assertThat(booking.getPrintCount()).isZero();
-        assertThat(booking.getLastPrintedAt()).isNull();
+        verify(bookingRepository, never()).findPrintLogByCode(any());
     }
 
     @Test
     void unknownCodeIsNotFound() {
-        when(bookingRepository.findForUpdateByCode("NOPE1234")).thenReturn(Optional.empty());
+        when(bookingRepository.incrementPrintCount("NOPE1234", BookingStatus.PAID, TestFixtures.NOW)).thenReturn(0);
+        when(bookingRepository.findDetailedByCode("NOPE1234")).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> service.recordPrint("NOPE1234")).isInstanceOf(NotFoundException.class);
     }
