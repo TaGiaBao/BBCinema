@@ -25,7 +25,7 @@ class StaffConcurrentUpdateTest {
                 .thenThrow(new ObjectOptimisticLockingFailureException(Booking.class, 1L));
         StaffController controller = new StaffController(mock(ShowtimeService.class), bookingService,
                 mock(ComboService.class), mock(BankTransferService.class), mock(ShiftService.class),
-                mock(TicketPrintService.class), TestFixtures.clock());
+                mock(TicketPrintService.class), mock(com.bbcinema.service.MemberCodeService.class), TestFixtures.clock());
         RedirectAttributesModelMap redirect = new RedirectAttributesModelMap();
 
         String view = controller.checkIn(" k7m2qx9p ", redirect);

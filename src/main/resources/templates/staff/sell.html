@@ -23,6 +23,36 @@
                                th:id="'combo_' + ${c.id}" th:name="'combo_' + ${c.id}" th:data-price="${c.price}">
                     </div>
                 </div>
+                <!-- A member shows their member code (QR or text) or gives their phone number: the sale is then
+                     attached to their account for the tier discount and points. The server re-checks the account. -->
+                <div class="panel" id="memberPanel" th:attr="data-lookup-url=@{/staff/members/lookup},data-min-age=${showtime.movie.ageRating.minAge}">
+                    <h2 class="h6"><i class="bi bi-person-badge"></i> Khách thành viên</h2>
+                    <input type="hidden" name="memberId" value="" data-role="member-id">
+                    <div data-role="member-search">
+                        <div class="input-group input-group-sm">
+                            <input class="form-control font-monospace" data-role="member-query" autocomplete="off" maxlength="20"
+                                   placeholder="Mã thành viên hoặc số điện thoại" aria-label="Mã thành viên hoặc số điện thoại">
+                            <button class="btn btn-navy" type="button" data-role="member-find">Tìm</button>
+                            <button class="btn btn-outline-navy" type="button" data-role="member-scan" title="Quét mã QR thành viên"
+                                    aria-label="Quét mã QR thành viên"><i class="bi bi-qr-code-scan"></i></button>
+                        </div>
+                        <div class="scanner-view mt-2 d-none" id="memberScannerView" data-role="member-view"></div>
+                        <button class="btn btn-sm btn-outline-secondary mt-2 d-none" type="button" data-role="member-scan-stop">
+                            <i class="bi bi-stop-circle"></i> Tắt camera</button>
+                    </div>
+                    <div class="d-none" data-role="member-card">
+                        <div class="d-flex justify-content-between align-items-start gap-2">
+                            <div>
+                                <div class="fw-semibold" data-role="member-name"></div>
+                                <div class="small font-monospace" data-role="member-code"></div>
+                                <div class="small text-muted" data-role="member-info"></div>
+                            </div>
+                            <button class="btn btn-sm btn-outline-danger" type="button" data-role="member-clear">Bỏ chọn</button>
+                        </div>
+                        <div class="alert alert-warning small mt-2 mb-0 d-none" data-role="member-age-warning"></div>
+                    </div>
+                    <div class="small mt-2" data-role="member-status" role="status" aria-live="polite"></div>
+                </div>
                 <div class="panel">
                     <h2 class="h6">Khách hàng (không bắt buộc)</h2>
                     <input class="form-control form-control-sm mb-2" th:field="*{customerName}" placeholder="Họ tên" aria-label="Họ tên">
@@ -33,6 +63,9 @@
                     <div class="summary-row"><span>Ghế</span><strong id="selectedSeats">Chưa chọn ghế</strong></div>
                     <div class="summary-row"><span>Tiền vé</span><strong class="tabular" id="seatTotal">0đ</strong></div>
                     <div class="summary-row"><span>Bắp nước</span><strong class="tabular" id="comboTotal">0đ</strong></div>
+                    <div class="summary-row text-success d-none" data-role="member-discount-row">
+                        <span>Giảm hạng thành viên (<span data-role="member-discount-percent">0</span>%)</span>
+                        <strong class="tabular" id="memberDiscount">0đ</strong></div>
                     <div class="summary-row fs-5"><span>Tổng phải trả</span><strong class="tabular text-danger" id="grandTotal">0đ</strong></div>
                     <div class="alert alert-warning small mt-2 mb-0" th:if="${showtime.movie.ageRating.minAge > 0}">
                         Kiểm tra giấy tờ: phim <strong th:text="${showtime.movie.ageRating.name()}">T16</strong>.</div>
@@ -79,6 +112,8 @@
     </form>
 </section>
 <th:block th:fragment="scripts"><script src="/js/seat-map.js"></script>
+<script src="/webjars/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
+<script src="/js/member-lookup.js"></script>
 <script src="/js/counter-payment.js"></script></th:block>
 </body>
 </html>

@@ -25,6 +25,22 @@
                         </div>
                     </div>
                 </div>
+                <div class="panel member-code-card" th:if="${memberCode != null}" data-role="member-code">
+                    <div class="d-flex flex-wrap align-items-center gap-4">
+                        <img th:src="@{/member/qr.png}" th:alt="#{member.code.qrAlt}" width="160" height="160"
+                             class="border rounded bg-white p-1">
+                        <div>
+                            <h2 class="h5 mb-1">[[#{member.code.title}]]</h2>
+                            <div class="code fs-4 font-monospace" th:text="${memberCode}">BBXXXXXXXX</div>
+                            <div class="small mt-1">
+                                <span th:text="#{member.code.tier(${membership.tier.label})}">Hạng Vàng</span> ·
+                                <span th:if="${membership.discountPercent > 0}" th:text="#{member.tierDiscount(${membership.discountPercent})}">Giảm 10%</span>
+                                <span th:unless="${membership.discountPercent > 0}" th:text="#{member.code.noDiscount}">Chưa có giảm giá</span>
+                            </div>
+                            <p class="small text-muted mb-0 mt-2" th:text="#{member.code.hint}">Đưa mã này cho nhân viên quầy...</p>
+                        </div>
+                    </div>
+                </div>
                 <div class="panel">
                     <h2 class="h5 mb-3">[[#{ui.thong_tin_tai_khoan}]]</h2>
                     <form th:action="@{/member/profile}" th:object="${profileForm}" method="post" class="row g-3">

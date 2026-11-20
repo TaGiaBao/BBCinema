@@ -21,6 +21,15 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     long countByRole(Role role);
 
+    boolean existsByMemberCode(String memberCode);
+
+    Optional<User> findByMemberCode(String memberCode);
+
+    java.util.List<User> findByPhoneAndRole(String phone, Role role);
+
+    /** Members created before member codes existed (or by a role change) that still need one. */
+    java.util.List<User> findByRoleAndMemberCodeIsNull(Role role);
+
     @Query("""
             select u from User u
             where (:keyword is null or lower(u.email) like lower(concat('%', :keyword, '%'))

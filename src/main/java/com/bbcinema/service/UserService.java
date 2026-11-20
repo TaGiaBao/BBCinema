@@ -28,6 +28,7 @@ public class UserService {
     private final UserRepository userRepository;
     private final com.bbcinema.repository.CinemaRepository cinemaRepository;
     private final PasswordEncoder passwordEncoder;
+    private final MemberCodeService memberCodeService;
     private final Clock clock;
 
     public User getById(Long id) {
@@ -56,6 +57,7 @@ public class UserService {
         user.setRole(Role.USER);
         // Not confirmed yet: EmailVerificationService mails the link, and login waits for it.
         user.setEmailVerifiedAt(null);
+        memberCodeService.assignIfMissing(user);
         return userRepository.save(user);
     }
 
@@ -68,6 +70,7 @@ public class UserService {
         user.setRole(role);
         // Accounts made by the cinema (staff, demo data) or vouched for by Google need no confirmation mail.
         user.setEmailVerifiedAt(LocalDateTime.now(clock));
+        memberCodeService.assignIfMissing(user); // members only; internal accounts get no code
         return userRepository.save(user);
     }
 
@@ -154,6 +157,7 @@ public class UserService {
         user.setCinema(cinemaFor(role, cinemaId));
         user.setRole(role);
         user.setEnabled(enabled);
+        memberCodeService.assignIfMissing(user); // an account turned into a member gets its code now
     }
 
     public long countMembers() {

@@ -48,6 +48,13 @@ public class User {
     @Column(nullable = false)
     private boolean enabled = true;
 
+    /**
+     * Random code (BB + 8 characters) a member shows at the counter, as text or QR, to get member prices and
+     * points. Only members have one; it is never derived from the id so it cannot be guessed from other codes.
+     */
+    @Column(name = "member_code", unique = true, length = 12)
+    private String memberCode;
+
     /** Current reward point balance. 1 point is worth 1,000 VND when redeemed. */
     @Column(nullable = false)
     private int points = 0;

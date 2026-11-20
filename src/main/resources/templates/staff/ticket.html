@@ -17,6 +17,13 @@
             <div class="mt-2">Ghế: <strong class="fs-5" th:text="${booking.seatLabels}">A1</strong></div>
             <div class="small" th:each="c : ${booking.combos}" th:text="${c.quantity} + ' × ' + ${c.combo.name}">Combo</div>
             <hr>
+            <th:block th:if="${booking.user != null}">
+                <div class="summary-row small" data-role="ticket-member"><span>Thành viên</span>
+                    <span th:text="${booking.user.fullName} + (${booking.user.memberCode != null} ? ' · ' + ${booking.user.memberCode} : '')">Tên · BB...</span></div>
+                <div class="summary-row small" th:if="${booking.tierDiscount.signum() > 0}" data-role="ticket-tier-discount">
+                    <span th:text="'Giảm hạng ' + ${booking.memberTier != null ? booking.memberTier.label : ''}">Giảm hạng Bạc</span>
+                    <span class="tabular" th:text="'-' + ${@fmt.money(booking.tierDiscount)}">-0đ</span></div>
+            </th:block>
             <div class="summary-row"><span>Tổng tiền</span><strong th:text="${@fmt.money(booking.totalAmount)}">0đ</strong></div>
             <th:block th:if="${payment != null}">
                 <div class="summary-row small"><span>Thanh toán</span><span th:text="${payment.method.label}">Tiền mặt</span></div>

@@ -36,6 +36,12 @@ public class CounterSaleForm {
     @Digits(integer = 12, fraction = 0, message = "Số tiền không hợp lệ")
     private BigDecimal amountReceived;
 
+    /**
+     * The member staff looked up (member code or phone), or null for a walk-in customer. Only an id: the server
+     * checks the account again and works out the discount itself.
+     */
+    private Long memberId;
+
     /** Printed on the POS terminal's slip when the customer pays by card. */
     @Size(max = 12)
     private String cardApprovalCode;

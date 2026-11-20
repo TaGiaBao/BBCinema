@@ -52,6 +52,7 @@ public class BookingService {
     private final PromotionService promotionService;
     private final PointService pointService;
     private final MembershipService membershipService;
+    private final MemberCodeService memberCodeService;
     private final ApplicationEventPublisher eventPublisher;
     private final AppProperties properties;
     private final Clock clock;
@@ -552,6 +553,10 @@ public class BookingService {
      * A staff member sells tickets at the counter. Cash and card (POS terminal, with its approval code) are paid
      * at once. A bank transfer leaves the booking pending until the money arrives; e-wallets need their merchant
      * account and are refused until one is set up.
+     * <p>
+     * When staff attached a member (by member code or phone), the booking belongs to that member: the tier
+     * discount comes from the same {@link #recalculate} as online orders and the member earns points when it is
+     * paid. Promotion codes and point redemption stay online-only.
      */
     @Transactional
     public Booking sellAtCounter(Long staffId, Long showtimeId, CounterSaleForm form) {
@@ -582,7 +587,13 @@ public class BookingService {
         if (!showtime.getEndTime().isAfter(now)) {
             throw new BusinessException("Suất chiếu đã kết thúc");
         }
+        // The member id comes from the browser: re-check that it is an enabled member account, never staff.
+        User member = form.getMemberId() == null ? null : memberCodeService.memberForSale(form.getMemberId());
         Booking booking = newBooking(showtime, SalesChannel.COUNTER, now);
+        if (member != null) {
+            memberCodeService.assignIfMissing(member);
+            booking.setUser(member);
+        }
         booking.setSoldBy(staff);
         booking.setShift(shift);
         booking.setCustomerName(form.getCustomerName());

@@ -38,6 +38,7 @@ public class StaffController {
     private final com.bbcinema.service.BankTransferService bankTransferService;
     private final com.bbcinema.service.ShiftService shiftService;
     private final com.bbcinema.service.TicketPrintService ticketPrintService;
+    private final com.bbcinema.service.MemberCodeService memberCodeService;
     private final Clock clock;
 
     /** Shown when another action (refund, payment...) changed the booking between loading and saving it. */
@@ -101,6 +102,23 @@ public class StaffController {
         } catch (BusinessException e) {
             redirect.addFlashAttribute("error", e.getMessage());
             return "redirect:/staff/sell/" + showtimeId;
+        }
+    }
+
+    /**
+     * "Khách thành viên" panel of the sell page: finds a member by member code (typed or scanned) or phone number.
+     * POST, so the phone number stays out of URLs and access logs; the reply holds only what staff need.
+     */
+    @PostMapping(value = "/members/lookup", produces = org.springframework.http.MediaType.APPLICATION_JSON_VALUE)
+    @ResponseBody
+    public org.springframework.http.ResponseEntity<?> lookupMember(@RequestParam(name = "q", required = false) String query) {
+        try {
+            return org.springframework.http.ResponseEntity.ok(memberCodeService.lookupForCounter(query));
+        } catch (NotFoundException e) {
+            return org.springframework.http.ResponseEntity.status(org.springframework.http.HttpStatus.NOT_FOUND)
+                    .body(Map.of("message", e.getMessage()));
+        } catch (BusinessException e) {
+            return org.springframework.http.ResponseEntity.unprocessableEntity().body(Map.of("message", e.getMessage()));
         }
     }
 
