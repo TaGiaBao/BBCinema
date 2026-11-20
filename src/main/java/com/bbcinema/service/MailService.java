@@ -39,6 +39,7 @@ public class MailService {
     private final TemplateEngine templateEngine;
     private final AppProperties properties;
     private final DemoMailbox demoMailbox;
+    private final com.bbcinema.repository.PaymentRepository paymentRepository;
 
     @Async
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
@@ -49,7 +50,7 @@ public class MailService {
             return;
         }
         String to = booking.getUser() != null ? booking.getUser().getEmail() : booking.getCustomerEmail();
-        if (to == null || to.isBlank() || isReservedAddress(to)) {
+        if (to == null || to.isBlank() || isReservedAddress(to) || isSampleBooking(booking)) {
             return;
         }
         JavaMailSender sender = mailSender.getIfAvailable();
@@ -114,6 +115,12 @@ public class MailService {
         } catch (Exception e) {
             log.error("Could not send password reset mail to {}: {}", event.email(), e.getMessage());
         }
+    }
+
+    /** Bookings made by the demo data at start-up: their tickets would otherwise be mailed out for real. */
+    private boolean isSampleBooking(Booking booking) {
+        return paymentRepository.findByBookingIdOrderByCreatedAtDesc(booking.getId()).stream()
+                .anyMatch(p -> com.bbcinema.config.DataSeeder.SEED_MARK.equals(p.getGatewayTransactionNo()));
     }
 
     /**

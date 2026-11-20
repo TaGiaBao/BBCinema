@@ -35,6 +35,10 @@ import java.util.*;
 @RequiredArgsConstructor
 public class DataSeeder implements ApplicationRunner {
 
+    /** Marks the payments of sample bookings; their tickets are never e-mailed. */
+    public static final String SEED_MARK = "SEED";
+
+
     private static final List<LocalTime> FIRST_SHOWS = List.of(LocalTime.of(8, 45), LocalTime.of(9, 15), LocalTime.of(9, 40), LocalTime.of(10, 5));
     private static final LocalTime LAST_START = LocalTime.of(22, 30);
 
@@ -441,7 +445,7 @@ public class DataSeeder implements ApplicationRunner {
                         return;
                     }
                     Booking booking = bookingService.holdSeats(member.getId(), showtimeId, free);
-                    bookingService.confirmPayment(booking, PaymentMethod.BANK_QR, BookingService.bankTransferRef(booking.getCode()), "SEED");
+                    bookingService.confirmPayment(booking, PaymentMethod.BANK_QR, BookingService.bankTransferRef(booking.getCode()), SEED_MARK);
                     LocalDateTime paidAt = LocalDateTime.now(clock).minusDays(daysAgo).withHour(9 + random.nextInt(12));
                     booking.setCreatedAt(paidAt.minusMinutes(3));
                     booking.setPaidAt(paidAt);

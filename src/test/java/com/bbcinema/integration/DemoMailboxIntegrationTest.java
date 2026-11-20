@@ -67,4 +67,15 @@ class DemoMailboxIntegrationTest extends IntegrationTestBase {
                 .doesNotContain("cid:", "<img");
         assertThat(mail.html().length()).as("Gmail cuts mails over ~100 KB").isLessThan(60_000);
     }
+
+    @Test
+    void sampleBookingsMadeAtStartUpAreNotMailed() throws Exception {
+        User user = member(40);
+        Showtime st = showtimeTomorrow();
+        Booking booking = bookingService.holdSeats(user.getId(), st.getId(), freeSeats(st.getId(), 1));
+        bookingService.confirmPayment(booking, com.bbcinema.entity.enums.PaymentMethod.BANK_QR,
+                com.bbcinema.service.BookingService.bankTransferRef(booking.getCode()), com.bbcinema.config.DataSeeder.SEED_MARK);
+        Thread.sleep(1500); // the mail listener runs in the background
+        assertThat(mailbox.all()).noneMatch(m -> m.subject().contains(booking.getCode()));
+    }
 }
