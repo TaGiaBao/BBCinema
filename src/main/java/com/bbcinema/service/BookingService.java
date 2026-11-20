@@ -53,6 +53,12 @@ public class BookingService {
     private final PointService pointService;
     private final MembershipService membershipService;
     private final MemberCodeService memberCodeService;
+
+    /** Refusal for a member trying to change a ticket bought at the counter. */
+    public static final String COUNTER_ONLY = "Vé mua tại quầy chỉ được thay đổi hoặc huỷ tại quầy.";
+
+    /** Refusal for a counter sale with a member attached whose name staff did not confirm. */
+    public static final String MEMBER_NOT_CONFIRMED = "Vui lòng xác nhận họ tên khách thành viên trước khi bán vé.";
     private final ApplicationEventPublisher eventPublisher;
     private final AppProperties properties;
     private final Clock clock;
@@ -71,6 +77,20 @@ public class BookingService {
         return booking;
     }
 
+    /**
+     * Loads a booking the viewer wants to change (combos, promotion, points, payment, cancel). Besides the owner
+     * check, a member cannot change a ticket bought at the counter: it was sold, paid and (if needed) refunded
+     * through a till shift, so the member may only view it online. Every owner action goes through here.
+     */
+    public Booking getForOwnerChange(String code, Long viewerId, Role viewerRole) {
+        Booking booking = getByCode(code);
+        checkOwner(booking, viewerId, viewerRole);
+        if (counterOnly(booking, viewerRole)) {
+            throw new BusinessException(COUNTER_ONLY);
+        }
+        return booking;
+    }
+
     public Page<Booking> history(Long userId, Pageable pageable) {
         return bookingRepository.findHistory(userId, pageable);
     }
@@ -84,8 +104,14 @@ public class BookingService {
         return paymentRepository.findByBookingIdOrderByCreatedAtDesc(bookingId);
     }
 
-    /** Whether a paid booking can still be cancelled by its owner. */
-    public boolean canCancel(Booking booking) {
+    /**
+     * Whether the viewer may cancel the booking from its ticket page. Members never may for a ticket bought at
+     * the counter: that goes back to the counter (see {@link #getForOwnerChange}).
+     */
+    public boolean canCancel(Booking booking, Role viewerRole) {
+        if (counterOnly(booking, viewerRole)) {
+            return false;
+        }
         if (booking.isPending()) {
             return true;
         }
@@ -270,8 +296,7 @@ public class BookingService {
     }
 
     private Booking getEditable(String code, Long userId) {
-        Booking booking = getByCode(code);
-        checkOwner(booking, userId, Role.USER);
+        Booking booking = getForOwnerChange(code, userId, Role.USER);
         ensurePayable(booking);
         return booking;
     }
@@ -335,8 +360,7 @@ public class BookingService {
     /** Demo payment: the member clicks "Pay" and the order is paid at once. */
     @Transactional
     public Booking payWithMock(String code, Long userId) {
-        Booking booking = getByCode(code);
-        checkOwner(booking, userId, Role.USER);
+        Booking booking = getForOwnerChange(code, userId, Role.USER);
         ensurePayable(booking);
         return confirmPayment(booking, PaymentMethod.MOCK, "MOCK-" + booking.getCode(), null);
     }
@@ -347,8 +371,7 @@ public class BookingService {
      */
     @Transactional
     public Booking startBankTransfer(String code, Long viewerId, Role viewerRole) {
-        Booking booking = getByCode(code);
-        checkOwner(booking, viewerId, viewerRole);
+        Booking booking = getForOwnerChange(code, viewerId, viewerRole);
         ensurePayable(booking);
         String ref = bankTransferRef(booking.getCode());
         Payment payment = paymentRepository.findByTransactionRef(ref).orElseGet(Payment::new);
@@ -461,8 +484,7 @@ public class BookingService {
 
     @Transactional
     public Booking cancel(String code, Long viewerId, Role viewerRole) {
-        Booking booking = getByCode(code);
-        checkOwner(booking, viewerId, viewerRole);
+        Booking booking = getForOwnerChange(code, viewerId, viewerRole);
         LocalDateTime now = LocalDateTime.now(clock);
         if (booking.isPending()) {
             releaseSeats(booking);
@@ -587,11 +609,17 @@ public class BookingService {
         if (!showtime.getEndTime().isAfter(now)) {
             throw new BusinessException("Suất chiếu đã kết thúc");
         }
-        // The member id comes from the browser: re-check that it is an enabled member account, never staff.
-        User member = form.getMemberId() == null ? null : memberCodeService.memberForSale(form.getMemberId());
+        // The member code comes from the browser: resolve it again (enabled, confirmed member, never staff), and
+        // only once staff confirmed who the customer is.
+        User member = null;
+        if (form.getMemberCode() != null && !form.getMemberCode().isBlank()) {
+            if (!form.isMemberConfirmed()) {
+                throw new BusinessException(MEMBER_NOT_CONFIRMED);
+            }
+            member = memberCodeService.memberForSale(form.getMemberCode());
+        }
         Booking booking = newBooking(showtime, SalesChannel.COUNTER, now);
         if (member != null) {
-            memberCodeService.assignIfMissing(member);
             booking.setUser(member);
         }
         booking.setSoldBy(staff);
@@ -679,6 +707,11 @@ public class BookingService {
     }
 
     // ------------------------------------------------------------------ helpers
+
+    /** A member looking at a ticket sold at the counter: view only. */
+    private static boolean counterOnly(Booking booking, Role viewerRole) {
+        return booking.getChannel() == SalesChannel.COUNTER && !viewerRole.isInternal();
+    }
 
     private static void checkOwner(Booking booking, Long viewerId, Role viewerRole) {
         if (viewerRole.isInternal()) {

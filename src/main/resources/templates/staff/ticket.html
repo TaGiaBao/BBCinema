@@ -19,7 +19,8 @@
             <hr>
             <th:block th:if="${booking.user != null}">
                 <div class="summary-row small" data-role="ticket-member"><span>Thành viên</span>
-                    <span th:text="${booking.user.fullName} + (${booking.user.memberCode != null} ? ' · ' + ${booking.user.memberCode} : '')">Tên · BB...</span></div>
+                    <!-- Printed paper: the member code is masked so a lost ticket cannot be used to claim the member's prices. -->
+                    <span th:text="${booking.user.fullName} + (${booking.user.memberCode != null} ? ' · ' + ${@memberCodeService.maskCode(booking.user.memberCode)} : '')">Tên · BB•••••XPA</span></div>
                 <div class="summary-row small" th:if="${booking.tierDiscount.signum() > 0}" data-role="ticket-tier-discount">
                     <span th:text="'Giảm hạng ' + ${booking.memberTier != null ? booking.memberTier.label : ''}">Giảm hạng Bạc</span>
                     <span class="tabular" th:text="'-' + ${@fmt.money(booking.tierDiscount)}">-0đ</span></div>

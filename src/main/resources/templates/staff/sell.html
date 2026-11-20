@@ -25,9 +25,13 @@
                 </div>
                 <!-- A member shows their member code (QR or text) or gives their phone number: the sale is then
                      attached to their account for the tier discount and points. The server re-checks the account. -->
-                <div class="panel" id="memberPanel" th:attr="data-lookup-url=@{/staff/members/lookup},data-min-age=${showtime.movie.ageRating.minAge}">
+                <div class="panel" id="memberPanel"
+                     th:attr="data-lookup-url=@{/staff/members/lookup},data-showtime-id=${showtime.id},data-min-age=${showtime.movie.ageRating.minAge},data-kept-code=${keptMemberCode},data-kept-confirmed=${keptMemberConfirmed},data-kept-matched-by=${keptMemberMatchedBy}">
                     <h2 class="h6"><i class="bi bi-person-badge"></i> Khách thành viên</h2>
-                    <input type="hidden" name="memberId" value="" data-role="member-id">
+                    <!-- Only the member code goes back to the server, which resolves it again. -->
+                    <input type="hidden" name="memberCode" value="" data-role="member-code-input">
+                    <input type="hidden" name="memberConfirmed" value="false" data-role="member-confirmed-input">
+                    <input type="hidden" name="memberMatchedBy" value="" data-role="member-matched-by-input">
                     <div data-role="member-search">
                         <div class="input-group input-group-sm">
                             <input class="form-control font-monospace" data-role="member-query" autocomplete="off" maxlength="20"
@@ -43,11 +47,16 @@
                     <div class="d-none" data-role="member-card">
                         <div class="d-flex justify-content-between align-items-start gap-2">
                             <div>
-                                <div class="fw-semibold" data-role="member-name"></div>
+                                <div class="fs-5 fw-bold" data-role="member-name"></div>
                                 <div class="small font-monospace" data-role="member-code"></div>
                                 <div class="small text-muted" data-role="member-info"></div>
                             </div>
                             <button class="btn btn-sm btn-outline-danger" type="button" data-role="member-clear">Bỏ chọn</button>
+                        </div>
+                        <!-- Phone numbers are not verified: staff ask the customer's full name before using the account. -->
+                        <div class="form-check mt-2 d-none" data-role="member-confirm-box">
+                            <input class="form-check-input" type="checkbox" id="memberConfirm" data-role="member-confirm">
+                            <label class="form-check-label small fw-semibold" for="memberConfirm">Khách đã xác nhận đúng họ tên</label>
                         </div>
                         <div class="alert alert-warning small mt-2 mb-0 d-none" data-role="member-age-warning"></div>
                     </div>

@@ -9,6 +9,7 @@ import com.bbcinema.entity.enums.PaymentMethod;
 import com.bbcinema.entity.enums.Role;
 import com.bbcinema.entity.enums.SalesChannel;
 import com.bbcinema.repository.PaymentRepository;
+import com.bbcinema.service.BookingService;
 import com.bbcinema.service.MemberCodeService;
 import com.bbcinema.service.MembershipService;
 import com.bbcinema.service.PointService;
@@ -60,6 +61,10 @@ class MemberCodeIntegrationTest extends IntegrationTestBase {
         member = reload(member);
         assertThat(membershipService.tierOf(member)).isEqualTo(MemberTier.SILVER);
         return member;
+    }
+
+    private static String masked(String code) {
+        return code.substring(0, 2) + "\u2022".repeat(5) + code.substring(7);
     }
 
     private String codeFromRedirect(String location) {
@@ -151,7 +156,8 @@ class MemberCodeIntegrationTest extends IntegrationTestBase {
         Cookie staff = authCookie(staffOnShift());
         mvc.perform(post("/staff/members/lookup").with(csrf()).cookie(staff).param("q", member.getMemberCode().toLowerCase()))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value(member.getId()))
+                .andExpect(jsonPath("$.id").doesNotExist())
+                .andExpect(jsonPath("$.matchedBy").value("CODE"))
                 .andExpect(jsonPath("$.fullName").value(member.getFullName()))
                 .andExpect(jsonPath("$.memberCode").value(member.getMemberCode()))
                 .andExpect(jsonPath("$.tier").value("SILVER"))
@@ -170,7 +176,9 @@ class MemberCodeIntegrationTest extends IntegrationTestBase {
         Cookie staff = authCookie(staffOnShift());
         mvc.perform(post("/staff/members/lookup").with(csrf()).cookie(staff).param("q", member.getPhone()))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value(member.getId()));
+                .andExpect(jsonPath("$.matchedBy").value("PHONE"))
+                .andExpect(jsonPath("$.fullName").value(member.getFullName()))
+                .andExpect(jsonPath("$.memberCode").value(member.getMemberCode()));
 
         User twin = member(22);
         twin.setPhone(member.getPhone());
@@ -228,13 +236,15 @@ class MemberCodeIntegrationTest extends IntegrationTestBase {
         mvc.perform(get("/staff/sell/" + st.getId()).cookie(staff))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("Khách thành viên")))
-                .andExpect(content().string(containsString("name=\"memberId\"")))
+                .andExpect(content().string(containsString("name=\"memberCode\"")))
+                .andExpect(content().string(containsString("Khách đã xác nhận đúng họ tên")))
+                .andExpect(content().string(not(containsString("name=\"memberId\""))))
                 .andExpect(content().string(containsString("/js/member-lookup.js")));
 
         String location = mvc.perform(post("/staff/sell/" + st.getId()).with(csrf()).cookie(staff)
                         .param("showtimeSeatIds", seats.get(0).toString(), seats.get(1).toString())
                         .param("paymentMethod", "CASH").param("amountReceived", "500000")
-                        .param("memberId", member.getId().toString()))
+                        .param("memberCode", member.getMemberCode()).param("memberConfirmed", "true"))
                 .andExpect(redirectedUrlPattern("/staff/tickets/*"))
                 .andReturn().getResponse().getRedirectedUrl();
         Booking sold = bookingRepository.findDetailedByCode(codeFromRedirect(location)).orElseThrow();
@@ -268,7 +278,8 @@ class MemberCodeIntegrationTest extends IntegrationTestBase {
         mvc.perform(get(location).cookie(staff))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("data-role=\"ticket-member\"")))
-                .andExpect(content().string(containsString(member.getFullName() + " · " + member.getMemberCode())))
+                .andExpect(content().string(containsString(member.getFullName() + " · " + masked(member.getMemberCode()))))
+                .andExpect(content().string(not(containsString(member.getMemberCode()))))
                 .andExpect(content().string(containsString("Giảm hạng Bạc")));
     }
 
@@ -287,12 +298,12 @@ class MemberCodeIntegrationTest extends IntegrationTestBase {
         mvc.perform(post("/staff/sell/" + st.getId()).with(csrf()).cookie(staff)
                         .param("showtimeSeatIds", seats.get(0).toString()).param("paymentMethod", "CARD")
                         .param("cardApprovalCode", "AB12CD").param("amountReceived", price.toBigInteger().toString())
-                        .param("memberId", member.getId().toString()))
+                        .param("memberCode", member.getMemberCode()).param("memberConfirmed", "true"))
                 .andExpect(flash().attribute("error", containsString("Hoá đơn POS thừa")));
         String card = mvc.perform(post("/staff/sell/" + st.getId()).with(csrf()).cookie(staff)
                         .param("showtimeSeatIds", seats.get(0).toString()).param("paymentMethod", "CARD")
                         .param("cardApprovalCode", "AB12CD").param("amountReceived", discounted.toBigInteger().toString())
-                        .param("memberId", member.getId().toString()))
+                        .param("memberCode", member.getMemberCode()).param("memberConfirmed", "true"))
                 .andExpect(redirectedUrlPattern("/staff/tickets/*"))
                 .andReturn().getResponse().getRedirectedUrl();
         Booking byCard = bookingRepository.findDetailedByCode(codeFromRedirect(card)).orElseThrow();
@@ -301,7 +312,7 @@ class MemberCodeIntegrationTest extends IntegrationTestBase {
 
         String transfer = mvc.perform(post("/staff/sell/" + st.getId()).with(csrf()).cookie(staff)
                         .param("showtimeSeatIds", seats.get(1).toString()).param("paymentMethod", "BANK_QR")
-                        .param("memberId", member.getId().toString()))
+                        .param("memberCode", member.getMemberCode()).param("memberConfirmed", "true"))
                 .andExpect(redirectedUrlPattern("/staff/bank-transfer/*"))
                 .andReturn().getResponse().getRedirectedUrl();
         String code = codeFromRedirect(transfer);
@@ -340,26 +351,231 @@ class MemberCodeIntegrationTest extends IntegrationTestBase {
     }
 
     @Test
-    void tamperedMemberIdIsRefusedAndNothingIsSold() throws Exception {
+    void tamperedMemberCodeIsRefusedAndNothingIsSold() throws Exception {
         Cookie staff = authCookie(staffOnShift());
         Showtime st = showtimeTomorrow();
         Long seat = freeSeats(st.getId(), 1).get(0);
         User locked = member(30);
         locked.setEnabled(false);
         userRepository.save(locked);
-        List<String> badIds = List.of(account(Role.STAFF).getId().toString(), account(Role.ADMIN).getId().toString(),
-                account(Role.MANAGER).getId().toString(), locked.getId().toString(), "999999999");
+        User unverified = member(30);
+        unverified.setEmailVerifiedAt(null);
+        userRepository.save(unverified);
+        // A former member moved to the staff keeps the old code in the database; it must not work any more.
+        User formerMember = member(30);
+        formerMember.setRole(Role.STAFF);
+        userRepository.save(formerMember);
+        List<String> badCodes = List.of(locked.getMemberCode(), unverified.getMemberCode(), formerMember.getMemberCode(),
+                "BBNNNNNNNN", member(30).getId().toString(), "x");
         long bookingsBefore = bookingRepository.count();
 
-        for (String id : badIds) {
+        for (String code : badCodes) {
             mvc.perform(post("/staff/sell/" + st.getId()).with(csrf()).cookie(staff)
                             .param("showtimeSeatIds", seat.toString())
                             .param("paymentMethod", "CASH").param("amountReceived", "500000")
-                            .param("memberId", id))
+                            .param("memberCode", code).param("memberConfirmed", "true"))
                     .andExpect(redirectedUrl("/staff/sell/" + st.getId()))
                     .andExpect(flash().attribute("error", containsString("Tài khoản thành viên không hợp lệ")));
         }
+        // The old id-based field is ignored: the sale goes through without a member.
+        String location = mvc.perform(post("/staff/sell/" + st.getId()).with(csrf()).cookie(staff)
+                        .param("showtimeSeatIds", seat.toString())
+                        .param("paymentMethod", "CASH").param("amountReceived", "500000")
+                        .param("memberId", member(30).getId().toString()))
+                .andExpect(redirectedUrlPattern("/staff/tickets/*"))
+                .andReturn().getResponse().getRedirectedUrl();
+        assertThat(bookingRepository.findDetailedByCode(codeFromRedirect(location)).orElseThrow().getUser()).isNull();
+        assertThat(bookingRepository.count()).isEqualTo(bookingsBefore + 1);
+    }
+
+    @Test
+    void unverifiedMembersAreNotFoundAtTheCounter() throws Exception {
+        User member = member(30);
+        member.setPhone(uniquePhone());
+        member.setEmailVerifiedAt(null);
+        userRepository.save(member);
+        Cookie staff = authCookie(staffOnShift());
+        mvc.perform(post("/staff/members/lookup").with(csrf()).cookie(staff).param("q", member.getMemberCode()))
+                .andExpect(status().isNotFound());
+        mvc.perform(post("/staff/members/lookup").with(csrf()).cookie(staff).param("q", member.getPhone()))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void lookupGivesTheAgeOnTheShowtimeDate() throws Exception {
+        User member = member(30);
+        Showtime st = showtimeTomorrow();
+        // Turns 16 tomorrow: 15 today, 16 on the day of the film.
+        member.setBirthDate(st.getStartTime().toLocalDate().minusYears(16));
+        userRepository.save(member);
+        Cookie staff = authCookie(staffOnShift());
+        mvc.perform(post("/staff/members/lookup").with(csrf()).cookie(staff).param("q", member.getMemberCode()))
+                .andExpect(jsonPath("$.age").value(15));
+        mvc.perform(post("/staff/members/lookup").with(csrf()).cookie(staff).param("q", member.getMemberCode())
+                        .param("showtimeId", st.getId().toString()))
+                .andExpect(jsonPath("$.age").value(16));
+    }
+
+    @Test
+    void memberFoundByPhoneNeedsTheNameConfirmed() throws Exception {
+        User member = silverMember();
+        Cookie staff = authCookie(staffOnShift());
+        Showtime st = showtimeTomorrow();
+        Long seat = freeSeats(st.getId(), 1).get(0);
+        long bookingsBefore = bookingRepository.count();
+
+        mvc.perform(post("/staff/sell/" + st.getId()).with(csrf()).cookie(staff)
+                        .param("showtimeSeatIds", seat.toString())
+                        .param("paymentMethod", "CASH").param("amountReceived", "500000")
+                        .param("memberCode", member.getMemberCode()).param("memberMatchedBy", "PHONE"))
+                .andExpect(redirectedUrl("/staff/sell/" + st.getId()))
+                .andExpect(flash().attribute("error", containsString("xác nhận họ tên")))
+                // The member stays attached for the retry, so the customer is not charged full price by mistake.
+                .andExpect(flash().attribute("keptMemberCode", member.getMemberCode()))
+                .andExpect(flash().attribute("keptMemberConfirmed", false))
+                .andExpect(flash().attribute("keptMemberMatchedBy", "PHONE"));
         assertThat(bookingRepository.count()).isEqualTo(bookingsBefore);
-        assertThat(freeSeats(st.getId(), 100)).contains(seat);
+
+        mvc.perform(post("/staff/sell/" + st.getId()).with(csrf()).cookie(staff)
+                        .param("showtimeSeatIds", seat.toString())
+                        .param("paymentMethod", "CASH").param("amountReceived", "500000")
+                        .param("memberCode", member.getMemberCode()).param("memberMatchedBy", "PHONE")
+                        .param("memberConfirmed", "true"))
+                .andExpect(redirectedUrlPattern("/staff/tickets/*"));
+    }
+
+    @Test
+    void failedSaleKeepsTheAttachedMemberOnThePage() throws Exception {
+        User member = silverMember();
+        Cookie staff = authCookie(staffOnShift());
+        Showtime st = showtimeTomorrow();
+        Long seat = freeSeats(st.getId(), 1).get(0);
+        // Not enough cash: the sale fails, the member stays attached.
+        var flash = mvc.perform(post("/staff/sell/" + st.getId()).with(csrf()).cookie(staff)
+                        .param("showtimeSeatIds", seat.toString())
+                        .param("paymentMethod", "CASH").param("amountReceived", "1000")
+                        .param("memberCode", member.getMemberCode()).param("memberConfirmed", "true"))
+                .andExpect(redirectedUrl("/staff/sell/" + st.getId()))
+                .andExpect(flash().attribute("keptMemberCode", member.getMemberCode()))
+                .andExpect(flash().attribute("keptMemberConfirmed", true))
+                .andExpect(flash().attribute("keptMemberMatchedBy", "CODE"))
+                .andReturn().getFlashMap();
+        var page = get("/staff/sell/" + st.getId()).cookie(staff);
+        flash.forEach(page::flashAttr);
+        mvc.perform(page)
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("data-kept-code=\"" + member.getMemberCode() + "\"")))
+                .andExpect(content().string(containsString("data-kept-confirmed=\"true\"")));
+    }
+
+    // ------------------------------------------------------------------ counter tickets are view-only online
+
+    /** A ticket sold at the counter to the member, paid by transfer later (still pending) or in cash. */
+    private Booking counterSale(User member, String method) throws Exception {
+        User staffUser = account(Role.STAFF);
+        openShift(staffUser, 500_000);
+        Showtime st = showtimeTomorrow();
+        var request = post("/staff/sell/" + st.getId()).with(csrf()).cookie(authCookie(staffUser))
+                .param("showtimeSeatIds", freeSeats(st.getId(), 1).get(0).toString())
+                .param("paymentMethod", method)
+                .param("memberCode", member.getMemberCode()).param("memberConfirmed", "true");
+        if ("CASH".equals(method)) {
+            request.param("amountReceived", "500000");
+        }
+        String location = mvc.perform(request).andReturn().getResponse().getRedirectedUrl();
+        Booking booking = bookingRepository.findDetailedByCode(codeFromRedirect(location)).orElseThrow();
+        assertThat(booking.getChannel()).isEqualTo(SalesChannel.COUNTER);
+        assertThat(booking.getUser().getId()).isEqualTo(member.getId());
+        return booking;
+    }
+
+    @Test
+    void memberCannotChangeOrCancelACounterTicketOnTheWeb() throws Exception {
+        User member = silverMember();
+        Cookie me = authCookie(member);
+        Booking paid = counterSale(member, "CASH");
+        Booking pending = counterSale(member, "BANK_QR");
+        String base = "/booking/" + pending.getCode();
+
+        // Viewing is fine: ticket page (without the cancel button), QR, payment status, history.
+        mvc.perform(get("/booking/" + paid.getCode()).cookie(me))
+                .andExpect(status().isOk())
+                .andExpect(content().string(not(containsString("/booking/" + paid.getCode() + "/cancel"))));
+        mvc.perform(get("/booking/" + paid.getCode() + "/qr.png").cookie(me)).andExpect(status().isOk());
+        mvc.perform(get(base + "/payment-status").cookie(me)).andExpect(status().isOk());
+        mvc.perform(get("/member/bookings").cookie(me))
+                .andExpect(content().string(containsString(paid.getCode())));
+
+        mvc.perform(post("/booking/" + paid.getCode() + "/cancel").with(csrf()).cookie(me))
+                .andExpect(redirectedUrl("/booking/" + paid.getCode()))
+                .andExpect(flash().attribute("error", BookingService.COUNTER_ONLY));
+        for (String path : List.of("/combos", "/promotion", "/promotion/remove", "/points", "/pay")) {
+            var request = post(base + path).with(csrf()).cookie(me);
+            if (path.equals("/promotion")) {
+                request.param("promotionCode", "BBCINEMA10");
+            }
+            if (path.equals("/points")) {
+                request.param("points", "1");
+            }
+            mvc.perform(request).andExpect(flash().attribute("error", BookingService.COUNTER_ONLY));
+        }
+        for (String path : List.of("/combos", "/checkout", "/bank-transfer")) {
+            mvc.perform(get(base + path).cookie(me))
+                    .andExpect(redirectedUrl(base))
+                    .andExpect(flash().attribute("error", BookingService.COUNTER_ONLY));
+        }
+        mvc.perform(get(base + "/bank-qr.png").cookie(me)).andExpect(status().is4xxClientError());
+
+        Booking paidAfter = bookingRepository.findDetailedByCode(paid.getCode()).orElseThrow();
+        Booking pendingAfter = bookingRepository.findDetailedByCode(pending.getCode()).orElseThrow();
+        assertThat(paidAfter.isPaid()).isTrue();
+        assertThat(pendingAfter.isPending()).isTrue();
+        assertThat(pendingAfter.getPointsUsed()).isZero();
+        assertThat(pendingAfter.getPromotion()).isNull();
+        assertThat(pendingAfter.getTotalAmount()).isEqualByComparingTo(pending.getTotalAmount());
+    }
+
+    @Test
+    void memberCannotChangeOrCancelACounterTicketThroughTheApi() throws Exception {
+        User member = silverMember();
+        String auth = bearer(member);
+        Booking paid = counterSale(member, "CASH");
+        Booking pending = counterSale(member, "BANK_QR");
+        String base = "/api/bookings/" + pending.getCode();
+
+        mvc.perform(get("/api/bookings/" + paid.getCode()).header("Authorization", auth)).andExpect(status().isOk());
+        mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete("/api/bookings/" + paid.getCode())
+                        .header("Authorization", auth))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value(BookingService.COUNTER_ONLY));
+        mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put(base + "/combos")
+                        .header("Authorization", auth).contentType(MediaType.APPLICATION_JSON).content("{\"quantities\":{}}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value(BookingService.COUNTER_ONLY));
+        mvc.perform(post(base + "/promotion").header("Authorization", auth)
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"code\":\"BBCINEMA10\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value(BookingService.COUNTER_ONLY));
+        mvc.perform(post(base + "/points").header("Authorization", auth)
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"points\":1}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value(BookingService.COUNTER_ONLY));
+        mvc.perform(post(base + "/pay").header("Authorization", auth))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value(BookingService.COUNTER_ONLY));
+
+        assertThat(bookingRepository.findDetailedByCode(paid.getCode()).orElseThrow().isPaid()).isTrue();
+        assertThat(bookingRepository.findDetailedByCode(pending.getCode()).orElseThrow().isPending()).isTrue();
+    }
+
+    @Test
+    void formerMemberNowStaffHasNoQrOrCodeCard() throws Exception {
+        User member = member(30);
+        String oldCode = member.getMemberCode();
+        member.setRole(Role.STAFF);
+        userRepository.save(member);
+        mvc.perform(get("/member/qr.png").cookie(authCookie(member))).andExpect(status().isNotFound());
+        assertThat(memberCodeService.ensureCode(member.getId())).isNull();
+        assertThat(oldCode).isNotNull();
     }
 }

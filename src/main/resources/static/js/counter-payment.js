@@ -141,7 +141,9 @@
     } else {
       hidden.value = '';
     }
-    submit.disabled = seats === 0 || !ok;
+    // A member found by phone must have their name confirmed before the sale (member-lookup.js).
+    const memberWaiting = memberPanel && memberPanel.dataset.memberPending === 'true';
+    submit.disabled = seats === 0 || !ok || memberWaiting;
   }
 
   input.addEventListener('input', () => {

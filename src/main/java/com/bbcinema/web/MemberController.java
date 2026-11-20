@@ -112,7 +112,11 @@ public class MemberController {
     private void addCommon(Model model, User user, String tab) {
         if ("profile".equals(tab)) {
             // Members who joined before member codes existed get theirs the first time they open this page.
-            model.addAttribute("memberCode", memberCodeService.ensureCode(user.getId()));
+            String code = memberCodeService.ensureCode(user.getId());
+            if (code != null && user.getMemberCode() == null) {
+                user.setMemberCode(code); // same value as the row now holds, should this copy be saved later
+            }
+            model.addAttribute("memberCode", code);
         }
         model.addAttribute("user", user);
         model.addAttribute("tab", tab);

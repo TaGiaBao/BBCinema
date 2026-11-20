@@ -61,7 +61,7 @@ public class VnPayService {
         if (!isEnabled()) {
             throw new BusinessException("Cổng VNPay chưa được cấu hình. Vui lòng chọn thanh toán thử.");
         }
-        Booking booking = bookingService.getForViewer(bookingCode, userId, com.bbcinema.entity.enums.Role.USER);
+        Booking booking = bookingService.getForOwnerChange(bookingCode, userId, com.bbcinema.entity.enums.Role.USER);
         if (!booking.isPending()) {
             throw new BusinessException("Đơn " + booking.getCode() + " không ở trạng thái chờ thanh toán");
         }
