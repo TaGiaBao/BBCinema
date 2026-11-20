@@ -35,6 +35,14 @@ public interface ShowtimeSeatRepository extends JpaRepository<ShowtimeSeat, Long
 
     long countByShowtimeId(Long showtimeId);
 
+    /** Number of seats of each of these bookings, as rows of [booking id, seat count]. */
+    @Query("""
+            select ss.booking.id, count(ss) from ShowtimeSeat ss
+            where ss.booking.id in :bookingIds
+            group by ss.booking.id
+            """)
+    List<Object[]> countSeatsByBooking(Collection<Long> bookingIds);
+
     @Query("""
             select ss from ShowtimeSeat ss
             where ss.status = com.bbcinema.entity.enums.SeatStatus.HELD and ss.holdExpiresAt < :now

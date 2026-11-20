@@ -77,6 +77,19 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
             """)
     List<Booking> findPaidBetween(LocalDateTime from, LocalDateTime to);
 
+    /**
+     * Bookings paid in a time range that are still paid or were refunded afterwards (a refund cancels the
+     * booking but keeps its payment time), with cinema, room and movie, for the revenue export.
+     */
+    @Query("""
+            select b from Booking b
+            join fetch b.showtime s join fetch s.movie join fetch s.room r join fetch r.cinema
+            where b.paidAt >= :from and b.paidAt < :to
+              and b.status in (com.bbcinema.entity.enums.BookingStatus.PAID, com.bbcinema.entity.enums.BookingStatus.CANCELLED)
+            order by b.paidAt, b.id
+            """)
+    List<Booking> findPaidOrRefundedBetween(LocalDateTime from, LocalDateTime to);
+
     /** Paid bookings of this member for showtimes of the movie that have already started. */
     @Query("""
             select count(b) from Booking b

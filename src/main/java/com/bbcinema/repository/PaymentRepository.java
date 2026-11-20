@@ -18,6 +18,11 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
 
     List<Payment> findByBookingIdOrderByCreatedAtDesc(Long bookingId);
 
+    /** Successful or refunded payments of these bookings (for the revenue export). */
+    @Query("select p from Payment p where p.booking.id in :bookingIds and p.status in "
+            + "(com.bbcinema.entity.enums.PaymentStatus.SUCCESS, com.bbcinema.entity.enums.PaymentStatus.REFUNDED)")
+    List<Payment> findSettledByBookingIds(@Param("bookingIds") java.util.Collection<Long> bookingIds);
+
     /** Payments of the tickets sold in a till shift (refunded ones too: the money did come in). */
     @Query("select p from Payment p where p.booking.shift.id = :shiftId and p.status in "
             + "(com.bbcinema.entity.enums.PaymentStatus.SUCCESS, com.bbcinema.entity.enums.PaymentStatus.REFUNDED)")
