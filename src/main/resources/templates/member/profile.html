@@ -60,7 +60,9 @@
                         </div>
                         <div class="col-md-6">
                             <label class="form-label" for="birthDate">[[#{ui.ngay_sinh}]]</label>
-                            <input class="form-control" id="birthDate" type="date" th:field="*{birthDate}" th:errorclass="is-invalid">
+                            <input th:if="${user.birthDate == null}" class="form-control" id="birthDate" type="date" th:field="*{birthDate}" th:errorclass="is-invalid">
+                            <input th:unless="${user.birthDate == null}" class="form-control" id="birthDate" type="date" th:value="${user.birthDate}" disabled>
+                            <div class="form-text" th:unless="${user.birthDate == null}">[[#{ui.ngay_sinh_khoa}]]</div>
                             <div class="invalid-feedback" th:errors="*{birthDate}"></div>
                         </div>
                         <div class="col-12"><button class="btn btn-navy" type="submit">[[#{ui.luu_thong_tin}]]</button></div>

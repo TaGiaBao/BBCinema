@@ -426,4 +426,27 @@ class BirthdayRewardIntegrationTest extends IntegrationTestBase {
                 .andExpect(content().string(containsString("ưu đãi cá nhân")));
         assertThat(promotionRepository.findById(code.getId()).orElseThrow().getDiscountPercent()).isEqualTo(20);
     }
+
+    // ------------------------------------------------------------------ birth date
+
+    @Test
+    void memberCanFillInAMissingBirthDateOnceButNotMoveItLater() throws Exception {
+        User member = memberBorn(null);
+        mvc.perform(post("/member/profile").with(csrf()).cookie(authCookie(member))
+                        .param("fullName", "Thành viên").param("birthDate", "1999-07-04"))
+                .andExpect(redirectedUrl("/member"));
+        assertThat(userRepository.findById(member.getId()).orElseThrow().getBirthDate()).isEqualTo(LocalDate.of(1999, 7, 4));
+
+        // Moving it to this month would give the birthday gift on demand (and get around the age rating).
+        mvc.perform(post("/member/profile").with(csrf()).cookie(authCookie(member))
+                        .param("fullName", "Tên mới").param("birthDate", "1999-01-04"))
+                .andExpect(redirectedUrl("/member"));
+        User saved = userRepository.findById(member.getId()).orElseThrow();
+        assertThat(saved.getBirthDate()).isEqualTo(LocalDate.of(1999, 7, 4));
+        assertThat(saved.getFullName()).isEqualTo("Tên mới");
+
+        mvc.perform(get("/member").cookie(authCookie(member)))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("liên hệ rạp")));
+    }
 }

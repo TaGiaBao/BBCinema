@@ -115,7 +115,11 @@ public class UserService {
         User user = getById(userId);
         user.setFullName(form.getFullName().trim());
         user.setPhone(TextUtil.blankToNull(form.getPhone()));
-        user.setBirthDate(form.getBirthDate());
+        // Members may fill in a missing birth date once; after that only the cinema can change it, otherwise a member
+        // could move it to get the birthday gift on demand or pass the age check for T13/T16/T18 films.
+        if (user.getBirthDate() == null) {
+            user.setBirthDate(form.getBirthDate());
+        }
     }
 
     @Transactional
