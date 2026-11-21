@@ -280,4 +280,21 @@ class AudienceTicketIntegrationTest extends IntegrationTestBase {
         assertThat(seat(seatId).getAudienceType()).isNull();
         assertThat(seat(seatId).getAudienceDiscount()).isNull();
     }
+
+    @Test
+    void aFailedSaleGivesBackTheSeatsWithTheirTicketTypes() throws Exception {
+        Cookie staff = authCookie(staffOnShift());
+        Showtime st = showtimeTomorrow();
+        List<Long> seats = freeSeats(st.getId(), 2);
+        mvc.perform(post("/staff/sell/" + st.getId()).with(csrf()).cookie(staff)
+                        .param("showtimeSeatIds", seats.get(0).toString(), seats.get(1).toString())
+                        .param("audience_" + seats.get(0), "STUDENT")
+                        .param("paymentMethod", "CASH").param("amountReceived", "1000"))
+                .andExpect(flash().attribute("error", containsString("Khách đưa thiếu")))
+                .andExpect(flash().attribute("keptSeats", seats.get(0) + ":STUDENT," + seats.get(1) + ":ADULT"));
+
+        mvc.perform(get("/staff/sell/" + st.getId()).cookie(staff)
+                        .flashAttr("keptSeats", seats.get(0) + ":STUDENT"))
+                .andExpect(content().string(containsString("data-kept-seats=\"" + seats.get(0) + ":STUDENT\"")));
+    }
 }

@@ -100,5 +100,16 @@
   if (seatTotalEl) {
     new MutationObserver(render).observe(seatTotalEl, { childList: true, characterData: true, subtree: true });
   }
+  // After a failed sale the server hands back "seatId:TYPE,...": pick those seats again (if still free) with
+  // their ticket types, so staff only fix what went wrong.
+  (panel.dataset.keptSeats || '').split(',').forEach((pair) => {
+    const [id, type] = pair.split(':');
+    const seat = id && form.querySelector('.seat[data-id="' + id + '"]');
+    if (!seat || seat.classList.contains('taken') || seat.classList.contains('selected')) {
+      return;
+    }
+    chosen.set(id, type || 'ADULT');
+    seat.click(); // seat-map.js selects it and updates the totals
+  });
   render();
 })();

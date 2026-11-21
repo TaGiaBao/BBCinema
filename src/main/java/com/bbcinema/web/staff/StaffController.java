@@ -92,6 +92,7 @@ public class StaffController {
         if (binding.hasErrors()) {
             redirect.addFlashAttribute("error", binding.getAllErrors().get(0).getDefaultMessage());
             keepMember(form, redirect);
+            keepSeats(form, params, redirect);
             return "redirect:/staff/sell/" + showtimeId;
         }
         try {
@@ -111,8 +112,37 @@ public class StaffController {
         } catch (BusinessException e) {
             redirect.addFlashAttribute("error", e.getMessage());
             keepMember(form, redirect);
+            keepSeats(form, params, redirect);
             return "redirect:/staff/sell/" + showtimeId;
         }
+    }
+
+    /**
+     * After a failed sale (e.g. not enough cash) the page loads again: give back the seats and their ticket types,
+     * so staff do not have to pick them again and an HSSV/senior ticket is not sold at the adult price by mistake.
+     * Only seat ids and type names go back; the page shows seats someone else took in the meantime as taken.
+     */
+    static void keepSeats(CounterSaleForm form, Map<String, String> params, RedirectAttributes redirect) {
+        if (form.getShowtimeSeatIds() == null || form.getShowtimeSeatIds().isEmpty()) {
+            return;
+        }
+        Map<Long, com.bbcinema.entity.enums.AudienceType> types;
+        try {
+            types = audiencesOf(params);
+        } catch (BusinessException e) {
+            types = Map.of();
+        }
+        StringBuilder kept = new StringBuilder();
+        for (Long id : form.getShowtimeSeatIds()) {
+            if (id == null) {
+                continue;
+            }
+            if (!kept.isEmpty()) {
+                kept.append(',');
+            }
+            kept.append(id).append(':').append(types.getOrDefault(id, com.bbcinema.entity.enums.AudienceType.ADULT).name());
+        }
+        redirect.addFlashAttribute("keptSeats", kept.toString());
     }
 
     /** Reads the per-seat selects named audience_<showtime seat id> into seat id -> ticket type. */

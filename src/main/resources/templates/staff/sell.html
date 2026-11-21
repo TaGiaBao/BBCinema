@@ -64,7 +64,7 @@
                 </div>
                 <!-- Ticket type per seat (audience-tickets.js). Staff check a student card or ID before choosing a
                      discounted type; the server applies the rules again and prices the sale. -->
-                <div class="panel" id="audiencePanel" data-discount="0">
+                <div class="panel" id="audiencePanel" data-discount="0" th:attr="data-kept-seats=${keptSeats}">
                     <h2 class="h6"><i class="bi bi-people"></i> Loại vé</h2>
                     <template id="audienceOptions">
                         <option th:each="o : ${audienceOptions}" th:value="${o.type.name()}" th:disabled="${!o.available}"
