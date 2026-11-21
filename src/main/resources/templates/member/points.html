@@ -9,6 +9,25 @@
         <div class="row g-4">
             <div class="col-lg-3"><div th:replace="~{member/_nav :: nav}"></div></div>
             <div class="col-lg-9">
+                <div class="panel mb-4" id="birthday-reward" th:if="${birthdayReward != null}"
+                     th:with="p=${birthdayReward.promotion}, expired=${today.isAfter(birthdayReward.promotion.validTo)}">
+                    <h2 class="h5 mb-2"><i class="bi bi-gift text-warning"></i> [[#{member.birthday.title}]]</h2>
+                    <div class="d-flex flex-wrap align-items-center gap-3">
+                        <span class="fs-4 fw-bold font-monospace border border-warning border-2 rounded px-3 py-1" th:text="${p.code}">SN...</span>
+                        <div>
+                            <div class="fw-semibold" th:if="${p.discountAmount != null}" th:text="#{member.birthday.amount(${@fmt.money(p.discountAmount)})}">-</div>
+                            <div class="fw-semibold" th:if="${p.discountAmount == null and p.maxDiscount != null}"
+                                 th:text="#{member.birthday.percentMax(${p.discountPercent}, ${@fmt.money(p.maxDiscount)})}">-</div>
+                            <div class="fw-semibold" th:if="${p.discountAmount == null and p.maxDiscount == null}"
+                                 th:text="#{member.birthday.percent(${p.discountPercent})}">-</div>
+                            <div class="small text-muted" th:if="${p.minOrder != null}" th:text="#{member.birthday.minOrder(${@fmt.money(p.minOrder)})}">-</div>
+                            <div class="small" th:text="#{member.birthday.validUntil(${#temporals.format(p.validTo, 'dd/MM/yyyy')})}">-</div>
+                        </div>
+                        <span class="badge ms-auto" th:classappend="${p.usedUp} ? 'text-bg-success' : (${expired} ? 'text-bg-secondary' : 'text-bg-warning')"
+                              th:text="${p.usedUp} ? #{member.birthday.used} : (${expired} ? #{member.birthday.expired} : #{member.birthday.unused})">-</span>
+                    </div>
+                    <p class="small text-muted mt-2 mb-0">[[#{member.birthday.hint}]]</p>
+                </div>
                 <div class="panel">
                     <h2 class="h5 mb-1">[[#{ui.diem_thuong}]]</h2>
                     <p class="small text-muted">[[#{ui.moi_don_thanh_toan_duoc}]]</p>

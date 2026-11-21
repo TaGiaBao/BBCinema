@@ -80,6 +80,10 @@ app:
     earn-percent: 5
     value-per-point: 1000
     max-redeem-percent: 50
+  # Birthday gift codes (set on /admin/promotions/birthday): given every day at 08:00 (app.timezone) and at start-up.
+  birthday-reward:
+    cron: ${BIRTHDAY_REWARD_CRON:0 0 8 * * *}
+    run-at-startup: true
   # "Đăng nhập bằng Google": leave empty to hide the button. Redirect URI: {base-url}/login/oauth2/code/google
   google:
     client-id: ${GOOGLE_CLIENT_ID:}

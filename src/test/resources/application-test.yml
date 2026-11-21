@@ -30,6 +30,10 @@ app:
     dir: target/test-uploads
   booking:
     expire-job-interval-ms: 3600000
+  # Tests give birthday codes by calling BirthdayRewardService directly.
+  birthday-reward:
+    cron: "-"
+    run-at-startup: false
 logging:
   level:
     com.bbcinema: WARN

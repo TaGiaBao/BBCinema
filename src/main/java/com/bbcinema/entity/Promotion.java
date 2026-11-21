@@ -50,4 +50,25 @@ public class Promotion {
 
     @Column(nullable = false)
     private boolean active = true;
+
+    /** Fixed discount in VND; when set it is used instead of {@link #discountPercent}. Null for percent codes. */
+    @Column(name = "discount_amount", precision = 12, scale = 0)
+    private BigDecimal discountAmount;
+
+    /**
+     * The only member account allowed to use this code (personal codes such as the birthday gift); null for codes
+     * anyone can use.
+     */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "owner_id")
+    private User owner;
+
+    public boolean isPersonal() {
+        return owner != null;
+    }
+
+    /** True when every allowed use is taken (always false for unlimited codes). */
+    public boolean isUsedUp() {
+        return usageLimit != null && usedCount >= usageLimit;
+    }
 }

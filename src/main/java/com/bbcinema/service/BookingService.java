@@ -266,7 +266,7 @@ public class BookingService {
     @Transactional
     public Booking applyPromotion(String code, Long userId, String promotionCode) {
         Booking booking = getEditable(code, userId);
-        Promotion promotion = promotionService.findUsable(promotionCode, subtotal(booking));
+        Promotion promotion = promotionService.findUsable(promotionCode, subtotal(booking), booking.getUser());
         booking.setPromotion(promotion);
         recalculate(booking);
         return booking;
@@ -336,7 +336,7 @@ public class BookingService {
         BigDecimal promotionDiscount = BigDecimal.ZERO;
         if (booking.getPromotion() != null) {
             try {
-                PromotionService.checkUsable(booking.getPromotion(), subtotal, LocalDate.now(clock));
+                PromotionService.checkUsable(booking.getPromotion(), subtotal, LocalDate.now(clock), booking.getUser());
                 promotionDiscount = PromotionService.discountFor(booking.getPromotion(), subtotal);
             } catch (BusinessException e) {
                 // The order changed and the code no longer applies (e.g. below the minimum order).
@@ -436,6 +436,7 @@ public class BookingService {
 
         Promotion promotion = booking.getPromotion();
         if (promotion != null) {
+            PromotionService.checkOwner(promotion, booking.getUser());
             if (promotion.getUsageLimit() != null && promotion.getUsedCount() >= promotion.getUsageLimit()) {
                 throw new BusinessException("Mã giảm giá " + promotion.getCode() + " vừa hết lượt. Vui lòng bỏ mã và thanh toán lại.");
             }
