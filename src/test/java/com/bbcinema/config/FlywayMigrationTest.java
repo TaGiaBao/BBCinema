@@ -137,4 +137,34 @@ class FlywayMigrationTest {
                     .isInstanceOf(SQLException.class);
         }
     }
+
+    @Test
+    void v21CreatesTheAuditLog() throws Exception {
+        String url = "jdbc:h2:mem:flyway-check-v21;MODE=MySQL;DATABASE_TO_LOWER=TRUE;DB_CLOSE_DELAY=-1";
+        // A database already at V20 (Flyway only baselines a schema that has tables).
+        try (Connection connection = DriverManager.getConnection(url, "sa", "");
+             Statement statement = connection.createStatement()) {
+            statement.execute("create table bookings (id bigint primary key)");
+        }
+        Flyway flyway = Flyway.configure().dataSource(url, "sa", "")
+                .locations("classpath:db/migration")
+                .baselineOnMigrate(true).baselineVersion("20").target("21")
+                .load();
+        flyway.migrate();
+        assertThat(flyway.info().current().getVersion().getVersion()).isEqualTo("21");
+
+        try (Connection connection = DriverManager.getConnection(url, "sa", "");
+             Statement statement = connection.createStatement()) {
+            statement.execute("insert into audit_logs (created_at, actor_email, actor_role, action, success) "
+                    + "values ('2026-11-21 10:00:00', 'admin@bbcinema.vn', 'ADMIN', 'Xoá phim', true)");
+            try (ResultSet rs = statement.executeQuery("select action, success from audit_logs")) {
+                assertThat(rs.next()).isTrue();
+                assertThat(rs.getString(1)).isEqualTo("Xoá phim");
+                assertThat(rs.getBoolean(2)).isTrue();
+            }
+            assertThatThrownBy(() -> statement.execute("insert into audit_logs (created_at, action, success) "
+                    + "values ('2026-11-21 10:00:00', 'Thiếu người', true)"))
+                    .isInstanceOf(SQLException.class);
+        }
+    }
 }

@@ -17,10 +17,13 @@ public class WebConfig implements WebMvcConfigurer {
 
     private final AppProperties properties;
     private final com.bbcinema.web.staff.ShiftRequiredInterceptor shiftRequiredInterceptor;
+    private final com.bbcinema.audit.AuditInterceptor auditInterceptor;
 
-    public WebConfig(AppProperties properties, com.bbcinema.web.staff.ShiftRequiredInterceptor shiftRequiredInterceptor) {
+    public WebConfig(AppProperties properties, com.bbcinema.web.staff.ShiftRequiredInterceptor shiftRequiredInterceptor,
+                     com.bbcinema.audit.AuditInterceptor auditInterceptor) {
         this.properties = properties;
         this.shiftRequiredInterceptor = shiftRequiredInterceptor;
+        this.auditInterceptor = auditInterceptor;
     }
 
     /** The visitor's language (vi or en) is kept in the BB_LANG cookie for a year; Vietnamese by default. */
@@ -49,6 +52,8 @@ public class WebConfig implements WebMvcConfigurer {
         registry.addInterceptor(interceptor);
         // Counter staff must be in an open till shift to use the counter pages.
         registry.addInterceptor(shiftRequiredInterceptor).addPathPatterns("/staff", "/staff/**").excludePathPatterns("/staff/shift/**");
+        // Actions marked @Audited in the internal area go into the audit log (/admin/audit).
+        registry.addInterceptor(auditInterceptor).addPathPatterns("/admin/**", "/staff", "/staff/**");
     }
 
     /** Serves uploaded images from the upload folder at /uploads/**. */

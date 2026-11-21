@@ -1,5 +1,6 @@
 package com.bbcinema.web.admin;
 
+import com.bbcinema.audit.Audited;
 import com.bbcinema.dto.request.PromotionForm;
 import com.bbcinema.exception.BusinessException;
 import com.bbcinema.service.PromotionService;
@@ -46,6 +47,7 @@ public class AdminPromotionController {
         return list(model);
     }
 
+    @Audited("Lưu mã giảm giá")
     @PostMapping
     public String save(@Valid @ModelAttribute("form") PromotionForm form, BindingResult binding,
                        Model model, RedirectAttributes redirect) {

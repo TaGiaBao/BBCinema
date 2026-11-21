@@ -1,5 +1,6 @@
 package com.bbcinema.web.admin;
 
+import com.bbcinema.audit.Audited;
 import com.bbcinema.dto.request.ComboForm;
 import com.bbcinema.dto.request.HolidayForm;
 import com.bbcinema.entity.Holiday;
@@ -56,6 +57,7 @@ public class AdminPricingController {
         return "admin/prices";
     }
 
+    @Audited("Sửa bảng giá vé")
     @PostMapping("/prices")
     public String savePrices(@RequestParam Map<String, String> params, RedirectAttributes redirect) {
         Map<Long, BigDecimal> prices = new HashMap<>();
@@ -92,6 +94,7 @@ public class AdminPricingController {
      * Audience tickets (HSSV, children, seniors) sold at the counter. Fields per type T: enabled_T (checkbox),
      * type_T (PERCENT/AMOUNT), value_T, holidays_T (checkbox).
      */
+    @Audited("Sửa giá vé HSSV, trẻ em, cao tuổi")
     @PostMapping("/prices/audience")
     public String saveAudience(@RequestParam Map<String, String> params, RedirectAttributes redirect) {
         try {
@@ -153,6 +156,7 @@ public class AdminPricingController {
         return "admin/holidays";
     }
 
+    @Audited("Thêm ngày lễ")
     @PostMapping("/prices/holidays")
     public String addHoliday(@Valid @ModelAttribute("form") HolidayForm form, BindingResult binding,
                              Model model, RedirectAttributes redirect) {
@@ -174,6 +178,7 @@ public class AdminPricingController {
         return "redirect:/admin/prices/holidays";
     }
 
+    @Audited("Xoá ngày lễ")
     @PostMapping("/prices/holidays/{id}/delete")
     public String deleteHoliday(@PathVariable Long id, RedirectAttributes redirect) {
         try {
@@ -211,6 +216,7 @@ public class AdminPricingController {
         return "admin/combo-recipe";
     }
 
+    @Audited("Sửa định lượng combo")
     @PostMapping("/combos/{id}/recipe")
     public String saveRecipe(@PathVariable Long id, @RequestParam java.util.Map<String, String> params, RedirectAttributes redirect) {
         java.util.Map<Long, java.math.BigDecimal> quantities = AdminInventoryController.quantities(params, "use_");
@@ -234,6 +240,7 @@ public class AdminPricingController {
         return combos(model);
     }
 
+    @Audited("Lưu combo")
     @PostMapping("/combos")
     public String saveCombo(@Valid @ModelAttribute("form") ComboForm form, BindingResult binding,
                             @RequestParam(name = "image", required = false) MultipartFile image,

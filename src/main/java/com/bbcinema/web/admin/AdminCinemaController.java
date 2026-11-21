@@ -1,5 +1,6 @@
 package com.bbcinema.web.admin;
 
+import com.bbcinema.audit.Audited;
 import com.bbcinema.dto.request.CinemaForm;
 import com.bbcinema.dto.request.RoomForm;
 import com.bbcinema.entity.Room;
@@ -54,6 +55,7 @@ public class AdminCinemaController {
         return list(model);
     }
 
+    @Audited("Lưu rạp")
     @PostMapping("/save")
     public String saveCinema(@Valid @ModelAttribute("cinemaForm") CinemaForm form, BindingResult binding,
                              Model model, RedirectAttributes redirect) {
@@ -71,6 +73,7 @@ public class AdminCinemaController {
         return "redirect:/admin/cinemas";
     }
 
+    @Audited("Tạo phòng chiếu")
     @PostMapping("/rooms")
     public String createRoom(@Valid @ModelAttribute("roomForm") RoomForm form, BindingResult binding,
                              Model model, RedirectAttributes redirect) {
@@ -96,6 +99,7 @@ public class AdminCinemaController {
     }
 
     /** Saves the whole seat layout sent by the drag-and-drop editor (admin/cinemas/room.html). */
+    @Audited("Sửa sơ đồ ghế")
     @PostMapping("/rooms/{id}/layout")
     @ResponseBody
     public ResponseEntity<Map<String, Object>> saveLayout(@PathVariable Long id,
@@ -109,6 +113,7 @@ public class AdminCinemaController {
         }
     }
 
+    @Audited("Sửa phòng chiếu")
     @PostMapping("/rooms/{id}")
     public String updateRoom(@PathVariable Long id, @RequestParam String name,
                              @RequestParam(defaultValue = "false") boolean active, RedirectAttributes redirect) {

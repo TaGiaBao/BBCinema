@@ -8,6 +8,7 @@ import com.bbcinema.security.AppUserPrincipal;
 import com.bbcinema.security.ClientIp;
 import com.bbcinema.security.LoginAttemptService;
 import com.bbcinema.security.TokenCookies;
+import com.bbcinema.service.AuditService;
 import com.bbcinema.service.GoogleLoginService;
 import com.bbcinema.service.PasswordResetService;
 import com.bbcinema.service.UserService;
@@ -43,6 +44,7 @@ public class AuthController {
     private final TokenCookies tokenCookies;
     private final LoginAttemptService loginAttempts;
     private final ClientIp clientIp;
+    private final AuditService auditService;
     private final org.springframework.beans.factory.ObjectProvider<
             org.springframework.security.oauth2.client.registration.ClientRegistrationRepository> googleClients;
 
@@ -112,8 +114,13 @@ public class AuthController {
                                 HttpServletResponse response,
                                 Model model) {
         LoginResult result = signIn(email, password, true, request, response);
-        if (result.user() != null) {
-            return "redirect:" + SafeRedirect.localPath(redirect, homeFor(result.user().getRole()));
+        AppUserPrincipal user = result.user();
+        // Every attempt at the internal door is logged, the failed ones too (guessing, a customer trying it).
+        auditService.record(new AuditService.Entry(user == null ? null : user.getId(),
+                user == null ? email : user.getEmail(), user == null ? null : user.getRole(), "Đăng nhập nội bộ",
+                null, result.error(), user != null, request.getMethod(), request.getRequestURI(), clientIp.of(request)));
+        if (user != null) {
+            return "redirect:" + SafeRedirect.localPath(redirect, homeFor(user.getRole()));
         }
         model.addAttribute("error", result.error());
         model.addAttribute("email", email);

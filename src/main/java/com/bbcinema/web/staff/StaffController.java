@@ -1,5 +1,6 @@
 package com.bbcinema.web.staff;
 
+import com.bbcinema.audit.Audited;
 import com.bbcinema.dto.request.CounterSaleForm;
 import com.bbcinema.entity.Booking;
 import com.bbcinema.entity.Cinema;
@@ -82,6 +83,7 @@ public class StaffController {
         return "staff/sell";
     }
 
+    @Audited("Bán vé tại quầy")
     @PostMapping("/sell/{showtimeId}")
     public String sell(@PathVariable Long showtimeId,
                        @Valid @ModelAttribute("form") CounterSaleForm form,
@@ -234,6 +236,7 @@ public class StaffController {
     }
 
     /** Staff saw the money arrive in the cinema's banking app. */
+    @Audited("Xác nhận chuyển khoản")
     @PostMapping("/bank-transfer/{code}/confirm")
     public String confirmTransfer(@PathVariable String code, @AuthenticationPrincipal AppUserPrincipal staff,
                                   RedirectAttributes redirect) {
@@ -247,6 +250,7 @@ public class StaffController {
         }
     }
 
+    @Audited("Xác nhận chuyển khoản (thử)")
     @PostMapping("/bank-transfer/{code}/demo-confirm")
     public String demoConfirmTransfer(@PathVariable String code, RedirectAttributes redirect) {
         try {
@@ -260,6 +264,7 @@ public class StaffController {
     }
 
     /** The customer changed their mind: release the seats. */
+    @Audited("Huỷ đơn chuyển khoản")
     @PostMapping("/bank-transfer/{code}/cancel")
     public String cancelTransfer(@PathVariable String code, @AuthenticationPrincipal AppUserPrincipal staff,
                                  RedirectAttributes redirect) {
@@ -286,6 +291,7 @@ public class StaffController {
     }
 
     /** Called by the "In vé" button just before the browser prints: one click counts as one print. */
+    @Audited("In vé")
     @PostMapping("/tickets/{code}/printed")
     @ResponseBody
     public org.springframework.http.ResponseEntity<Map<String, Object>> ticketPrinted(@PathVariable String code) {
@@ -317,6 +323,7 @@ public class StaffController {
         return "staff/checkin";
     }
 
+    @Audited("Soát vé")
     @PostMapping("/checkin")
     public String checkIn(@RequestParam String code, RedirectAttributes redirect) {
         String normalized = code.trim().toUpperCase();

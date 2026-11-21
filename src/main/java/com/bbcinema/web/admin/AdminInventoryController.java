@@ -1,5 +1,6 @@
 package com.bbcinema.web.admin;
 
+import com.bbcinema.audit.Audited;
 import com.bbcinema.entity.Cinema;
 import com.bbcinema.entity.User;
 import com.bbcinema.entity.enums.Role;
@@ -57,6 +58,7 @@ public class AdminInventoryController {
     }
 
     /** Counter manager: a delivery for their cinema, sent to the general manager for approval. */
+    @Audited("Gửi yêu cầu nhập kho")
     @PostMapping("/requests")
     public String request(@RequestParam Map<String, String> params, @AuthenticationPrincipal AppUserPrincipal viewer,
                           RedirectAttributes redirect) {
@@ -75,6 +77,7 @@ public class AdminInventoryController {
     }
 
     /** General manager: approve or reject a pending note. */
+    @Audited("Duyệt yêu cầu nhập kho")
     @PostMapping("/requests/{id}/review")
     public String review(@PathVariable Long id, @RequestParam String decision,
                          @RequestParam(required = false) String reviewNote,
@@ -109,6 +112,7 @@ public class AdminInventoryController {
     }
 
     /** General manager: add an item to the stock list. */
+    @Audited("Thêm mặt hàng kho")
     @PostMapping("/items")
     public String addItem(@RequestParam String name, @RequestParam String unit, RedirectAttributes redirect) {
         try {

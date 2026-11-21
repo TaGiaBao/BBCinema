@@ -44,6 +44,7 @@
                 <a href="/admin/banners" th:classappend="${menu == 'banners'} ? 'active'"><i class="bi bi-images"></i> Banner</a>
                 <div class="group">Hệ thống</div>
                 <a href="/admin/users" th:classappend="${menu == 'users'} ? 'active'"><i class="bi bi-people"></i> Tài khoản</a>
+                <a href="/admin/audit" th:classappend="${menu == 'audit'} ? 'active'"><i class="bi bi-journal-text"></i> Nhật ký thao tác</a>
             </div>
             <!-- The counter: staff sell and check tickets; the counter manager looks after the shifts in person. -->
             <div sec:authorize="hasAnyRole('STAFF', 'MANAGER')" class="contents">

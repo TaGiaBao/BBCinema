@@ -1,5 +1,6 @@
 package com.bbcinema.web.admin;
 
+import com.bbcinema.audit.Audited;
 import com.bbcinema.dto.request.MovieForm;
 import com.bbcinema.entity.enums.AgeRating;
 import com.bbcinema.entity.enums.MovieStatus;
@@ -50,6 +51,7 @@ public class AdminMovieController {
         return form(model, movieService.toForm(movieService.getById(id)));
     }
 
+    @Audited("Lưu phim")
     @PostMapping("/save")
     public String save(@Valid @ModelAttribute("form") MovieForm form,
                        BindingResult binding,
@@ -69,6 +71,7 @@ public class AdminMovieController {
         return "redirect:/admin/movies";
     }
 
+    @Audited("Xoá phim")
     @PostMapping("/{id}/delete")
     public String delete(@PathVariable Long id, RedirectAttributes redirect) {
         try {
@@ -80,6 +83,7 @@ public class AdminMovieController {
         return "redirect:/admin/movies";
     }
 
+    @Audited("Thêm thể loại")
     @PostMapping("/genres")
     public String addGenre(@RequestParam String name, RedirectAttributes redirect) {
         try {
@@ -91,6 +95,7 @@ public class AdminMovieController {
         return "redirect:/admin/movies";
     }
 
+    @Audited("Xoá thể loại")
     @PostMapping("/genres/{id}/delete")
     public String deleteGenre(@PathVariable Long id, RedirectAttributes redirect) {
         movieService.deleteGenre(id);

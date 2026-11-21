@@ -1,5 +1,6 @@
 package com.bbcinema.web.staff;
 
+import com.bbcinema.audit.Audited;
 import com.bbcinema.entity.Booking;
 import com.bbcinema.entity.Cinema;
 import com.bbcinema.entity.CounterShift;
@@ -48,6 +49,7 @@ public class ShiftController {
         return "staff/shift-open";
     }
 
+    @Audited("Mở ca")
     @PostMapping(OPEN_PATH)
     public String open(@AuthenticationPrincipal AppUserPrincipal staff,
                        @ModelAttribute("currentCinema") Cinema cinema,
@@ -76,6 +78,7 @@ public class ShiftController {
     }
 
     /** The manager counted the drawer: the shift closes, the staff member is logged out and sees the report. */
+    @Audited("Đóng ca")
     @PostMapping(CLOSE_PATH)
     public String close(@AuthenticationPrincipal AppUserPrincipal staff,
                         @RequestParam(required = false) BigDecimal countedCash,
@@ -123,6 +126,7 @@ public class ShiftController {
         return "staff/shift-close";
     }
 
+    @Audited("Quản lý đóng ca")
     @PostMapping("/staff/shifts/{id}/close")
     public String closeShift(@PathVariable Long id, @AuthenticationPrincipal AppUserPrincipal manager,
                              @RequestParam(required = false) BigDecimal countedCash,
@@ -139,6 +143,7 @@ public class ShiftController {
     }
 
     /** Cancelling a paid ticket at the counter: the manager approves, the cash comes out of this shift. */
+    @Audited("Hoàn vé tại quầy")
     @PostMapping("/staff/tickets/{code}/refund")
     public String refund(@PathVariable String code, @AuthenticationPrincipal AppUserPrincipal staff,
                          @RequestParam(required = false) String managerEmail,

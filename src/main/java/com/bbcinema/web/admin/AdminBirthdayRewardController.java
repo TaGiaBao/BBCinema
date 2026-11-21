@@ -1,5 +1,6 @@
 package com.bbcinema.web.admin;
 
+import com.bbcinema.audit.Audited;
 import com.bbcinema.dto.request.BirthdayRewardForm;
 import com.bbcinema.entity.enums.DiscountType;
 import com.bbcinema.exception.BusinessException;
@@ -45,6 +46,7 @@ public class AdminBirthdayRewardController {
         return "admin/birthday-reward";
     }
 
+    @Audited("Cập nhật quà sinh nhật")
     @PostMapping
     public String save(@Valid @ModelAttribute("form") BirthdayRewardForm form, BindingResult binding,
                        Model model, RedirectAttributes redirect) {

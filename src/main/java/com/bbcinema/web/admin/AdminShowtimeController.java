@@ -1,5 +1,6 @@
 package com.bbcinema.web.admin;
 
+import com.bbcinema.audit.Audited;
 import com.bbcinema.dto.request.ShowtimeForm;
 import com.bbcinema.entity.enums.MovieStatus;
 import com.bbcinema.entity.enums.ScreenFormat;
@@ -70,6 +71,7 @@ public class AdminShowtimeController {
         return "admin/showtimes/list";
     }
 
+    @Audited("Tạo suất chiếu")
     @PostMapping
     public String create(@Valid @ModelAttribute("form") ShowtimeForm form, BindingResult binding,
                          RedirectAttributes redirect) {
@@ -88,6 +90,7 @@ public class AdminShowtimeController {
         return "redirect:/admin/showtimes";
     }
 
+    @Audited("Huỷ suất chiếu")
     @PostMapping("/{id}/cancel")
     public String cancel(@PathVariable Long id, RedirectAttributes redirect) {
         try {
@@ -131,6 +134,7 @@ public class AdminShowtimeController {
         }
     }
 
+    @Audited("Xếp lịch tự động")
     @PostMapping("/auto/save")
     public String autoSave(@ModelAttribute AutoScheduleForm form, @RequestParam Map<String, String> params,
                            RedirectAttributes redirect) {

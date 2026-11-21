@@ -1,5 +1,6 @@
 package com.bbcinema.web.admin;
 
+import com.bbcinema.audit.Audited;
 import com.bbcinema.entity.enums.BookingStatus;
 import com.bbcinema.entity.enums.Role;
 import com.bbcinema.exception.BusinessException;
@@ -40,6 +41,7 @@ public class AdminUserController {
     }
 
     /** The general manager gives out internal accounts: staff, counter managers (with their cinema), managers. */
+    @Audited("Tạo tài khoản")
     @PostMapping("/users/new")
     public String createUser(@RequestParam String email, @RequestParam String fullName, @RequestParam String password,
                              @RequestParam Role role, @RequestParam(required = false) Long cinemaId,
@@ -53,6 +55,7 @@ public class AdminUserController {
         return "redirect:/admin/users";
     }
 
+    @Audited("Sửa tài khoản")
     @PostMapping("/users/{id}")
     public String updateUser(@PathVariable Long id, @RequestParam Role role,
                              @RequestParam(defaultValue = "false") boolean enabled,

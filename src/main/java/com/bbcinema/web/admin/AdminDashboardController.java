@@ -1,5 +1,6 @@
 package com.bbcinema.web.admin;
 
+import com.bbcinema.audit.Audited;
 import com.bbcinema.service.ReportService;
 import com.bbcinema.service.RevenueExportService;
 import lombok.RequiredArgsConstructor;
@@ -60,6 +61,7 @@ public class AdminDashboardController {
     }
 
     /** The report on the page above as an Excel file, for the same date range. */
+    @Audited("Xuất báo cáo doanh thu")
     @GetMapping("/revenue/export")
     public ResponseEntity<byte[]> export(@RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
                                          @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {

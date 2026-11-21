@@ -1,5 +1,6 @@
 package com.bbcinema.web.admin;
 
+import com.bbcinema.audit.Audited;
 import com.bbcinema.dto.request.BannerForm;
 import com.bbcinema.dto.request.PostForm;
 import com.bbcinema.entity.enums.PostType;
@@ -41,6 +42,7 @@ public class AdminContentController {
         return postForm(model, contentService.toForm(contentService.getPost(id)));
     }
 
+    @Audited("Lưu bài viết")
     @PostMapping("/posts")
     public String savePost(@Valid @ModelAttribute("form") PostForm form, BindingResult binding,
                            @RequestParam(name = "thumbnail", required = false) MultipartFile thumbnail,
@@ -58,6 +60,7 @@ public class AdminContentController {
         return "redirect:/admin/posts";
     }
 
+    @Audited("Xoá bài viết")
     @PostMapping("/posts/{id}/delete")
     public String deletePost(@PathVariable Long id, RedirectAttributes redirect) {
         contentService.deletePost(id);
@@ -90,6 +93,7 @@ public class AdminContentController {
         return banners(model);
     }
 
+    @Audited("Lưu banner")
     @PostMapping("/banners")
     public String saveBanner(@Valid @ModelAttribute("form") BannerForm form, BindingResult binding,
                              @RequestParam(name = "image", required = false) MultipartFile image,
@@ -107,6 +111,7 @@ public class AdminContentController {
         return "redirect:/admin/banners";
     }
 
+    @Audited("Xoá banner")
     @PostMapping("/banners/{id}/delete")
     public String deleteBanner(@PathVariable Long id, RedirectAttributes redirect) {
         contentService.deleteBanner(id);

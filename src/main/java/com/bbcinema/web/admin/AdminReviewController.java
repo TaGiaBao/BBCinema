@@ -1,5 +1,6 @@
 package com.bbcinema.web.admin;
 
+import com.bbcinema.audit.Audited;
 import com.bbcinema.service.ReviewService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
@@ -23,6 +24,7 @@ public class AdminReviewController {
         return "admin/reviews";
     }
 
+    @Audited("Ẩn hoặc hiện đánh giá")
     @PostMapping("/{id}/hidden")
     public String setHidden(@PathVariable Long id, @RequestParam boolean hidden,
                             @RequestParam(defaultValue = "0") int page, RedirectAttributes redirect) {

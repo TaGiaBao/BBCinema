@@ -23,6 +23,7 @@ public class WebExceptionHandler {
         response.setStatus(HttpServletResponse.SC_NOT_FOUND);
         model.addAttribute("status", 404);
         model.addAttribute("message", e.getMessage());
+        request.setAttribute(com.bbcinema.audit.AuditInterceptor.ERROR_ATTRIBUTE, e.getMessage());
         layoutModel.addTo(model, request);
         return "error/message";
     }
@@ -32,6 +33,7 @@ public class WebExceptionHandler {
         response.setStatus(HttpServletResponse.SC_FORBIDDEN);
         model.addAttribute("status", 403);
         model.addAttribute("message", e.getMessage());
+        request.setAttribute(com.bbcinema.audit.AuditInterceptor.ERROR_ATTRIBUTE, e.getMessage());
         layoutModel.addTo(model, request);
         return "error/message";
     }
@@ -41,6 +43,7 @@ public class WebExceptionHandler {
         response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
         model.addAttribute("status", 400);
         model.addAttribute("message", e.getMessage());
+        request.setAttribute(com.bbcinema.audit.AuditInterceptor.ERROR_ATTRIBUTE, e.getMessage());
         layoutModel.addTo(model, request);
         return "error/message";
     }

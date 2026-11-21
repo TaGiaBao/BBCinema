@@ -98,7 +98,7 @@ public class SecurityConfig {
                         // General manager only: the chain set-up, prices, marketing, accounts, stock approvals.
                         .requestMatchers("/api/admin/**", "/admin/cinemas/**", "/admin/prices/**", "/admin/combos/**",
                                 "/admin/promotions/**", "/admin/posts/**", "/admin/banners/**", "/admin/users/**",
-                                "/admin/inventory/items/**", "/admin/inventory/requests/*/review").hasRole("ADMIN")
+                                "/admin/inventory/items/**", "/admin/inventory/requests/*/review", "/admin/audit", "/admin/audit/**").hasRole("ADMIN")
                         // Shared with the counter manager: day-to-day running (movies, showtimes, reviews, shifts, stock).
                         .requestMatchers("/admin/**").hasAnyRole("ADMIN", "MANAGER")
                         // The counter: staff sell and check tickets; the counter manager works the till in person.
