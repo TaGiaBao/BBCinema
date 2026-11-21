@@ -32,6 +32,18 @@
                 </div>
             </div>
         </div>
+        <p class="text-muted small mt-3 mb-0" data-role="holiday-note">[[#{holiday.priceNote}]]</p>
+        <div class="panel mt-4" data-role="upcoming-holidays">
+            <h2 class="h5 mb-3">[[#{holiday.upcomingTitle}]]</h2>
+            <p class="text-muted mb-0" th:if="${#lists.isEmpty(holidays)}">[[#{holiday.none}]]</p>
+            <ul class="list-unstyled mb-0" th:unless="${#lists.isEmpty(holidays)}">
+                <li class="py-1" th:each="h : ${holidays}">
+                    <span class="fw-semibold tabular" th:text="${#temporals.format(h.date, 'dd/MM/yyyy')}">01/01/2027</span>
+                    <span class="text-muted" th:text="'(' + ${@fmt.dayName(h.date)} + ')'">(Thứ 6)</span>
+                    · <span th:text="${h.name}">Tết Dương lịch</span>
+                </li>
+            </ul>
+        </div>
         <h2 class="h4 mt-5 mb-3">[[#{ui.combo_bap_nuoc}]]</h2>
         <div class="row row-cols-2 row-cols-md-4 g-4">
             <div class="col" th:each="c : ${combos}">

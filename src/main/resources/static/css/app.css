@@ -119,6 +119,8 @@ h1, h2, h3, h4, h5 { font-weight: 800; letter-spacing: -0.01em; }
 .date-strip .dow { font-size: .78rem; color: var(--bb-muted); }
 .date-strip .active { background: var(--bb-navy); color: #fff; border-color: var(--bb-navy); }
 .date-strip .active .dow { color: var(--bb-amber); }
+.date-strip .holiday-tag { display: block; margin-top: .15rem; font-size: .68rem; font-weight: 700; color: #b42318; }
+.date-strip .active .holiday-tag { color: #ffb4a8; }
 .time-btn { min-width: 86px; font-weight: 700; border: 1px solid var(--bb-line); background: #fff; border-radius: 8px; padding: .4rem .7rem;
   color: var(--bb-navy); text-decoration: none; display: inline-flex; flex-direction: column; align-items: center; line-height: 1.15; }
 .time-btn small { font-weight: 500; color: var(--bb-muted); font-size: .72rem; }

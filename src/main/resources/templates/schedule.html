@@ -14,6 +14,7 @@
             <a th:each="d : ${dates}" th:href="@{/schedule(date=${d})}" th:classappend="${d == selectedDate} ? 'active'">
                 <span class="day" th:text="${#temporals.format(d, 'dd')}">01</span>
                 <span class="dow" th:text="${@fmt.relativeDay(d, today)} + ' · ' + ${#temporals.format(d, 'MM')}">Hôm nay</span>
+                <span class="holiday-tag" th:if="${holidayDates.contains(d)}">[[#{holiday.badge}]]</span>
             </a>
         </div>
         <p class="text-muted" th:if="${#lists.isEmpty(schedule)}">[[#{ui.rap_chua_co_suat_chieu}]]</p>

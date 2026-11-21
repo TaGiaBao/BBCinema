@@ -4,23 +4,41 @@
 <head><title>Bảng giá vé · Quản trị BBCinema</title></head>
 <body>
 <section class="p-4" style="max-width: 1100px">
-    <h1 class="h4">Bảng giá vé</h1>
-    <p class="text-muted small">Giá mới chỉ áp dụng cho suất chiếu tạo sau khi lưu. Vé đã tạo giữ nguyên giá cũ.
+    <div class="d-flex flex-wrap justify-content-between align-items-start gap-2">
+        <h1 class="h4">Bảng giá vé</h1>
+        <a class="btn btn-sm btn-outline-navy" th:href="@{/admin/prices/holidays}"><i class="bi bi-calendar-heart"></i> Ngày lễ</a>
+    </div>
+    <p class="text-muted small">Giá ngày thường và cuối tuần áp dụng cho các suất chiếu tạo sau khi lưu; suất đã tạo giữ nguyên giá.
         Giá ghế đôi (cho hai người) được tính tự động bằng 2 lần giá ghế VIP cùng định dạng, ngày và khung giờ.</p>
+    <p class="text-muted small">Cột <strong>Ngày lễ</strong> áp dụng cho suất chiếu bắt đầu vào một ngày trong
+        <a th:href="@{/admin/prices/holidays}">danh sách ngày lễ</a> (kể cả ngày lễ rơi vào thứ 7, chủ nhật).
+        Ô chưa đặt giá ngày lễ thì bán theo <strong>giá cuối tuần</strong>; xoá trống một ô giá ngày lễ để quay về giá cuối tuần.
+        Khi giá ngày lễ (hoặc giá cuối tuần mà ngày lễ đang dùng thay) thay đổi, ghế còn trống của các suất chiếu ngày lễ
+        sắp tới cũng được cập nhật giá mới; ghế đang giữ hoặc đã bán giữ nguyên giá.</p>
     <form method="post" th:action="@{/admin/prices}" class="panel">
         <div class="table-responsive">
             <table class="table align-middle">
-                <thead><tr><th>Định dạng</th><th>Ngày</th><th>Khung giờ</th><th>Loại ghế</th><th style="width: 200px">Giá (đ)</th></tr></thead>
-                <tbody><tr th:each="p : ${prices}" th:classappend="${p.id == null} ? 'table-light'">
-                    <td th:text="${p.format.label}">2D</td>
-                    <td th:text="${p.dayType.label}">T2-T6</td>
-                    <td th:text="${p.timeSlot.label}">Trước 17h</td>
-                    <td th:text="${p.seatType.label}">Thường</td>
-                    <td th:if="${p.id != null}"><input class="form-control form-control-sm text-end" type="number" min="0" step="1000" th:name="'price_' + ${p.id}" th:value="${p.price.longValue()}"
-                               th:attr="aria-label=${p.format.label + ' ' + p.dayType.label + ' ' + p.timeSlot.label + ' ' + p.seatType.label}"></td>
-                    <td th:if="${p.id == null}" class="text-end">
-                        <span class="fw-semibold tabular" th:text="${@fmt.money(p.price)}">0đ</span>
-                        <div class="small text-muted">= 2 × giá VIP (tự động)</div></td>
+                <thead><tr><th>Định dạng</th><th>Khung giờ</th><th>Loại ghế</th>
+                    <th style="width: 190px">Thứ 2 - Thứ 6 (đ)</th><th style="width: 190px">Thứ 7, Chủ nhật (đ)</th><th style="width: 190px">Ngày lễ (đ)</th></tr></thead>
+                <tbody><tr th:each="r : ${grid}" th:classappend="${r.seatType.name() == 'COUPLE'} ? 'table-light'">
+                    <td th:text="${r.format.label}">2D</td>
+                    <td th:text="${r.timeSlot.label}">Trước 17h</td>
+                    <td th:text="${r.seatType.label}">Thường</td>
+                    <td th:each="p, st : ${ {r.weekday, r.weekend, r.holiday} }">
+                        <th:block th:if="${p != null and r.seatType.name() != 'COUPLE' and !p.weekendFallback}">
+                            <input class="form-control form-control-sm text-end" type="number" min="0" step="1000" th:name="'price_' + ${p.id}" th:value="${p.price.longValue()}"
+                                   th:attr="aria-label=${r.format.label + ' ' + p.dayType.label + ' ' + r.timeSlot.label + ' ' + r.seatType.label}"></th:block>
+                        <th:block th:if="${p != null and r.seatType.name() != 'COUPLE' and p.weekendFallback}">
+                            <input class="form-control form-control-sm text-end" type="number" min="0" step="1000"
+                                   th:name="'holiday_' + ${r.seatType.name()} + '_' + ${r.format.name()} + '_' + ${r.timeSlot.name()}"
+                                   th:placeholder="${p.price.longValue()}"
+                                   th:attr="aria-label=${r.format.label + ' ' + p.dayType.label + ' ' + r.timeSlot.label + ' ' + r.seatType.label}">
+                            <div class="small text-muted">Chưa đặt: dùng giá cuối tuần</div></th:block>
+                        <th:block th:if="${p != null and r.seatType.name() == 'COUPLE'}">
+                            <span class="fw-semibold tabular" th:text="${@fmt.money(p.price)}">0đ</span>
+                            <div class="small text-muted">= 2 × giá VIP (tự động)</div></th:block>
+                        <span th:if="${p == null}" class="text-muted">—</span>
+                    </td>
                 </tr></tbody>
             </table>
         </div>

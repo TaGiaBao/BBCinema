@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/admin :: layout(~{::title}, ~{::section}, ~{::scripts})}">
+<head><title>Ngày lễ · Quản trị BBCinema</title></head>
+<body>
+<section class="p-4" style="max-width: 1100px">
+    <div class="d-flex flex-wrap justify-content-between align-items-start gap-2">
+        <h1 class="h4">Ngày lễ</h1>
+        <a class="btn btn-sm btn-outline-navy" th:href="@{/admin/prices}"><i class="bi bi-arrow-left"></i> Bảng giá vé</a>
+    </div>
+    <p class="text-muted small">Suất chiếu bắt đầu vào ngày lễ bán theo cột <strong>Ngày lễ</strong> của bảng giá
+        (ô chưa đặt giá thì dùng giá cuối tuần). Thêm hoặc xoá một ngày lễ sẽ cập nhật giá cho các ghế còn trống
+        của suất chiếu chưa bắt đầu trong ngày đó; ghế đang giữ, đã bán và các đơn đã đặt giữ nguyên giá.
+        Suất đã bắt đầu không đổi giá.
+        Ngày lễ âm lịch (Tết Nguyên đán, Giỗ Tổ Hùng Vương) và ngày nghỉ bù thay đổi theo từng năm, vui lòng thêm tay.</p>
+    <div class="row g-4">
+        <div class="col-xl-8">
+            <div class="panel mb-4">
+                <h2 class="h6">Sắp tới</h2>
+                <p class="text-muted small mb-0" th:if="${#lists.isEmpty(upcoming)}">Chưa có ngày lễ nào sắp tới.</p>
+                <table class="table align-middle mb-0" th:unless="${#lists.isEmpty(upcoming)}">
+                    <thead><tr><th>Ngày</th><th>Thứ</th><th>Tên ngày lễ</th><th></th></tr></thead>
+                    <tbody><tr th:each="h : ${upcoming}">
+                        <td class="tabular fw-semibold" th:text="${#temporals.format(h.date, 'dd/MM/yyyy')}">01/01/2027</td>
+                        <td th:text="${@fmt.dayName(h.date)}">Thứ 6</td>
+                        <td th:text="${h.name}">Tết Dương lịch</td>
+                        <td class="text-end">
+                            <form method="post" th:action="@{/admin/prices/holidays/{id}/delete(id=${h.id})}" class="d-inline"
+                                  onsubmit="return confirm('Xoá ngày lễ này? Ghế còn trống của các suất chiếu ngày này sẽ trở về giá thường.')">
+                                <button class="btn btn-sm btn-outline-danger" type="submit">Xoá</button></form></td>
+                    </tr></tbody>
+                </table>
+            </div>
+            <div class="panel" th:unless="${#lists.isEmpty(past)}">
+                <h2 class="h6">Đã qua</h2>
+                <table class="table align-middle mb-0">
+                    <thead><tr><th>Ngày</th><th>Tên ngày lễ</th><th></th></tr></thead>
+                    <tbody><tr th:each="h : ${past}" class="text-muted">
+                        <td class="tabular" th:text="${#temporals.format(h.date, 'dd/MM/yyyy')}">01/01/2026</td>
+                        <td th:text="${h.name}">Tết Dương lịch</td>
+                        <td class="text-end">
+                            <form method="post" th:action="@{/admin/prices/holidays/{id}/delete(id=${h.id})}" class="d-inline">
+                                <button class="btn btn-sm btn-outline-secondary" type="submit">Xoá</button></form></td>
+                    </tr></tbody>
+                </table>
+            </div>
+        </div>
+        <div class="col-xl-4">
+            <form class="panel row g-2" method="post" th:action="@{/admin/prices/holidays}" th:object="${form}">
+                <h2 class="h6 col-12">Thêm ngày lễ</h2>
+                <div class="col-12 alert alert-danger" th:if="${#fields.hasGlobalErrors()}" th:text="${#fields.globalErrors()[0]}">Lỗi</div>
+                <div class="col-12"><label class="form-label small" for="date">Ngày</label>
+                    <input class="form-control" type="date" id="date" th:field="*{date}" th:errorclass="is-invalid">
+                    <div class="invalid-feedback" th:errors="*{date}"></div></div>
+                <div class="col-12"><label class="form-label small" for="name">Tên ngày lễ</label>
+                    <input class="form-control" id="name" maxlength="100" placeholder="Ví dụ: Quốc khánh 2/9" th:field="*{name}" th:errorclass="is-invalid">
+                    <div class="invalid-feedback" th:errors="*{name}"></div></div>
+                <div class="col-12"><button class="btn btn-amber" type="submit">Thêm ngày lễ</button></div>
+            </form>
+        </div>
+    </div>
+</section>
+<th:block th:fragment="scripts"></th:block>
+</body>
+</html>

@@ -58,6 +58,14 @@ public interface ShowtimeRepository extends JpaRepository<Showtime, Long> {
             """)
     Page<Showtime> search(Long cinemaId, Long movieId, LocalDateTime from, LocalDateTime to, Pageable pageable);
 
+    /** Showtimes still on the schedule that start in [from, to). */
+    @Query("""
+            select s from Showtime s
+            where s.cancelled = false and s.startTime >= :from and s.startTime < :to
+            order by s.id
+            """)
+    List<Showtime> findActiveStartingBetween(LocalDateTime from, LocalDateTime to);
+
     boolean existsByRoomId(Long roomId);
 
     boolean existsByMovieId(Long movieId);
