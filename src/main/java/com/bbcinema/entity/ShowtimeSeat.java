@@ -75,6 +75,10 @@ public class ShowtimeSeat {
         this.status = SeatStatus.HELD;
         this.booking = booking;
         this.holdExpiresAt = expiresAt;
+        // An expired hold can be taken over before the clean-up job releases it: the new booking must not inherit
+        // the old counter sale's ticket type.
+        this.audienceType = null;
+        this.audienceDiscount = null;
     }
 
     public void markBooked() {

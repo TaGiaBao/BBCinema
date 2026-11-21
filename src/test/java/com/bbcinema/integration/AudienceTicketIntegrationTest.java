@@ -253,4 +253,31 @@ class AudienceTicketIntegrationTest extends IntegrationTestBase {
                         .param("type_STUDENT", "PERCENT").param("value_STUDENT", "99"))
                 .andExpect(status().isForbidden());
     }
+
+    @Test
+    void anExpiredCounterHoldTakenOverOnlineDoesNotPassOnItsTicketType() throws Exception {
+        Cookie staff = authCookie(staffOnShift());
+        Showtime st = showtimeTomorrow();
+        Long seatId = freeSeats(st.getId(), 1).get(0);
+        String location = mvc.perform(post("/staff/sell/" + st.getId()).with(csrf()).cookie(staff)
+                        .param("showtimeSeatIds", seatId.toString()).param("audience_" + seatId, "SENIOR")
+                        .param("paymentMethod", "BANK_QR"))
+                .andExpect(redirectedUrlPattern("/staff/bank-transfer/*"))
+                .andReturn().getResponse().getRedirectedUrl();
+        // The customer walked away; the hold ran out but the clean-up job has not released the seat yet.
+        ShowtimeSeat stale = seat(seatId);
+        stale.setHoldExpiresAt(LocalDateTime.now().minusMinutes(1));
+        showtimeSeatRepository.save(stale);
+        Booking old = sold(location);
+        old.setExpiresAt(LocalDateTime.now().minusMinutes(1));
+        bookingRepository.save(old);
+
+        User member = member(30);
+        Booking online = bookingService.holdSeats(member.getId(), st.getId(), List.of(seatId));
+
+        assertThat(online.getAudienceDiscount()).isZero();
+        assertThat(online.getTotalAmount()).isEqualByComparingTo(online.getTicketAmount());
+        assertThat(seat(seatId).getAudienceType()).isNull();
+        assertThat(seat(seatId).getAudienceDiscount()).isNull();
+    }
 }
