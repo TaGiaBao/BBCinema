@@ -17,7 +17,7 @@
                     <button type="button" class="seat"
                             th:style="'grid-column:' + ${cell.x + 1} + ' / span ' + ${cell.width}"
                             th:classappend="${cell.type.name()} + ' ' + (${cell.available} ? '' : 'taken') + ' ' + (${cell.status != null and cell.status.name() == 'HELD'} ? 'held' : '')"
-                            th:attr="data-id=${cell.showtimeSeatId},data-label=${cell.label},data-price=${cell.price.longValue()},aria-pressed='false',aria-label=${#messages.msg('seat.aria', cell.label, cell.type.label, cell.available ? @fmt.money(cell.price) : (cell.status.name() == 'HELD' ? #messages.msg('seat.held') : #messages.msg('seat.sold')))},title=${cell.label + ' · ' + cell.type.label + ' · ' + @fmt.money(cell.price)}"
+                            th:attr="data-id=${cell.showtimeSeatId},data-label=${cell.label},data-type=${cell.type.name()},data-price=${cell.price.longValue()},aria-pressed='false',aria-label=${#messages.msg('seat.aria', cell.label, cell.type.label, cell.available ? @fmt.money(cell.price) : (cell.status.name() == 'HELD' ? #messages.msg('seat.held') : #messages.msg('seat.sold')))},title=${cell.label + ' · ' + cell.type.label + ' · ' + @fmt.money(cell.price)}"
                             th:disabled="${!cell.available}"><span class="num" th:text="${cell.number}">1</span></button>
                     <input type="checkbox" class="d-none" th:name="${inputName}" th:value="${cell.showtimeSeatId}" th:disabled="${!cell.available}">
                 </th:block>

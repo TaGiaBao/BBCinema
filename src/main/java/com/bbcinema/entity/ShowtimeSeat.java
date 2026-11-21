@@ -49,8 +49,27 @@ public class ShowtimeSeat {
     @JoinColumn(name = "booking_id")
     private Booking booking;
 
+    /** Counter sales: the ticket type of this seat (null = ordinary adult ticket). */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "audience_type", length = 10)
+    private com.bbcinema.entity.enums.AudienceType audienceType;
+
+    /** How much the audience ticket took off {@link #price}; null when none. */
+    @Column(name = "audience_discount", precision = 12, scale = 0)
+    private BigDecimal audienceDiscount;
+
     @Version
     private Long version;
+
+    /** Ticket type shown on the ticket: ADULT when none was chosen. */
+    public com.bbcinema.entity.enums.AudienceType getTicketType() {
+        return audienceType == null ? com.bbcinema.entity.enums.AudienceType.ADULT : audienceType;
+    }
+
+    /** What this seat costs after its audience discount. */
+    public BigDecimal getChargedPrice() {
+        return audienceDiscount == null ? price : price.subtract(audienceDiscount);
+    }
 
     public void hold(Booking booking, LocalDateTime expiresAt) {
         this.status = SeatStatus.HELD;
@@ -67,5 +86,7 @@ public class ShowtimeSeat {
         this.status = SeatStatus.AVAILABLE;
         this.booking = null;
         this.holdExpiresAt = null;
+        this.audienceType = null;
+        this.audienceDiscount = null;
     }
 }

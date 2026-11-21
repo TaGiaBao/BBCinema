@@ -1,4 +1,4 @@
-// Counter sale payment box (staff/sell.html). Shows the total to pay (seats + snacks - member tier discount) and, for cash,
+// Counter sale payment box (staff/sell.html). Shows the total to pay (seats + snacks - member tier discount or audience tickets) and, for cash,
 // the change to hand back or the amount still missing as staff type what the customer gave. For card,
 // staff type the amount on the POS slip, which must equal the total. The server checks the same rules.
 (function () {
@@ -49,8 +49,29 @@
     return Math.floor((seatTotal() + comboTotal()) * memberPercent() / 100);
   }
 
+  // Audience tickets picked by audience-tickets.js. With a member attached, only the larger of the two discounts
+  // counts (BookingService.recalculate does the same).
+  const audiencePanel = document.getElementById('audiencePanel');
+  const audienceRow = document.querySelector('[data-role="audience-discount-row"]');
+  const audienceEl = document.getElementById('audienceDiscount');
+
+  function audienceDiscount() {
+    return audiencePanel ? Number(audiencePanel.dataset.discount) || 0 : 0;
+  }
+
+  /** [tier discount, audience discount] actually applied. */
+  function discounts() {
+    const member = memberDiscount();
+    const audience = audienceDiscount();
+    if (member > 0 && audience > 0) {
+      return member > audience ? [member, 0] : [0, audience];
+    }
+    return [member, audience];
+  }
+
   function total() {
-    return seatTotal() + comboTotal() - memberDiscount();
+    const [member, audience] = discounts();
+    return seatTotal() + comboTotal() - member - audience;
   }
 
   /** Amounts a customer is likely to hand over: the total rounded up to common notes. */
@@ -91,10 +112,19 @@
     const t = total();
     const seats = seatTotal();
     comboTotalEl.textContent = money(comboTotal());
+    const [memberOff, audienceOff] = discounts();
     if (discountRow) {
-      discountRow.classList.toggle('d-none', memberPercent() === 0);
+      discountRow.classList.toggle('d-none', memberOff === 0);
       discountRow.querySelector('[data-role="member-discount-percent"]').textContent = memberPercent();
-      discountEl.textContent = '-' + money(memberDiscount());
+      discountEl.textContent = '-' + money(memberOff);
+    }
+    if (audienceRow) {
+      audienceRow.classList.toggle('d-none', audienceOff === 0);
+      audienceEl.textContent = '-' + money(audienceOff);
+    }
+    if (audiencePanel) {
+      const note = audiencePanel.querySelector('[data-role="audience-tier-note"]');
+      note.classList.toggle('d-none', !(audienceDiscount() > 0 && memberOff > 0));
     }
     grandTotalEl.textContent = money(t);
     approvalBox.classList.toggle('d-none', m !== 'CARD');
@@ -165,6 +195,10 @@
     input.focus();
   }));
   comboInputs.forEach((i) => i.addEventListener('input', update));
+  document.addEventListener('bb:audience-changed', () => {
+    cardTouched = false;
+    update();
+  });
   document.addEventListener('bb:member-changed', () => {
     cardTouched = false; // a card amount typed for the old total is no longer right
     update();

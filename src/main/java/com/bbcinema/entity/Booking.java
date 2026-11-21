@@ -85,6 +85,11 @@ public class Booking {
     @Column(name = "tier_discount", nullable = false, precision = 12, scale = 0)
     private BigDecimal tierDiscount = BigDecimal.ZERO;
 
+    /** Counter sales: what the audience tickets (HSSV, children, seniors) took off the seat prices. */
+    @org.hibernate.annotations.ColumnDefault("0")
+    @Column(name = "audience_discount", nullable = false, precision = 12, scale = 0)
+    private BigDecimal audienceDiscount = BigDecimal.ZERO;
+
     @Column(name = "promotion_discount", nullable = false, precision = 12, scale = 0)
     private BigDecimal promotionDiscount = BigDecimal.ZERO;
 
@@ -139,7 +144,7 @@ public class Booking {
     }
 
     public BigDecimal getDiscountAmount() {
-        return tierDiscount.add(promotionDiscount).add(getPointsDiscount());
+        return tierDiscount.add(audienceDiscount).add(promotionDiscount).add(getPointsDiscount());
     }
 
     public String getSeatLabels() {
@@ -148,6 +153,19 @@ public class Booking {
                 .sorted(Comparator.comparing(Seat::getRowLabel).thenComparingInt(Seat::getNumber))
                 .map(Seat::getLabel)
                 .collect(Collectors.joining(", "));
+    }
+
+    /** Seats in label order, for the per-seat lines of the counter ticket. */
+    public List<ShowtimeSeat> getSortedSeats() {
+        return seats.stream()
+                .sorted(Comparator.comparing((ShowtimeSeat ss) -> ss.getSeat().getRowLabel())
+                        .thenComparingInt(ss -> ss.getSeat().getNumber()))
+                .toList();
+    }
+
+    /** Whether any seat was sold as an audience ticket. */
+    public boolean hasAudienceTickets() {
+        return seats.stream().anyMatch(ss -> ss.getAudienceType() != null && ss.getAudienceType().isDiscounted());
     }
 
     /** Hold deadline as epoch milliseconds, so the browser countdown does not depend on its own time zone. */

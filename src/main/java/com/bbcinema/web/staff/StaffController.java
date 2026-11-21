@@ -39,6 +39,7 @@ public class StaffController {
     private final com.bbcinema.service.ShiftService shiftService;
     private final com.bbcinema.service.TicketPrintService ticketPrintService;
     private final com.bbcinema.service.MemberCodeService memberCodeService;
+    private final com.bbcinema.service.AudienceTicketService audienceTicketService;
     private final Clock clock;
 
     /** Shown when another action (refund, payment...) changed the booking between loading and saving it. */
@@ -72,6 +73,7 @@ public class StaffController {
         model.addAttribute("showtime", showtime);
         model.addAttribute("seatMap", showtimeService.seatMap(showtimeId));
         model.addAttribute("combos", comboService.findActive());
+        model.addAttribute("audienceOptions", audienceTicketService.optionsFor(showtime));
         model.addAttribute("bankQrEnabled", bankTransferService.isAvailable());
         if (!model.containsAttribute("form")) {
             model.addAttribute("form", new CounterSaleForm());
@@ -94,17 +96,44 @@ public class StaffController {
         }
         try {
             form.setComboQuantities(com.bbcinema.web.BookingController.comboQuantitiesOf(params));
+            form.setSeatAudiences(audiencesOf(params));
             Booking booking = bookingService.sellAtCounter(staff.getId(), showtimeId, form);
+            String note = tierInsteadOfAudience(form, booking)
+                    ? ". Giảm hạng thành viên có lợi hơn nên vé được tính giá thường kèm giảm hạng." : "";
             if (booking.isPending()) { // bank transfer: wait for the money
+                if (!note.isEmpty()) {
+                    redirect.addFlashAttribute("success", note.substring(2));
+                }
                 return "redirect:/staff/bank-transfer/" + booking.getCode();
             }
-            redirect.addFlashAttribute("success", "Đã bán vé " + booking.getCode() + " (" + form.getPaymentMethod().getLabel() + ")");
+            redirect.addFlashAttribute("success", "Đã bán vé " + booking.getCode() + " (" + form.getPaymentMethod().getLabel() + ")" + note);
             return "redirect:/staff/tickets/" + booking.getCode();
         } catch (BusinessException e) {
             redirect.addFlashAttribute("error", e.getMessage());
             keepMember(form, redirect);
             return "redirect:/staff/sell/" + showtimeId;
         }
+    }
+
+    /** Reads the per-seat selects named audience_<showtime seat id> into seat id -> ticket type. */
+    static Map<Long, com.bbcinema.entity.enums.AudienceType> audiencesOf(Map<String, String> params) {
+        Map<Long, com.bbcinema.entity.enums.AudienceType> out = new java.util.HashMap<>();
+        params.forEach((key, value) -> {
+            if (key.startsWith("audience_") && value != null && !value.isBlank()) {
+                try {
+                    out.put(Long.parseLong(key.substring(9)), com.bbcinema.entity.enums.AudienceType.valueOf(value.trim()));
+                } catch (IllegalArgumentException e) {
+                    throw new BusinessException("Loại vé không hợp lệ");
+                }
+            }
+        });
+        return out;
+    }
+
+    /** Staff chose audience tickets but the member's tier discount was larger, so it was used instead. */
+    private static boolean tierInsteadOfAudience(CounterSaleForm form, Booking booking) {
+        boolean chosen = form.getSeatAudiences().values().stream().anyMatch(com.bbcinema.entity.enums.AudienceType::isDiscounted);
+        return chosen && booking.getAudienceDiscount().signum() == 0 && booking.getTierDiscount().signum() > 0;
     }
 
     /**

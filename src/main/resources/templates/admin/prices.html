@@ -44,6 +44,36 @@
         </div>
         <button class="btn btn-amber" type="submit">Lưu bảng giá</button>
     </form>
+
+    <!-- Audience tickets: sold at the counter only, where staff can check a student card or ID. -->
+    <h2 class="h5 mt-4" id="audience">Vé HSSV, trẻ em, người cao tuổi</h2>
+    <p class="text-muted small">Chỉ bán <strong>tại quầy</strong> (nhân viên kiểm tra thẻ HSSV hoặc giấy tờ). Mức giảm tính trên giá từng ghế
+        (giảm theo % được làm tròn xuống 1.000đ). Ghế đôi không áp dụng; vé trẻ em chỉ bán cho phim P và K.
+        Khách thành viên được giảm hạng hoặc vé ưu đãi, <strong>lấy mức có lợi hơn, không cộng dồn</strong>; vé ưu đãi không dùng chung mã giảm giá.</p>
+    <form method="post" th:action="@{/admin/prices/audience}" class="panel">
+        <div class="table-responsive">
+            <table class="table align-middle">
+                <thead><tr><th>Loại vé</th><th>Đang bán</th><th>Cách giảm</th><th style="width: 170px">Mức giảm</th><th>Bán cả ngày lễ</th></tr></thead>
+                <tbody><tr th:each="a : ${audienceSettings}" th:with="n=${a.audienceType.name()}">
+                    <td class="fw-semibold" th:text="${a.audienceType.label}">HSSV</td>
+                    <td><div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" role="switch" th:id="'enabled_' + ${n}" th:name="'enabled_' + ${n}" th:checked="${a.enabled}">
+                        <label class="form-check-label visually-hidden" th:for="'enabled_' + ${n}" th:text="'Bán vé ' + ${a.audienceType.label}">Bán</label></div></td>
+                    <td><select class="form-select form-select-sm" th:name="'type_' + ${n}" th:attr="aria-label='Cách giảm vé ' + ${a.audienceType.label}">
+                        <option value="PERCENT" th:selected="${a.discountType.name() == 'PERCENT'}">Giảm theo %</option>
+                        <option value="AMOUNT" th:selected="${a.discountType.name() == 'AMOUNT'}">Giảm số tiền mỗi vé (đ)</option>
+                    </select></td>
+                    <td><input class="form-control form-control-sm text-end" type="number" min="1" step="1" required
+                               th:name="'value_' + ${n}" th:value="${a.discountValue.longValue()}"
+                               th:attr="aria-label='Mức giảm vé ' + ${a.audienceType.label}"></td>
+                    <td><div class="form-check">
+                        <input class="form-check-input" type="checkbox" th:id="'holidays_' + ${n}" th:name="'holidays_' + ${n}" th:checked="${a.onHolidays}">
+                        <label class="form-check-label small" th:for="'holidays_' + ${n}">Có</label></div></td>
+                </tr></tbody>
+            </table>
+        </div>
+        <button class="btn btn-amber" type="submit">Lưu giá vé ưu đãi</button>
+    </form>
 </section>
 <th:block th:fragment="scripts"></th:block>
 </body>

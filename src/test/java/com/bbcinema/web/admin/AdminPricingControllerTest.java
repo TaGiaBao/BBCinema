@@ -25,7 +25,8 @@ class AdminPricingControllerTest {
         when(pricingService.updatePrices(anyMap(), anyMap()))
                 .thenThrow(new DataIntegrityViolationException("Value not permitted for column DAY_TYPE: 'HOLIDAY'"));
         AdminPricingController controller = new AdminPricingController(pricingService, mock(ComboService.class),
-                mock(InventoryService.class), mock(HolidayService.class), Clock.systemDefaultZone());
+                mock(InventoryService.class), mock(HolidayService.class),
+                mock(com.bbcinema.service.AudienceTicketService.class), Clock.systemDefaultZone());
         RedirectAttributesModelMap redirect = new RedirectAttributesModelMap();
 
         String view = controller.savePrices(Map.of("holiday_VIP_TWO_D_FROM_17", "120000"), redirect);
