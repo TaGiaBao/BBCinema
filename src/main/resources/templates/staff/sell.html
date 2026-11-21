@@ -62,6 +62,21 @@
                     </div>
                     <div class="small mt-2" data-role="member-status" role="status" aria-live="polite"></div>
                 </div>
+                <!-- Ticket type per seat (audience-tickets.js). Staff check a student card or ID before choosing a
+                     discounted type; the server applies the rules again and prices the sale. -->
+                <div class="panel" id="audiencePanel" data-discount="0">
+                    <h2 class="h6"><i class="bi bi-people"></i> Loại vé</h2>
+                    <template id="audienceOptions">
+                        <option th:each="o : ${audienceOptions}" th:value="${o.type.name()}" th:disabled="${!o.available}"
+                                th:attr="data-kind=${o.discountType != null ? o.discountType.name() : ''},data-value=${o.value.longValue()}"
+                                th:text="${o.type.discounted} ? ${o.label} + ' · ' + ${o.discountText} : ${o.label}">Người lớn</option>
+                    </template>
+                    <div class="small text-muted" data-role="audience-empty">Chọn ghế để chọn loại vé.</div>
+                    <div data-role="audience-list"></div>
+                    <div class="small text-muted mt-1">Kiểm tra thẻ HSSV hoặc giấy tờ trước khi bán vé ưu đãi. Ghế đôi không áp dụng.</div>
+                    <div class="alert alert-info small mt-2 mb-0 d-none" data-role="audience-tier-note">
+                        Giảm hạng thành viên có lợi hơn vé ưu đãi nên sẽ tính giá thường kèm giảm hạng (không cộng dồn).</div>
+                </div>
                 <div class="panel">
                     <h2 class="h6">Khách hàng (không bắt buộc)</h2>
                     <input class="form-control form-control-sm mb-2" th:field="*{customerName}" placeholder="Họ tên" aria-label="Họ tên">
@@ -75,6 +90,8 @@
                     <div class="summary-row text-success d-none" data-role="member-discount-row">
                         <span>Giảm hạng thành viên (<span data-role="member-discount-percent">0</span>%)</span>
                         <strong class="tabular" id="memberDiscount">0đ</strong></div>
+                    <div class="summary-row text-success d-none" data-role="audience-discount-row">
+                        <span>Vé ưu đãi (HSSV, trẻ em, cao tuổi)</span><strong class="tabular" id="audienceDiscount">0đ</strong></div>
                     <div class="summary-row fs-5"><span>Tổng phải trả</span><strong class="tabular text-danger" id="grandTotal">0đ</strong></div>
                     <div class="alert alert-warning small mt-2 mb-0" th:if="${showtime.movie.ageRating.minAge > 0}">
                         Kiểm tra giấy tờ: phim <strong th:text="${showtime.movie.ageRating.name()}">T16</strong>.</div>
@@ -123,6 +140,7 @@
 <th:block th:fragment="scripts"><script src="/js/seat-map.js"></script>
 <script src="/webjars/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
 <script src="/js/member-lookup.js"></script>
+<script src="/js/audience-tickets.js"></script>
 <script src="/js/counter-payment.js"></script></th:block>
 </body>
 </html>

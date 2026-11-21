@@ -20,6 +20,9 @@ public class CounterSaleForm {
 
     private Map<Long, Integer> comboQuantities = new HashMap<>();
 
+    /** Ticket type per seat (showtime seat id), from the "audience_{id}" selects; seats left out are adult tickets. */
+    private Map<Long, com.bbcinema.entity.enums.AudienceType> seatAudiences = new HashMap<>();
+
     @Size(max = 100)
     private String customerName;
 

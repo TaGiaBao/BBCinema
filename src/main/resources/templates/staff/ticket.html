@@ -17,6 +17,17 @@
             <div class="mt-2">Ghế: <strong class="fs-5" th:text="${booking.seatLabels}">A1</strong></div>
             <div class="small" th:each="c : ${booking.combos}" th:text="${c.quantity} + ' × ' + ${c.combo.name}">Combo</div>
             <hr>
+            <!-- Counter sales: ticket type and price of each seat, so the customer can check what they were charged. -->
+            <th:block th:if="${booking.channel.name() == 'COUNTER'}">
+                <div class="summary-row small" th:each="ss : ${booking.sortedSeats}" data-role="ticket-seat-line">
+                    <span th:text="${ss.seat.label} + ' · ' + ${ss.seat.type.label} + ' · ' + ${ss.ticketType.label}">A1 · Ghế thường · Người lớn</span>
+                    <span class="tabular">
+                        <s class="text-muted" th:if="${ss.audienceDiscount != null and ss.audienceDiscount.signum() > 0}" th:text="${@fmt.money(ss.price)}">90.000đ</s>
+                        <span th:text="${@fmt.money(ss.chargedPrice)}">72.000đ</span></span>
+                </div>
+                <div class="summary-row small" th:if="${booking.comboAmount.signum() > 0}"><span>Bắp nước</span>
+                    <span class="tabular" th:text="${@fmt.money(booking.comboAmount)}">0đ</span></div>
+            </th:block>
             <th:block th:if="${booking.user != null}">
                 <div class="summary-row small" data-role="ticket-member"><span>Thành viên</span>
                     <!-- Printed paper: the member code is masked so a lost ticket cannot be used to claim the member's prices. -->
@@ -26,6 +37,8 @@
                     <span class="tabular" th:text="'-' + ${@fmt.money(booking.tierDiscount)}">-0đ</span></div>
             </th:block>
             <div class="summary-row"><span>Tổng tiền</span><strong th:text="${@fmt.money(booking.totalAmount)}">0đ</strong></div>
+            <div class="small fst-italic mt-1" th:if="${booking.channel.name() == 'COUNTER'}" data-role="ticket-check-note">
+                Quý khách vui lòng kiểm tra loại vé và số tiền. Sai sót xin báo quản lý rạp.</div>
             <th:block th:if="${payment != null}">
                 <div class="summary-row small"><span>Thanh toán</span><span th:text="${payment.method.label}">Tiền mặt</span></div>
                 <th:block th:if="${payment.amountReceived != null}">

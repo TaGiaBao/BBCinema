@@ -55,7 +55,7 @@ class BookingServiceTest {
                 mock(com.bbcinema.repository.CounterShiftRepository.class), mock(InventoryService.class), showtimeService,
                 userService, comboService, promotionService, pointService,
                 new MembershipService(bookingRepository, TestFixtures.properties(), TestFixtures.clock()),
-                mock(MemberCodeService.class), eventPublisher,
+                mock(MemberCodeService.class), mock(AudienceTicketService.class), eventPublisher,
                 TestFixtures.properties(), TestFixtures.clock());
         user = TestFixtures.user(1, LocalDate.of(2000, 1, 1));
         showtime = TestFixtures.showtime(10, TestFixtures.movie(1, 120, AgeRating.T16), TestFixtures.room(1),

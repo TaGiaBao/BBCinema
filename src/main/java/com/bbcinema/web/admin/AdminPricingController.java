@@ -43,6 +43,7 @@ public class AdminPricingController {
     private final ComboService comboService;
     private final InventoryService inventoryService;
     private final HolidayService holidayService;
+    private final com.bbcinema.service.AudienceTicketService audienceTicketService;
     private final Clock clock;
 
     private static final DateTimeFormatter DATE = DateTimeFormatter.ofPattern("dd/MM/yyyy");
@@ -50,6 +51,7 @@ public class AdminPricingController {
     @GetMapping("/prices")
     public String prices(Model model) {
         model.addAttribute("grid", pricingService.grid());
+        model.addAttribute("audienceSettings", audienceTicketService.settings());
         model.addAttribute("menu", "prices");
         return "admin/prices";
     }
@@ -84,6 +86,35 @@ public class AdminPricingController {
                     + "Vui lòng khởi động lại ứng dụng rồi thử lại.");
         }
         return "redirect:/admin/prices";
+    }
+
+    /**
+     * Audience tickets (HSSV, children, seniors) sold at the counter. Fields per type T: enabled_T (checkbox),
+     * type_T (PERCENT/AMOUNT), value_T, holidays_T (checkbox).
+     */
+    @PostMapping("/prices/audience")
+    public String saveAudience(@RequestParam Map<String, String> params, RedirectAttributes redirect) {
+        try {
+            Map<com.bbcinema.entity.enums.AudienceType, com.bbcinema.service.AudienceTicketService.Setting> settings =
+                    new java.util.EnumMap<>(com.bbcinema.entity.enums.AudienceType.class);
+            for (com.bbcinema.entity.enums.AudienceType type : com.bbcinema.service.AudienceTicketService.DISCOUNTED) {
+                String name = type.name();
+                String value = params.get("value_" + name);
+                String discountType = params.get("type_" + name);
+                settings.put(type, new com.bbcinema.service.AudienceTicketService.Setting(
+                        params.containsKey("enabled_" + name),
+                        discountType == null ? null : com.bbcinema.entity.enums.DiscountType.valueOf(discountType),
+                        value == null || value.isBlank() ? null : parsePrice(value),
+                        params.containsKey("holidays_" + name)));
+            }
+            audienceTicketService.save(settings);
+            redirect.addFlashAttribute("success", "Đã lưu giá vé HSSV, trẻ em, người cao tuổi. Áp dụng ngay cho vé bán tại quầy.");
+        } catch (IllegalArgumentException e) { // also NumberFormatException
+            redirect.addFlashAttribute("error", "Mức giảm phải là số");
+        } catch (BusinessException e) {
+            redirect.addFlashAttribute("error", e.getMessage());
+        }
+        return "redirect:/admin/prices#audience";
     }
 
     /** Name of the input for a holiday price not set yet: holiday_{SEAT}_{FORMAT}_{SLOT}, e.g. holiday_VIP_TWO_D_FROM_17. */

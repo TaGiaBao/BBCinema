@@ -53,6 +53,7 @@ public class BookingService {
     private final PointService pointService;
     private final MembershipService membershipService;
     private final MemberCodeService memberCodeService;
+    private final AudienceTicketService audienceTicketService;
 
     /** Refusal for a member trying to change a ticket bought at the counter. */
     public static final String COUNTER_ONLY = "Vé mua tại quầy chỉ được thay đổi hoặc huỷ tại quầy.";
@@ -326,13 +327,27 @@ public class BookingService {
 
     /** Recomputes discounts and the total. Called after every change to the order. */
     void recalculate(Booking booking) {
-        // 1. Membership tier discount (members only), 2. promotion code, 3. points.
+        // 1. Membership tier discount (members only) or audience tickets (counter), whichever is better,
+        // 2. promotion code (not with audience tickets), 3. points.
         BigDecimal fullPrice = subtotal(booking);
         MemberTier tier = booking.getUser() == null ? null : membershipService.tierOf(booking.getUser());
         BigDecimal tierDiscount = tier == null ? BigDecimal.ZERO : membershipService.discountOn(tier, fullPrice);
+        BigDecimal audienceDiscount = audienceDiscountOf(booking);
+        if (audienceDiscount.signum() > 0 && tierDiscount.signum() > 0) {
+            if (tierDiscount.compareTo(audienceDiscount) > 0) {
+                clearAudienceTickets(booking); // the member's tier gives more: sell ordinary tickets
+                audienceDiscount = BigDecimal.ZERO;
+            } else {
+                tierDiscount = BigDecimal.ZERO;
+            }
+        }
         booking.setMemberTier(tier);
         booking.setTierDiscount(tierDiscount);
-        BigDecimal subtotal = fullPrice.subtract(tierDiscount);
+        booking.setAudienceDiscount(audienceDiscount);
+        if (audienceDiscount.signum() > 0) {
+            booking.setPromotion(null); // promotion codes do not combine with audience tickets
+        }
+        BigDecimal subtotal = fullPrice.subtract(tierDiscount).subtract(audienceDiscount);
         BigDecimal promotionDiscount = BigDecimal.ZERO;
         if (booking.getPromotion() != null) {
             try {
@@ -353,6 +368,20 @@ public class BookingService {
         }
         BigDecimal total = afterPromotion.subtract(pointService.valueOf(booking.getPointsUsed()));
         booking.setTotalAmount(total.max(BigDecimal.ZERO));
+    }
+
+    private static BigDecimal audienceDiscountOf(Booking booking) {
+        return booking.getSeats().stream()
+                .map(ShowtimeSeat::getAudienceDiscount)
+                .filter(Objects::nonNull)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
+
+    private static void clearAudienceTickets(Booking booking) {
+        booking.getSeats().forEach(ss -> {
+            ss.setAudienceType(null);
+            ss.setAudienceDiscount(null);
+        });
     }
 
     // ------------------------------------------------------------------ payment
@@ -662,6 +691,7 @@ public class BookingService {
         booking.setExpiresAt(now.plusMinutes(properties.booking().holdMinutes()));
         booking = bookingRepository.save(booking);
         lockAndHoldSeats(booking, form.getShowtimeSeatIds(), now);
+        audienceTicketService.apply(booking, form.getSeatAudiences());
         applyCombos(booking, form.getComboQuantities());
         recalculate(booking);
         if (method == PaymentMethod.BANK_QR) {
